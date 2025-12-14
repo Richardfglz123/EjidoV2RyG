@@ -1,0 +1,190 @@
+:root {
+    --color-primary: #2c5e1a;
+    --color-secondary: #4a8c2c;
+    --color-light: #e9f5e3;
+    --color-accent: #f8a51b;
+    --color-dark: #1a3a0a;
+}
+/* Estilos para el botón de logout */
+#logout-form button {
+    cursor: pointer;
+}
+
+#logout-form button:hover {
+    background-color: #f8f9fa;
+}
+
+/* Estilos para el dropdown */
+.dropdown-item.text-danger:hover {
+    background-color: #dc3545;
+    color: white !important;
+}
+
+/* Mostrar información del usuario */
+.user-info {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* === BASE GENERAL === */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+/* === NAVBAR === */
+.navbar-ejidal {
+    background: url("https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg");
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-primary);
+}
+
+.navbar-ejidal .navbar-brand,
+.navbar-ejidal .nav-link,
+.navbar-ejidal .dropdown-toggle {
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* === SIDEBAR === */
+.sidebar {
+    background-color: var(--color-dark);
+    color: white;
+    min-height: calc(100vh - 56px);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    border-left: 3px solid transparent;
+    margin-bottom: 2px;
+}
+
+.sidebar .nav-link:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+    color: white;
+    border-left: 3px solid var(--color-accent);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link i {
+    margin-right: 8px;
+}
+
+.submenu {
+    padding-left: 30px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.submenu .nav-link {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 0.9rem;
+    border-left: 0;
+}
+
+.submenu .nav-link:before {
+    content: "→ ";
+    opacity: 0.6;
+}
+
+/* === TARJETAS Y CONTENIDO === */
+.card-ejidal, .card {
+    background-color: #fff;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card-ejidal:hover, .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.card-header-ejidal {
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.btn-ejidal {
+    background-color: var(--color-secondary);
+    color: white;
+}
+
+.btn-ejidal:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* === SECCIÓN HERO === */
+.hero-section {
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+                url('https://lh6.googleusercontent.com/proxy/yC68ihMDse9_FBiX7HW902PcrqxXVVbZ-FXPBbAwkAembZpvaKNeEgpUdECF2gL4_0jfsZ1l_eJiqioQpqITFw');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 100px 0;
+    margin-bottom: 30px;
+}
+
+/* === TABLAS Y CRUD === */
+.crud-actions {
+    margin-bottom: 20px;
+}
+
+.table-actions {
+    white-space: nowrap;
+}
+
+.table-actions a {
+    margin-right: 5px;
+}
+
+/* === FOOTER === */
+.footer, .bg-ejidal-light {
+    background-color: var(--color-light);
+    color: var(--color-dark);
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* === FORMULARIOS O VISTAS SECUNDARIAS === */
+.main-content {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.card h2 {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.card label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+.card select,
+.card input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: #fafafa;
+}

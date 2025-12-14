@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reporte de Usuarios</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 10pt;
+        }
+        /* Encabezado del documento (Logo/Título) */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #000; /* Línea de separación */
+        }
+        .header h1 {
+            font-size: 18pt;
+            color: #333;
+            margin: 5px 0 0 0;
+        }
+        .header p {
+            font-size: 10pt;
+            margin: 0;
+        }
+
+        /* Estilos de tabla profesional */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 9pt;
+            min-width: 400px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .styled-table thead tr {
+            background-color: #007bff; /* Color primario, cambia a tu color preferido */
+            color: #ffffff;
+            text-align: left;
+        }
+
+        .styled-table th,
+        .styled-table td {
+            padding: 12px 15px;
+            border: 1px solid #dddddd;
+        }
+
+        .styled-table tbody tr {
+            border-bottom: 1px solid #dddddd;
+        }
+
+        .styled-table tbody tr:nth-of-type(even) {
+            background-color: #f3f3f3; /* Color para filas pares */
+        }
+
+        .styled-table tbody tr:last-of-type {
+            border-bottom: 2px solid #007bff;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Reporte de Usuarios</h1>
+    <p>Generado el: {{ date('d/m/Y H:i:s') }}</p>
+</div>
+
+<table class="styled-table">
+    <thead>
+    <tr>
+        <th>Nombres</th>
+        <th>Apellido Paterno</th>
+        <th>Apellido Materno</th>
+        <th>Usuario</th>
+        <th>Correo</th>
+        <th>Telefono</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    @foreach($data as $fila)
+        <tr>
+            <td>{{ $fila->Nombres }}</td>
+            <td>{{ $fila->Apellido_Paterno }}</td>
+            <td>{{ $fila->Apellido_Materno }}</td>
+            <td>{{ $fila->Usuario }}</td>
+            <td>{{ $fila->Correo }}</td>
+            <td>{{ $fila->Telefono }}</td>
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,55 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px 0;
+}
+
+/* No tocar el container de Bootstrap */
+.main-content {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+/* Navbar */
+.navbar-ejidal {
+    background-image: url("https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg");
+    background-size: cover;
+    background-position: center;
+}
+/* === Ajuste visual para que Multas tenga el mismo estilo que Principal === */
+
+/* Sidebar estilo principal */
+.sidebar {
+    background-color: #1a3a0a; /* var(--color-dark) */
+    color: white;
+    min-height: calc(100vh - 56px);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    border-left: 3px solid transparent;
+    margin-bottom: 2px;
+}
+
+.sidebar .nav-link:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+    color: white;
+    border-left: 3px solid #f8a51b; /* var(--color-accent) */
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* === FOOTER === */
+.footer, .bg-ejidal-light {
+    background-color: var(--color-light);
+    color: var(--color-dark);
+    text-align: center;
+    padding: 10px 0;
+}

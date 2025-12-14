@@ -1,0 +1,36 @@
+/* TU CSS ORIGINAL PARA LA TARJETA DE PERFIL */
+.perfil-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 750px;
+    margin: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,.08);
+}
+/* ... otros estilos perfil-header, etc ... */
+
+
+/* CLASES ASUMIDAS DEL EJEMPLO (DONDE ESTÁ EL COLOR) */
+
+/* 1. Color para el Encabezado (si lo aplicas en card-header-ejidal) */
+.card-header-ejidal {
+    /* Ejemplo: un color primario oscuro y texto blanco */
+    background-color: #2c3e50; /* Color que se veía en el original (dark/negro) */
+    color: white;
+    font-weight: 600;
+}
+
+/* 2. Color para el Botón (btn-ejidal) */
+.btn-ejidal {
+    /* Ejemplo: un color de acción (ej. verde) */
+    background-color: #27ae60;
+    color: #ffffff;
+    border: 1px solid #27ae60;
+    transition: background-color 0.3s ease;
+}
+
+.btn-ejidal:hover {
+    background-color: #2ecc71;
+    color: #ffffff;
+    border: 1px solid #2ecc71;
+}
