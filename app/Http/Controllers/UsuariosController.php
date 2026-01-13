@@ -10,7 +10,7 @@ use App\Mail\CodigoVerificacionMail;
 
 class UsuariosController extends Controller
 {
-
+    /* Listado */
     public function index()
     {
         $data = DB::table('Usuario as u')
@@ -21,11 +21,13 @@ class UsuariosController extends Controller
         return view('cpanel.usuarios.indexUsuario', compact('data'));
     }
 
+    /* Crear usuarios */
     public function create()
     {
         return view('cpanel.usuarios.formUsuario');
     }
 
+    /* Guardar usuarios */
     public function store(Request $request)
     {
         $request->validate([
@@ -75,6 +77,7 @@ class UsuariosController extends Controller
         return redirect()->route('Usuarios.index')->with('success', 'Usuario registrado correctamente');
     }
 
+    /* Editar */
     public function edit($id)
     {
         $fila = DB::table('Usuario')->where('Id_Usuario', $id)->first();
@@ -82,6 +85,7 @@ class UsuariosController extends Controller
         return view('cpanel.usuarios.editUsuario', compact('fila'));
     }
 
+    /* Actualizar */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -119,18 +123,54 @@ class UsuariosController extends Controller
         return redirect()->route('Usuarios.index')->with('success', 'Usuario actualizado correctamente');
     }
 
+    /* Borrar */
     public function destroy($id)
     {
         DB::table('Relacion_Ejidatario')->where('Id_Usuario', $id)->delete();
         DB::table('Usuario')->where('Id_Usuario', $id)->delete();
+
         return redirect()->route('Usuarios.index')->with('success', 'Usuario eliminado');
+    }
+
+    /* Login con 2FA */
+    public function login(Request $request)
+    {
+        $request->validate([
+            'username' => 'required',
+            'password' => 'required'
+        ]);
+
+        $user = DB::table('Usuario')
+            ->where('Usuario', $request->username)
+            ->orWhere('Correo', $request->username)
+            ->first();
+
+        if (!$user || !Hash::check($request->password, $user->Contraseña)) {
+            return back()->withErrors(['login' => 'Credenciales incorrectas']);
+        }
+
+        $code = rand(100000, 999999);
+
+        session([
+            '2fa_code' => $code,
+            '2fa_user' => [
+                'id' => $user->Id_Usuario,
+                'username' => $user->Usuario,
+                'email' => $user->Correo,
+                'nombre_completo' => $user->Nombres . ' ' . $user->Apellido_Paterno
+            ]
+        ]);
+
+        Mail::to($user->Correo)
+            ->send(new CodigoVerificacionMail(session('2fa_user')['nombre_completo'], $code));
+
+        return redirect()->route('2fa.form');
     }
 
     /* Buscar usuarios */
     public function buscar(Request $request)
     {
-        $query = DB::table('Usuario as u')
-            ->select('u.*');
+        $query = DB::table('Usuario as u')->select('u.*');
 
         if ($request->filled('nombre')) {
             $query->where('u.Nombres', 'like', '%' . $request->nombre . '%');
