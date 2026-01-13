@@ -10,47 +10,50 @@ use App\Mail\CodigoVerificacionMail;
 
 class UsuariosController extends Controller
 {
-    /* =========================
-       LISTADO DE USUARIOS
-    ========================= */
+
     public function index()
     {
         $data = DB::table('Usuario as u')
             ->leftJoin('Relacion_Ejidatario as re', 'u.Id_Usuario', '=', 're.Id_Usuario')
-            ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-            ->select(
-                'u.*',
-                'r.Tipo_Rol'
-            )
-            ->get();
+            ->select('u.*')
+            ->paginate(10);
 
         return view('cpanel.usuarios.indexUsuario', compact('data'));
     }
 
-    /* =========================
-       FORM CREAR USUARIO
-    ========================= */
     public function create()
     {
-        $roles = DB::table('Roles')->get();
-        return view('cpanel.usuarios.CrearUsuario', compact('roles'));
+        return view('cpanel.usuarios.formUsuario');
     }
 
-    /* =========================
-       GUARDAR USUARIO
-    ========================= */
     public function store(Request $request)
     {
         $request->validate([
             'Usuario'           => 'required|unique:Usuario,Usuario',
             'Correo'            => 'required|email|unique:Usuario,Correo',
-            'Contraseña'        => 'required|min:6|confirmed',
-            'Telefono'          => 'required',
+            'Contraseña'        => [
+                'required',
+                'confirmed',
+                'min:8',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+            ],
+            'Telefono'          => 'required|numeric',
             'Nombres'           => 'required',
             'Apellido_Paterno'  => 'required',
             'Apellido_Materno'  => 'required',
-            'Id_Rol'            => 'required|exists:Roles,Id_Rol',
         ]);
+
+        $rol = DB::table('Roles')->first();
+
+        if (!$rol) {
+            $rolId = DB::table('Roles')->insertGetId([
+                'Tipo_Rol' => 'Usuario',
+                'Fecha_Creo' => now()
+            ]);
+        } else {
+            $rolId = $rol->Id_Rol;
+        }
 
         $idUsuario = DB::table('Usuario')->insertGetId([
             'Nombres'           => $request->Nombres,
@@ -64,39 +67,21 @@ class UsuariosController extends Controller
         ]);
 
         DB::table('Relacion_Ejidatario')->insert([
+            'Id_Rol'     => $rolId,
             'Id_Usuario' => $idUsuario,
-            'Id_Rol'     => $request->Id_Rol,
             'Fecha_Creo' => now()
         ]);
 
-        return redirect()->route('Usuarios.index')
-            ->with('success', 'Usuario registrado correctamente');
+        return redirect()->route('Usuarios.index')->with('success', 'Usuario registrado correctamente');
     }
 
-    /* =========================
-       FORM EDITAR USUARIO
-    ========================= */
     public function edit($id)
     {
-        $fila = DB::table('Usuario as u')
-            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_Usuario', '=', 're.Id_Usuario')
-            ->select(
-                'u.*',
-                're.Id_Rol'
-            )
-            ->where('u.Id_Usuario', $id)
-            ->first();
-
+        $fila = DB::table('Usuario')->where('Id_Usuario', $id)->first();
         abort_if(!$fila, 404);
-
-        $roles = DB::table('Roles')->get();
-
-        return view('cpanel.usuarios.editUsuario', compact('fila', 'roles'));
+        return view('cpanel.usuarios.editUsuario', compact('fila'));
     }
 
-    /* =========================
-       ACTUALIZAR USUARIO
-    ========================= */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -105,9 +90,14 @@ class UsuariosController extends Controller
             'Apellido_Materno'  => 'required',
             'Usuario'           => 'required|unique:Usuario,Usuario,' . $id . ',Id_Usuario',
             'Correo'            => 'required|email|unique:Usuario,Correo,' . $id . ',Id_Usuario',
-            'Telefono'          => 'required',
-            'Id_Rol'            => 'required|exists:Roles,Id_Rol',
-            'Contraseña'        => 'nullable|min:6|confirmed',
+            'Telefono'          => 'required|numeric',
+            'Contraseña'        => [
+                'nullable',
+                'confirmed',
+                'min:8',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+            ],
         ]);
 
         $data = [
@@ -117,84 +107,44 @@ class UsuariosController extends Controller
             'Usuario'           => $request->Usuario,
             'Correo'            => $request->Correo,
             'Telefono'          => $request->Telefono,
+            'Fecha_Modificado'  => now()
         ];
 
         if ($request->filled('Contraseña')) {
             $data['Contraseña'] = Hash::make($request->Contraseña);
         }
 
-        DB::table('Usuario')
-            ->where('Id_Usuario', $id)
-            ->update($data);
+        DB::table('Usuario')->where('Id_Usuario', $id)->update($data);
 
-        DB::table('Relacion_Ejidatario')
-            ->where('Id_Usuario', $id)
-            ->update([
-                'Id_Rol' => $request->Id_Rol
-            ]);
-
-        return redirect()->route('Usuarios.index')
-            ->with('success', 'Usuario actualizado correctamente');
+        return redirect()->route('Usuarios.index')->with('success', 'Usuario actualizado correctamente');
     }
 
-    /* =========================
-       ELIMINAR USUARIO
-    ========================= */
     public function destroy($id)
     {
         DB::table('Relacion_Ejidatario')->where('Id_Usuario', $id)->delete();
         DB::table('Usuario')->where('Id_Usuario', $id)->delete();
-
-        return redirect()->route('Usuarios.index')
-            ->with('success', 'Usuario eliminado');
+        return redirect()->route('Usuarios.index')->with('success', 'Usuario eliminado');
     }
 
-    /* =========================
-       LOGIN + 2FA
-    ========================= */
-    public function login(Request $request)
+    /* Buscar usuarios */
+    public function buscar(Request $request)
     {
-        $request->validate([
-            'username' => 'required',
-            'password' => 'required'
-        ]);
+        $query = DB::table('Usuario as u')
+            ->select('u.*');
 
-        $user = DB::table('Usuario as u')
-            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_Usuario', '=', 're.Id_Usuario')
-            ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-            ->where(function ($q) use ($request) {
-                $q->where('u.Usuario', $request->username)
-                    ->orWhere('u.Correo', $request->username);
-            })
-            ->select(
-                'u.*',
-                'r.Tipo_Rol'
-            )
-            ->first();
-
-        if (!$user || !Hash::check($request->password, $user->Contraseña)) {
-            return back()->withErrors(['login' => 'Credenciales incorrectas']);
+        if ($request->filled('nombre')) {
+            $query->where('u.Nombres', 'like', '%' . $request->nombre . '%');
         }
 
-        $code = rand(100000, 999999);
+        if ($request->filled('apellido')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('u.Apellido_Paterno', 'like', '%' . $request->apellido . '%')
+                    ->orWhere('u.Apellido_Materno', 'like', '%' . $request->apellido . '%');
+            });
+        }
 
-        session([
-            '2fa_code' => $code,
-            '2fa_user' => [
-                'id'               => $user->Id_Usuario,
-                'username'         => $user->Usuario,
-                'email'            => $user->Correo,
-                'nombre_completo'  => trim(
-                    $user->Nombres . ' ' .
-                    $user->Apellido_Paterno . ' ' .
-                    $user->Apellido_Materno
-                ),
-                'rol'              => $user->Tipo_Rol
-            ]
-        ]);
+        $usuarios = $query->paginate(10)->withQueryString();
 
-        Mail::to($user->Correo)->send(new CodigoVerificacionMail(session('2fa_user')['nombre_completo'], $code));
-
-        return redirect()->route('2fa.form');
+        return view('cpanel.usuarios.BuscarUsuarios', compact('usuarios'));
     }
 }

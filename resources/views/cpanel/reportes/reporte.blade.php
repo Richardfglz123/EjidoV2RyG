@@ -3,19 +3,17 @@
 <head>
     <title>Reporte de Usuarios</title>
     <style>
-        /* Estilos generales */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
             font-size: 10pt;
         }
-        /* Encabezado del documento (Logo/Título) */
         .header {
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 3px solid #000; /* Línea de separación */
+            border-bottom: 3px solid #000;
         }
         .header h1 {
             font-size: 18pt;
@@ -27,7 +25,6 @@
             margin: 0;
         }
 
-        /* Estilos de tabla profesional */
         .styled-table {
             width: 100%;
             border-collapse: collapse;
@@ -38,7 +35,7 @@
         }
 
         .styled-table thead tr {
-            background-color: #007bff; /* Color primario, cambia a tu color preferido */
+            background-color: #007bff;
             color: #ffffff;
             text-align: left;
         }

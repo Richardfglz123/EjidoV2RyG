@@ -7,98 +7,167 @@ use Illuminate\Support\Facades\DB;
 
 class EjidatariosController extends Controller
 {
+    // ================================
+    // INDEX → Listado
+    // ================================
     public function index()
     {
-        $data = DB::table('Ejidatario as e')
-            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+        $ejidatarios = DB::table('Ejidatario')
+            ->join('Usuario', 'Ejidatario.Id_Usuario', '=', 'Usuario.Id_Usuario')
+            ->join('Estatus', 'Ejidatario.Id_Estatus', '=', 'Estatus.Id_Estatus')
             ->select(
-                'e.*',
-                DB::raw("CONCAT(u.Nombres,' ',u.Apellido_Paterno,' ',u.Apellido_Materno) as Usuario")
+                'Ejidatario.*',
+                'Usuario.Nombres',
+                'Usuario.Apellido_Paterno',
+                'Estatus.Estatus as NombreEstatus'
             )
             ->get();
 
-        return view('cpanel/ejidatarios/indexEjidatario', compact('data'));
+        return view('cpanel/ejidatarios.indexEjidatario', [
+            'data' => $ejidatarios
+        ]);
     }
 
-    public function create(Request $request)
+    // ================================
+    // CREATE → Formulario
+    // ================================
+    public function create()
     {
-        $usuarios = [];
+        $usuarios = DB::table('Usuario')->get();
+        $estatus  = DB::table('Estatus')->get();
 
-        if ($request->filled('buscar_usuario')) {
-            $buscar = $request->buscar_usuario;
-
-            $usuarios = DB::table('Usuario')
-                ->where(DB::raw("CONCAT(Nombres,' ',Apellido_Paterno,' ',Apellido_Materno)"), 'like', "%$buscar%")
-                ->limit(20)
-                ->get();
-        }
-
-        return view('cpanel/ejidatarios/CrearEjidatario', compact('usuarios'));
+        return view('cpanel/ejidatarios.CrearEjidatario', [
+            'usuarios' => $usuarios,
+            'estatus'  => $estatus
+        ]);
     }
 
+    // ================================
+    // STORE → Guardar
+    // ================================
     public function store(Request $request)
     {
         $request->validate([
-            'Num_Ejidatario' => 'required|numeric|unique:Ejidatario,Num_Ejidatario',
-            'Direccion'      => 'required',
-            'No_Parcela'     => 'required',
-            'Id_Usuario'     => 'required|exists:Usuario,Id_Usuario'
+            'Num_Ejidatario'     => 'required|integer|unique:Ejidatario,Num_Ejidatario',
+            'Calle'              => 'required|string|max:100',
+            'Num_Exterior'       => 'required|string|max:10',
+            'Num_Interior'       => 'nullable|string|max:10',
+            'Colonia'            => 'required|string|max:100',
+            'Municipio'          => 'required|string|max:100',
+            'Estado'             => 'required|string|max:100',
+            'Codigo_Postal'      => 'required|string|max:10',
+            'Fecha_Nacimiento'   => 'required|date',
+            'CURP'               => 'required|string|max:20',
+            'RFC'                => 'required|string|max:15',
+            'Clave_Elector'      => 'required|string|max:20',
+            'Fecha_Ingreso'      => 'required|date',
+            'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
+            'Id_Usuario'         => 'required|exists:Usuario,Id_Usuario',
         ]);
 
         DB::table('Ejidatario')->insert([
-            'Num_Ejidatario' => $request->Num_Ejidatario,
-            'Direccion'      => $request->Direccion,
-            'No_Parcela'     => $request->No_Parcela,
-            'Id_Usuario'     => $request->Id_Usuario,
-            'Fecha_Creo'     => now(),
+            'Num_Ejidatario'   => $request->Num_Ejidatario,
+            'Calle'            => $request->Calle,
+            'Num_Exterior'     => $request->Num_Exterior,
+            'Num_Interior'     => $request->Num_Interior,
+            'Colonia'          => $request->Colonia,
+            'Municipio'        => $request->Municipio,
+            'Estado'           => $request->Estado,
+            'Codigo_Postal'    => $request->Codigo_Postal,
+            'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
+            'CURP'             => $request->CURP,
+            'RFC'              => $request->RFC,
+            'Clave_Elector'    => $request->Clave_Elector,
+            'Fecha_Ingreso'    => $request->Fecha_Ingreso,
+            'Id_Estatus'       => $request->Id_Estatus,
+            'Id_Usuario'       => $request->Id_Usuario,
+
+            // Auditoría
+            'Fecha_Creo' => now(),
+            'Id_Creo'    => 'admin'
         ]);
 
-        return redirect()->route('Ejidatarios.index')
+        return redirect()->route('ejidatarios.index')
             ->with('success', 'Ejidatario registrado correctamente');
     }
 
+    // ================================
+    // EDIT → Formulario edición
+    // ================================
     public function edit($id)
     {
         $fila = DB::table('Ejidatario')
             ->where('Id_Ejidatario', $id)
             ->first();
 
-        abort_if(!$fila, 404);
-
         $usuarios = DB::table('Usuario')->get();
+        $estatus  = DB::table('Estatus')->get();
 
-        return view('cpanel/ejidatarios/editEjidatarios', compact('fila', 'usuarios'));
+        return view('cpanel/ejidatarios/editEjidatarios', [
+            'fila'     => $fila,
+            'usuarios' => $usuarios,
+            'estatus'  => $estatus
+        ]);
     }
 
+    // ================================
+    // UPDATE → Actualizar
+    // ================================
     public function update(Request $request, $id)
     {
         $request->validate([
-            'Num_Ejidatario' => 'required|numeric|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
-            'Direccion'      => 'required',
-            'No_Parcela'     => 'required',
-            'Id_Usuario'     => 'required|exists:Usuario,Id_Usuario'
+            'Calle'            => 'required|string|max:100',
+            'Num_Exterior'     => 'required|string|max:10',
+            'Num_Interior'     => 'nullable|string|max:10',
+            'Colonia'          => 'required|string|max:100',
+            'Municipio'        => 'required|string|max:100',
+            'Estado'           => 'required|string|max:100',
+            'Codigo_Postal'    => 'required|string|max:10',
+            'Fecha_Nacimiento' => 'required|date',
+            'CURP'             => 'required|string|max:20',
+            'RFC'              => 'required|string|max:15',
+            'Clave_Elector'    => 'required|string|max:20',
+            'Fecha_Ingreso'    => 'required|date',
+            'Id_Estatus'       => 'required|exists:Estatus,Id_Estatus',
+            'Id_Usuario'       => 'required|exists:Usuario,Id_Usuario',
         ]);
 
         DB::table('Ejidatario')
             ->where('Id_Ejidatario', $id)
             ->update([
-                'Num_Ejidatario' => $request->Num_Ejidatario,
-                'Direccion'      => $request->Direccion,
-                'No_Parcela'     => $request->No_Parcela,
-                'Id_Usuario'     => $request->Id_Usuario,
+                'Calle'            => $request->Calle,
+                'Num_Exterior'     => $request->Num_Exterior,
+                'Num_Interior'     => $request->Num_Interior,
+                'Colonia'          => $request->Colonia,
+                'Municipio'        => $request->Municipio,
+                'Estado'           => $request->Estado,
+                'Codigo_Postal'    => $request->Codigo_Postal,
+                'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
+                'CURP'             => $request->CURP,
+                'RFC'              => $request->RFC,
+                'Clave_Elector'    => $request->Clave_Elector,
+                'Fecha_Ingreso'    => $request->Fecha_Ingreso,
+                'Id_Estatus'       => $request->Id_Estatus,
+                'Id_Usuario'       => $request->Id_Usuario,
+
                 'Fecha_Modificado' => now(),
+                'Id_Modificado'    => 'admin'
             ]);
 
-        return redirect()->route('Ejidatarios.index')
+        return redirect()->route('ejidatarios.index')
             ->with('success', 'Ejidatario actualizado correctamente');
     }
 
+    // ================================
+    // DESTROY → Eliminar
+    // ================================
     public function destroy($id)
     {
-        DB::table('Ejidatario')->where('Id_Ejidatario', $id)->delete();
+        DB::table('Ejidatario')
+            ->where('Id_Ejidatario', $id)
+            ->delete();
 
-        return redirect()->route('Ejidatarios.index')
-            ->with('success', 'Ejidatario eliminado');
+        return redirect()->route('ejidatarios.index')
+            ->with('success', 'Ejidatario eliminado correctamente');
     }
-
 }

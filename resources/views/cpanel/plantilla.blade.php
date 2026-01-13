@@ -69,7 +69,12 @@
                         <div class="collapse" id="usuariosMenu">
                             <ul class="nav flex-column submenu">
                                 <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('admon/Usuarios/create') }}"><i class="far fa-address-card"></i> Nuevo Usuario</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-search"></i> Buscar Usuario</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('usuarios.buscar') }}">
+
+                                    <i class="fas fa-search"></i> Buscar Usuario
+                                    </a>
+                                </li>
                                 <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('/admon/Usuarios') }}"><i class="fas fa-list"></i> Listado Completo</a></li>
                                 <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-file-export"></i> Reportes</a></li>
                             </ul>
@@ -91,16 +96,17 @@
                         </div>
                     </li>
 
+                    <!-- Módulo de Actividades -->
                     <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#actividadesMenu" role="button" aria-expanded="false" aria-controls="actividadesMenu">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#actividadesMenu" role="button" aria-expanded="false" aria-controls="ejidatariosMenu">
                             <i class="fas fa-clipboard-check"></i> Actividades
                             <i class="fas fa-angle-down float-end mt-1"></i>
                         </a>
                         <div class="collapse" id="actividadesMenu">
                             <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-plus-circle"></i> Nueva Actividad</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-calendar-alt"></i> Consulta de actividades</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-list"></i> Listado de actividades</a></li>
+                                <li class="nav-item"><a class="nav-link active" href="/admon/actividades/create"><i class="fas fa-plus-circle"></i> Nuevo actividad</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/admon/actividades"><i class="fas fa-calendar-alt"></i> Consulta de actividades</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#"><i class="fas fa-list"></i> Listado de actividades</a></li>
                             </ul>
                         </div>
                     </li>
@@ -135,18 +141,47 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#historicosMenu" role="button" aria-expanded="false" aria-controls="historicosMenu">
+                        <a class="nav-link text-white"
+                           data-bs-toggle="collapse"
+                           href="#historicosMenu"
+                           role="button"
+                           aria-expanded="false"
+                           aria-controls="historicosMenu">
                             <i class="fas fa-scroll"></i> Datos históricos
                             <i class="fas fa-angle-down float-end mt-1"></i>
                         </a>
+
                         <div class="collapse" id="historicosMenu">
                             <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-plus-circle"></i> Nuevo Descuento</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-list"></i> Registros</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-file-invoice-dollar"></i> Reportes</a></li>
+
+                                <!-- NUEVO REGISTRO -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50"
+                                       href="{{ route('datos_historicos.create') }}">
+                                        <i class="fas fa-plus-circle"></i> Nuevo registro
+                                    </a>
+                                </li>
+
+                                <!-- LISTADO -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50"
+                                       href="{{ route('datos_historicos.index') }}">
+                                        <i class="fas fa-list"></i> Registros
+                                    </a>
+                                </li>
+
+                                <!-- REPORTES (placeholder) -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50"
+                                       href="#">
+                                        <i class="fas fa-file-invoice-dollar"></i> Reportes
+                                    </a>
+                                </li>
+
                             </ul>
                         </div>
                     </li>
+
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="#">

@@ -53,58 +53,48 @@
                                class="form-control @error('Usuario') is-invalid @enderror"
                                value="{{ old('Usuario') }}" required>
                         @error('Usuario')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <small class="text-muted">Nombre único para acceder al sistema.</small>
                     </div>
 
                     <div class="col-md-4">
                         <label>Correo</label>
                         <input type="email" name="Correo"
                                class="form-control @error('Correo') is-invalid @enderror"
-                               value="{{ old('Correo') }}" required>
+                               value="{{ old('Correo') }}" required
+                               placeholder="ejemplo@correo.com">
                         @error('Correo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
+                    {{-- restricción de 10 dígitos --}}
                     <div class="col-md-4">
                         <label>Teléfono</label>
                         <input type="text" name="Telefono"
                                class="form-control @error('Telefono') is-invalid @enderror"
-                               value="{{ old('Telefono') }}" required>
+                               value="{{ old('Telefono') }}"
+                               required
+                               maxlength="10"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               placeholder="10 dígitos">
                         @error('Telefono')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <small class="text-muted">Escribe tu numero telefonico</small>
                     </div>
                 </div>
 
-                {{-- Contraseña --}}
                 <div class="row mb-3">
+                    {{-- Contraseña--}}
                     <div class="col-md-6">
                         <label>Contraseña</label>
                         <input type="password" name="Contraseña"
                                class="form-control @error('Contraseña') is-invalid @enderror"
-                               required minlength="6">
+                               required>
                         @error('Contraseña')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <small class="text-muted">Mínimo 8 caracteres, 1 mayúscula y 1 número.</small>
                     </div>
 
                     <div class="col-md-6">
                         <label>Confirmar contraseña</label>
                         <input type="password" name="Contraseña_confirmation"
-                               class="form-control" required minlength="6">
-                    </div>
-                </div>
-
-                {{-- ROL (FIX REAL AQUÍ) --}}
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <label>Rol</label>
-                        <select name="Id_Rol"
-                                class="form-select @error('Id_Rol') is-invalid @enderror"
-                                required>
-                            <option value="">Seleccione un rol</option>
-                            @foreach($roles as $rol)
-                                <option value="{{ $rol->Id_Rol }}"
-                                    {{ old('Id_Rol') == $rol->Id_Rol ? 'selected' : '' }}>
-                                    {{ $rol->Tipo_Rol }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('Id_Rol')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                               class="form-control" required>
                     </div>
                 </div>
 

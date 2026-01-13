@@ -1,53 +1,79 @@
 @extends('cpanel/plantilla')
-@section('title', 'Listado de Ejidatarios')
+@section('title','Ejidatarios')
 
 @section('content')
-    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
 
-        <h2>Listado Completo de Ejidatarios</h2>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-ejidal">
+            <i class="fas fa-people-carry me-2"></i> Ejidatarios
+        </h1>
 
-        <a href="{{ url('admon/Ejidatarios/create') }}" class="btn btn-success mb-3">
-            Nuevo Ejidatario
-        </a>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url('admon/Ejidatarios/create') }}" class="btn btn-ejidal">
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Ejidatario
+            </a>
+        </div>
+    </div>
 
-        <table class="table table-striped">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Número</th>
-                <th>Usuario</th>
-                <th>Dirección</th>
-                <th>Parcela</th>
-                <th>Acciones</th>
-            </tr>
-            </thead>
+    <div class="card card-ejidal">
+        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-list me-2"></i> Ejidatarios Registrados</span>
+        </div>
 
-            <tbody>
-            @foreach($data as $fila)
+        <div class="card-body table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
                 <tr>
-                    <td>{{ $fila->Id_Ejidatario }}</td>
-                    <td>{{ $fila->Num_Ejidatario }}</td>
-                    <td>{{ $fila->Usuario }}</td>
-                    <td>{{ $fila->Direccion }}</td>
-                    <td>{{ $fila->No_Parcela }}</td>
-                    <td>
-                        <a href="{{ url('admon/Ejidatarios/'.$fila->Id_Ejidatario.'/edit') }}"
-                           class="btn btn-warning btn-sm">Editar</a>
-
-                        <form action="{{ url('admon/Ejidatarios/'.$fila->Id_Ejidatario) }}"
-                              method="POST" style="display:inline-block">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-danger btn-sm"
-                                    onclick="return confirm('¿Eliminar este ejidatario?')">
-                                Eliminar
-                            </button>
-                        </form>
-                    </td>
+                    <th>Número de Ejidatario</th>
+                    <th>Dirección</th>
+                    <th>No. Parcela</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
-            @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                @forelse($data as $fila)
+                    <tr>
+                        <td>{{ $fila->Num_Ejidatario }}</td>
+                        <td>{{ $fila->Direccion }}</td>
+                        <td>{{ $fila->No_Parcela }}</td>
+                        <td class="text-center">
+                            <div class="btn-group shadow-sm">
+                                <a href="{{ url('admon/ejidatarios/'.$fila->Id_Ejidatario.'/edit') }}"
+                                   class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
 
-    </main>
+                                <form action="{{ url('admon/ejidatarios/'.$fila->Id_Ejidatario) }}"
+                                      method="post" class="d-inline">
+                                    @csrf
+                                    {{ method_field('DELETE') }}
+                                    <button class="btn btn-danger btn-sm"
+                                            onclick="return confirm('¿Estas seguro que lo quieres eliminar?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            No hay ejidatarios registrados.
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3">
+            <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> Generar PDF
+            </a>
+            <a href="{{ route('reportes.ejidatarios.excel') }}" class="btn btn-success">
+                <i class="fas fa-file-excel me-1"></i> Descargar Excel
+            </a>
+        </div>
+    </div>
+
 @endsection

@@ -21,8 +21,9 @@ class EjidatariosExport implements
             ->select(
                 'Id_Ejidatario',
                 'Num_Ejidatario',
-                'Direccion',
-                'No_Parcela'
+                // Concatenamos las columnas reales de tu DB para formar la "Direccion"
+                DB::raw("CONCAT(Calle, ' #', Num_Exterior, ', ', Colonia, ', ', Municipio)"),
+                'CURP' // Usamos CURP ya que No_Parcela no existe en tu tabla SQL
             )->get();
     }
 
@@ -31,13 +32,14 @@ class EjidatariosExport implements
         return [
             'ID Ejidatario',
             'Número',
-            'Dirección',
-            'Parcela'
+            'Dirección Completa',
+            'CURP'
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
+        // El rango sigue siendo A1:D1 porque tenemos 4 columnas
         $sheet->getStyle('A1:D1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -59,7 +61,7 @@ class EjidatariosExport implements
         $sheet->getStyle("A1:D{$lastRow}")->applyFromArray([
             'font' => [
                 'name' => 'Arial',
-                'size' => 12
+                'size' => 11 // Bajé un poco el tamaño para que quepa mejor la dirección
             ],
             'borders' => [
                 'allBorders' => [

@@ -3,64 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <title>Verificación 2FA</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
+        /* ======== FONDO GENERAL ======== */
         body {
-            background: linear-gradient(135deg, #f5f2e7, #e0d9c8); /* tonos cálidos */
-            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to bottom right, #d3e8d3, #ffffff);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ======== NAVBAR ======== */
+        .navbar-ejidal {
+            background: url(https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg)
+            center/cover no-repeat;
+            height: 50px;
+            margin-left: auto;
+            margin-right: auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', sans-serif;
+            padding: 0 20px;
         }
-        .card {
+
+        .navbar-ejidal .navbar-brand {
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* ======== LOGIN CARD ======== */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 35px;
+            background-color: #ffffffcc;
+            backdrop-filter: blur(6px);
             border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            background-color: #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            animation: fadeIn 0.6s ease-out;
         }
-        .form-control {
-            letter-spacing: 5px;
-            border: 1px solid #ccc;
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .form-control:focus {
-            border-color: #4b6b2d; /* verde ejidal */
-            box-shadow: 0 0 5px rgba(75,107,45,0.4);
+
+        .login-container h2 {
+            text-align: center;
+            color: #2c5e1a;
+            font-weight: 700;
+            margin-bottom: 25px;
         }
-        .btn-primary {
-            border-radius: 10px;
+
+        /* ======== INPUTS ======== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
             font-weight: 600;
-            background-color: #4b6b2d; /* verde ejidal */
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #b6b6b6;
+            border-radius: 8px;
+            font-size: 16px;
+            letter-spacing: 6px;
+            text-align: center;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #2c5e1a;
+            outline: none;
+            box-shadow: 0 0 5px #2c5e1a66;
+        }
+
+        /* ======== BOTÓN ======== */
+        button {
+            width: 100%;
+            background-color: #2c5e1a;
+            color: white;
             border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s ease;
         }
-        .btn-primary:hover {
-            background-color: #3a5322;
+
+        button:hover {
+            background-color: #214715;
+            transform: scale(1.03);
         }
-        h3 {
-            color: #4b6b2d !important;
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* ======== MENSAJES DE ERROR ======== */
+        .messages {
+            list-style: none;
+            padding: 0;
+            color: red;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<div class="container" style="max-width: 420px;">
-    <div class="card p-4">
-        <h3 class="text-center mb-3">Verificación en dos pasos</h3>
-        <p class="text-center text-muted">Ingresa el código que enviamos a tu correo.</p>
+<div class="navbar-ejidal">
+    <span class="navbar-brand">Sistema Ejidal</span>
+</div>
 
-        @if(session('error'))
-            <div class="alert alert-danger text-center">{{ session('error') }}</div>
-        @endif
+<div class="login-container">
+    <h2>Verificación</h2>
 
-        <form method="POST" action="{{ route('2fa.check') }}">
-            @csrf
+    <form method="POST" action="{{ route('2fa.check') }}">
+        @csrf
 
-            <input type="text" name="code" maxlength="6"
-                   class="form-control mb-3 text-center fs-4"
-                   placeholder="000000" required>
+        <div class="form-group">
+            <label for="code">Código de verificación</label>
+            <input
+                type="text"
+                id="code"
+                name="code"
+                maxlength="6"
+                autofocus
+                inputmode="numeric"
+                autocomplete="one-time-code"
+            >
+        </div>
 
-            <button class="btn btn-primary w-100">Verificar</button>
-        </form>
-    </div>
+        @error('code')
+        <ul class="messages">
+            <li>{{ $message }}</li>
+        </ul>
+        @enderror
+
+        <button type="submit">Verificar</button>
+    </form>
 </div>
 
 </body>
