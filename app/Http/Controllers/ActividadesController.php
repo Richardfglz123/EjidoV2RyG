@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ActividadesExport;
 
 class ActividadesController extends Controller
 {
@@ -88,5 +91,42 @@ class ActividadesController extends Controller
     public function destroy($id){
         DB::table('Actividad')->where('Id_Actividad', '=', $id)->delete();
         return redirect()->route('actividades.index');
+    }
+    private function filtrar(Request $request)
+    {
+        $q = DB::table('Actividad');
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $q->whereBetween('FechaInicio', [
+                $request->fecha_inicio,
+                $request->fecha_fin
+            ]);
+        }
+
+        if ($request->filled('mes')) {
+            $q->whereMonth('FechaInicio', $request->mes);
+        }
+
+        if ($request->filled('anio')) {
+            $q->whereYear('FechaInicio', $request->anio);
+        }
+
+        return $q->get();
+    }
+
+    public function reportePDF(Request $request)
+    {
+        $data = $this->filtrar($request);
+
+        $pdf = Pdf::loadView('cpanel/reportes/reporteActividades', compact('data'));
+        return $pdf->stream('reporte_actividades.pdf');
+    }
+
+    public function reporteExcel(Request $request)
+    {
+        return Excel::download(
+            new ActividadesExport($request),
+            'actividades.xlsx'
+        );
     }
 }

@@ -19,18 +19,17 @@ class EjidatariosExport implements
     {
         return DB::table('Ejidatario')
             ->select(
-                'Id_Ejidatario',
+            // Se eliminó 'Id_Ejidatario'
                 'Num_Ejidatario',
-                // Concatenamos las columnas reales de tu DB para formar la "Direccion"
                 DB::raw("CONCAT(Calle, ' #', Num_Exterior, ', ', Colonia, ', ', Municipio)"),
-                'CURP' // Usamos CURP ya que No_Parcela no existe en tu tabla SQL
+                'CURP'
             )->get();
     }
 
     public function headings(): array
     {
         return [
-            'ID Ejidatario',
+            // Se eliminó 'ID Ejidatario'
             'Número',
             'Dirección Completa',
             'CURP'
@@ -39,8 +38,8 @@ class EjidatariosExport implements
 
     public function styles(Worksheet $sheet)
     {
-        // El rango sigue siendo A1:D1 porque tenemos 4 columnas
-        $sheet->getStyle('A1:D1')->applyFromArray([
+        // El rango se ajustó a A1:C1 (3 columnas)
+        $sheet->getStyle('A1:C1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -58,10 +57,11 @@ class EjidatariosExport implements
 
         $lastRow = $sheet->getHighestRow();
 
-        $sheet->getStyle("A1:D{$lastRow}")->applyFromArray([
+        // Se ajustó el rango de bordes a A1:C{$lastRow}
+        $sheet->getStyle("A1:C{$lastRow}")->applyFromArray([
             'font' => [
                 'name' => 'Arial',
-                'size' => 11 // Bajé un poco el tamaño para que quepa mejor la dirección
+                'size' => 11
             ],
             'borders' => [
                 'allBorders' => [

@@ -31,7 +31,6 @@
             margin: 25px 0;
             font-size: 9pt;
             min-width: 400px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
         }
 
         .styled-table thead tr {
@@ -46,12 +45,8 @@
             border: 1px solid #dddddd;
         }
 
-        .styled-table tbody tr {
-            border-bottom: 1px solid #dddddd;
-        }
-
         .styled-table tbody tr:nth-of-type(even) {
-            background-color: #f3f3f3; /* Color para filas pares */
+            background-color: #f3f3f3;
         }
 
         .styled-table tbody tr:last-of-type {
@@ -69,30 +64,22 @@
 <table class="styled-table">
     <thead>
     <tr>
-        <th>ID</th>
         <th>Número</th>
-        <th>Dirección Completa</th> <th>CURP / RFC</th> <th>Acciones</th>
+        <th>Dirección Completa</th>
+        <th>CURP / RFC</th>
     </tr>
     </thead>
     <tbody>
     @foreach($data as $fila)
         <tr>
-            <td>{{ $fila->Id_Ejidatario }}</td>
             <td>{{ $fila->Num_Ejidatario }}</td>
-
             <td>
                 {{ $fila->Calle }} #{{ $fila->Num_Exterior }},
                 Col. {{ $fila->Colonia }}, {{ $fila->Municipio }}
             </td>
-
-            <td>{{ $fila->CURP }} <br> <small>{{ $fila->RFC }}</small></td>
-
             <td>
-                <form action="{{ url('admon/Ejidatarios/' . $fila->Id_Ejidatario) }}"
-                      method="POST" style="display:inline-block">
-                    @csrf
-                    @method('DELETE')
-                </form>
+                {{ $fila->CURP }} <br>
+                <small>{{ $fila->RFC }}</small>
             </td>
         </tr>
     @endforeach

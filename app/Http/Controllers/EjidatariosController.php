@@ -23,7 +23,7 @@ class EjidatariosController extends Controller
             )
             ->get();
 
-        return view('cpanel/ejidatarios.indexEjidatario', [
+        return view('cpanel/ejidatarios/indexEjidatario', [
             'data' => $ejidatarios
         ]);
     }
@@ -36,7 +36,7 @@ class EjidatariosController extends Controller
         $usuarios = DB::table('Usuario')->get();
         $estatus  = DB::table('Estatus')->get();
 
-        return view('cpanel/ejidatarios.CrearEjidatario', [
+        return view('cpanel.ejidatarios.CrearEjidatario', [
             'usuarios' => $usuarios,
             'estatus'  => $estatus
         ]);
@@ -81,13 +81,11 @@ class EjidatariosController extends Controller
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
             'Id_Usuario'       => $request->Id_Usuario,
-
-            // Auditoría
-            'Fecha_Creo' => now(),
-            'Id_Creo'    => 'admin'
+            'Fecha_Creo'       => now(),
+            'Id_Creo'          => 'admin'
         ]);
 
-        return redirect()->route('ejidatarios.index')
+        return redirect()->route('Ejidatarios.index')
             ->with('success', 'Ejidatario registrado correctamente');
     }
 
@@ -116,6 +114,7 @@ class EjidatariosController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
+            'Num_Ejidatario'   => 'required|integer|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
             'Calle'            => 'required|string|max:100',
             'Num_Exterior'     => 'required|string|max:10',
             'Num_Interior'     => 'nullable|string|max:10',
@@ -135,6 +134,7 @@ class EjidatariosController extends Controller
         DB::table('Ejidatario')
             ->where('Id_Ejidatario', $id)
             ->update([
+                'Num_Ejidatario'   => $request->Num_Ejidatario,
                 'Calle'            => $request->Calle,
                 'Num_Exterior'     => $request->Num_Exterior,
                 'Num_Interior'     => $request->Num_Interior,
@@ -149,12 +149,11 @@ class EjidatariosController extends Controller
                 'Fecha_Ingreso'    => $request->Fecha_Ingreso,
                 'Id_Estatus'       => $request->Id_Estatus,
                 'Id_Usuario'       => $request->Id_Usuario,
-
                 'Fecha_Modificado' => now(),
                 'Id_Modificado'    => 'admin'
             ]);
 
-        return redirect()->route('ejidatarios.index')
+        return redirect()->route('Ejidatarios.index')
             ->with('success', 'Ejidatario actualizado correctamente');
     }
 
@@ -167,7 +166,7 @@ class EjidatariosController extends Controller
             ->where('Id_Ejidatario', $id)
             ->delete();
 
-        return redirect()->route('ejidatarios.index')
+        return redirect()->route('Ejidatarios.index')
             ->with('success', 'Ejidatario eliminado correctamente');
     }
 }

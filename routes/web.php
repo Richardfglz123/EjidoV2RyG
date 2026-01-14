@@ -38,6 +38,22 @@ Route::post('/logout', function () {
 })->name('logout');
 
 Route::middleware([CheckAuth::class])->group(function () {
+    //REPORTES ACTIVIDADS
+    Route::prefix('admon/actividades/reportes')->group(function () {
+        Route::get('pdf', [ActividadesController::class, 'reportePDF'])
+            ->name('actividades.reporte.pdf');
+
+        Route::get('excel', [ActividadesController::class, 'reporteExcel'])
+            ->name('actividades.reporte.excel');
+    });
+    //PDF Y EXCEL DATOS HISTORICOS
+    Route::prefix('admon/datos-historicos/reportes')->group(function () {
+        Route::get('pdf', [DatosHistoricosController::class, 'reportePDF'])
+            ->name('datos_historicos.reporte.pdf');
+
+        Route::get('excel', [DatosHistoricosController::class, 'reporteExcel'])
+            ->name('datos_historicos.reporte.excel');
+    });
 
     // Dashboard
     Route::get('/admon', function () {

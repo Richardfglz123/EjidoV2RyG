@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DatosHistoricosExport;
+
 
 class DatosHistoricosController extends Controller
 {
@@ -110,4 +114,43 @@ class DatosHistoricosController extends Controller
 
         return back()->with('success', 'Registro eliminado');
     }
+    private function filtrar(Request $request)
+    {
+        $q = DB::table('Datos_Historicos')
+            ->whereNull('Fecha_Eliminado');
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $q->whereBetween('Fecha', [
+                $request->fecha_inicio,
+                $request->fecha_fin
+            ]);
+        }
+
+        if ($request->filled('mes')) {
+            $q->whereMonth('Fecha', $request->mes);
+        }
+
+        if ($request->filled('anio')) {
+            $q->whereYear('Fecha', $request->anio);
+        }
+
+        return $q->orderBy('Fecha', 'desc')->get();
+    }
+
+    public function reportePDF(Request $request)
+    {
+        $data = $this->filtrar($request);
+
+        $pdf = Pdf::loadView('cpanel.reportes.reporteDatosHistoricos', compact('data'));
+        return $pdf->stream('datos_historicos.pdf');
+    }
+
+    public function reporteExcel(Request $request)
+    {
+        return Excel::download(
+            new DatosHistoricosExport($request),
+            'datos_historicos.xlsx'
+        );
+    }
+
 }

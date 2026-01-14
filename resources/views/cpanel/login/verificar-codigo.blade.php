@@ -122,7 +122,7 @@
 <body>
 
 <div class="navbar-ejidal">
-    <span class="navbar-brand">Sistema Ejidal</span>
+    <span class="navbar-brand">Sistema Ejidal San Rafael Ixtapalucan</span>
 </div>
 
 <div class="login-container">

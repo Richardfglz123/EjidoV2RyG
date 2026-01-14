@@ -17,34 +17,34 @@ class UsuariosExport implements
 {
     public function collection()
     {
+        // Se eliminó 'Contraseña' de la selección
         return DB::table('Usuario')->select(
             'Nombres',
             'Apellido_Paterno',
             'Apellido_Materno',
             'Usuario',
             'Correo',
-            'Contraseña',
             'Telefono'
         )->get();
     }
 
     public function headings(): array
     {
+        // Se eliminó 'Contraseña' de los encabezados
         return [
             'Nombres',
             'Apellido Paterno',
             'Apellido Materno',
             'Usuario',
             'Correo',
-            'Contraseña',
             'Teléfono'
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        // Encabezados con estilo
-        $sheet->getStyle('A1:G1')->applyFromArray([
+        // Ajustado el rango a la columna F (ya que ahora son 6 columnas en lugar de 7)
+        $sheet->getStyle('A1:F1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -60,10 +60,10 @@ class UsuariosExport implements
             ]
         ]);
 
-        // Bordes
         $lastRow = $sheet->getHighestRow();
 
-        $sheet->getStyle("A1:G{$lastRow}")->applyFromArray([
+        // Ajustado el rango de bordes a la columna F
+        $sheet->getStyle("A1:F{$lastRow}")->applyFromArray([
             'font' => [
                 'name' => 'Arial',
                 'size' => 12
@@ -76,5 +76,4 @@ class UsuariosExport implements
             ]
         ]);
     }
-
 }
