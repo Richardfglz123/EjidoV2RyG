@@ -3,7 +3,6 @@
 
 @section('content')
     <style>
-        /* Estilos para corregir visibilidad y estética de Select2 */
         .select2-container--open { z-index: 9999 !important; }
         .select2-container .select2-selection--single { height: 38px !important; display: flex; align-items: center; border: 1px solid #ced4da; }
         .card-header-ejidal { background-color: #1b4b36; color: white; }
@@ -12,7 +11,6 @@
         .select2-results__option--highlighted { background-color: #1b4b36 !important; }
     </style>
 
-    {{-- Select2 CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -112,7 +110,6 @@
         </div>
     </div>
 
-    {{-- MODAL NUEVO PRÉSTAMO (Sin tabindex para Select2) --}}
     <div class="modal fade" id="modalPrestamo" aria-hidden="true"
          data-search-url="{{ route('ejidatarios.buscar') }}">
         <div class="modal-dialog modal-lg">
@@ -151,7 +148,6 @@
         </div>
     </div>
 
-    {{-- MODAL EDITAR --}}
     <div class="modal fade" id="modalEditar" aria-hidden="true">
         <div class="modal-dialog">
             <form id="form-editar" method="POST">
@@ -184,7 +180,6 @@
         </div>
     </div>
 
-    {{-- MODAL ABONO --}}
     <div class="modal fade" id="modalAbono" aria-hidden="true">
         <div class="modal-dialog">
             <form id="form-abono" method="POST">
@@ -217,7 +212,6 @@
         </div>
     </div>
 
-    {{-- Paginación --}}
     <div class="d-flex justify-content-center mt-3">
         {{ $ejidatarios->links() }}
     </div>
@@ -230,12 +224,10 @@
 
         <script>
             $(document).ready(function() {
-                // Configuración de seguridad CSRF
                 $.ajaxSetup({
                     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
                 });
 
-                // 1. SELECT2: Búsqueda de ejidatarios
                 $('#ejidatario-select').select2({
                     placeholder: 'Escribe nombre del ejidatario...',
                     dropdownParent: $('#modalPrestamo'),
@@ -250,14 +242,11 @@
                     }
                 });
 
-                // 2. GESTIÓN DE SALDO: Al seleccionar un ejidatario
                 $('#ejidatario-select').on('select2:select', function(e) {
                     const data = e.params.data;
                     const ejidatarioId = data.id; // El controlador mapea Id_Ejidatario a id
 
                     $('#saldo-info').html('<i class="fas fa-spinner fa-spin"></i> Calculando disponible...');
-
-                    // Llamada a la ruta del Segundo Reparto (NO al primero)
                     $.get('/segundo-reparto/ejidatario/' + ejidatarioId + '/saldo')
                         .done(function(res) {
                             if (res.success) {
@@ -280,7 +269,6 @@
                         });
                 });
 
-                // 3. ACCIÓN: Editar Préstamo
                 $(document).on('click', '.btn-editar', function() {
                     const id = $(this).data('id');
                     $('#form-editar').attr('action', '/prestamo2/actualizar/' + id);
@@ -290,7 +278,6 @@
                     $('#modalEditar').modal('show');
                 });
 
-                // 4. ACCIÓN: Registrar Abono
                 $(document).on('click', '.btn-abonar', function() {
                     const id = $(this).data('id');
                     $('#form-abono').attr('action', '/prestamo2/abonar/' + id);
@@ -303,7 +290,6 @@
                     $('#modalAbono').modal('show');
                 });
 
-                // 5. BUSCADOR DE TABLA
                 $('#tabla-search').on('keyup', function() {
                     const val = $(this).val().toLowerCase();
                     $('#tabla-prestamos tbody tr').filter(function() {
@@ -311,7 +297,6 @@
                     });
                 });
 
-                // RESETEAR MODAL AL CERRAR
                 $('#modalPrestamo').on('hidden.bs.modal', function () {
                     $('#ejidatario-select').val(null).trigger('change');
                     $('#saldo-info').removeClass('alert-success alert-danger').addClass('alert-secondary')

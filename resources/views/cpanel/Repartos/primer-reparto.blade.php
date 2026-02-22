@@ -2,7 +2,6 @@
 @section('title', 'Primer Reparto')
 
 @section('content')
-    {{-- Estilos para corregir visibilidad y estética de Select2 --}}
     <style>
         .select2-container--open { z-index: 9999 !important; }
         .select2-container .select2-selection--single { height: 38px !important; display: flex; align-items: center; border: 1px solid #ced4da; }
@@ -11,10 +10,8 @@
         .btn-ejidal:hover { background-color: #143828; color: white; }
     </style>
 
-    {{-- Select2 CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-    {{-- Encabezado --}}
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2 text-ejidal">
             <i class="fas fa-hand-holding-usd me-2"></i> Primer Reparto
@@ -27,7 +24,7 @@
         </div>
     </div>
 
-    {{-- Alertas --}}
+
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
@@ -35,7 +32,6 @@
         </div>
     @endif
 
-    {{-- Tabla de préstamos --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
             <span><i class="fas fa-list me-2"></i> Listado de Préstamos Registrados</span>
@@ -75,7 +71,6 @@
                             <td class="text-center">
                                 @if(!(isset($deadlinePasada) && $deadlinePasada))
                                     <div class="btn-group btn-group-sm">
-                                        {{-- Botón Editar --}}
                                         <button type="button" class="btn btn-outline-primary btn-editar"
                                                 data-id="{{ $prestamo->Id_Prestamo }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
@@ -83,14 +78,12 @@
                                                 data-cantidad="{{ $prestamo->Cantidad }}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        {{-- Botón Abonar --}}
                                         <button type="button" class="btn btn-outline-success btn-abonar"
                                                 data-url="{{ route('prestamo.abonar', $prestamo->Id_Prestamo) }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
                                                 data-saldo="{{ $prestamo->Saldo_Continuo }}">
                                             <i class="fas fa-money-bill-wave"></i>
                                         </button>
-                                        {{-- Botón Eliminar --}}
                                         <form action="{{ route('prestamo.eliminar', $prestamo->Id_Prestamo) }}" method="POST" class="d-inline">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar registro?')">
@@ -112,7 +105,6 @@
         </div>
     </div>
 
-    {{-- MODAL NUEVO PRÉSTAMO --}}
     <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true"
          data-search-url="{{ route('ejidatarios.buscar') }}"
          data-saldo-url="{{ url('primer-reparto/ejidatario') }}/__ID__/saldo">
@@ -153,7 +145,6 @@
         </div>
     </div>
 
-    {{-- MODAL EDITAR --}}
     <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <form id="form-editar" method="POST">
@@ -186,7 +177,6 @@
         </div>
     </div>
 
-    {{-- MODAL ABONAR --}}
     <div class="modal fade" id="modalAbono" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <form id="form-abono" method="POST">
@@ -219,15 +209,12 @@
         </div>
     </div>
 
-    {{-- SCRIPTS --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         $(document).ready(function() {
             const modalPrestamo = document.getElementById('modalPrestamo');
-
-            // Select2
             $('#ejidatario-select').select2({
                 placeholder: 'Buscar...',
                 dropdownParent: $('#modalPrestamo'),
@@ -241,8 +228,6 @@
                     cache: true
                 }
             });
-
-            // Saldo dinámico
             $('#ejidatario-select').on('select2:select', function(e) {
                 const url = modalPrestamo.dataset.saldoUrl.replace('__ID__', e.params.data.id);
                 fetch(url).then(res => res.json()).then(data => {
@@ -250,15 +235,12 @@
                         .text("Saldo Disponible: $" + parseFloat(data.saldo_disponible).toFixed(2));
                 });
             });
-
-            // LÓGICA BOTÓN EDITAR
             $(document).on('click', '.btn-editar', function() {
                 const id = $(this).data('id');
                 const nombre = $(this).data('nombre');
                 const motivo = $(this).data('motivo');
                 const cantidad = $(this).data('cantidad');
 
-                // Construimos la ruta dinámicamente
                 const actionUrl = "{{ route('prestamo.actualizar', ':id') }}".replace(':id', id);
 
                 $('#form-editar').attr('action', actionUrl);
@@ -269,7 +251,6 @@
                 $('#modalEditar').modal('show');
             });
 
-            // LÓGICA BOTÓN ABONAR
             $(document).on('click', '.btn-abonar', function() {
                 const url = $(this).data('url');
                 const nombre = $(this).data('nombre');
@@ -282,7 +263,6 @@
                 $('#modalAbono').modal('show');
             });
 
-            // Buscador de tabla
             $('#tabla-search').on('keyup', function() {
                 const val = $(this).val().toLowerCase();
                 $('#tabla-prestamos tbody tr').filter(function() {

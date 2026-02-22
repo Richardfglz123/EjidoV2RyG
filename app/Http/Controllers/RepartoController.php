@@ -12,7 +12,6 @@ use Carbon\Carbon;
 
 class RepartoController extends Controller
 {
-    /** Menú de montos */
     public function menu()
     {
         $data = [
@@ -28,7 +27,6 @@ class RepartoController extends Controller
         return view('cpanel.monto.menu', $data);
     }
 
-    /** Página principal de montos */
     public function index(Request $request)
     {
         $utilidades = Utilidad::all();
@@ -40,7 +38,6 @@ class RepartoController extends Controller
         return view('cpanel.monto.monto', compact('utilidades', 'utilidadSeleccionada', 'usuarios'));
     }
 
-    /** Actualizar reparto/utilidad */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -56,7 +53,6 @@ class RepartoController extends Controller
         return redirect()->route('menu')->with('success', 'Reparto actualizado correctamente.');
     }
 
-    /** Mostrar listado del primer reparto */
     public function mostrarPrimerReparto()
     {
         $idPrimerReparto = 1;
@@ -76,7 +72,6 @@ class RepartoController extends Controller
         ));
     }
 
-    /** Agregar nuevo préstamo */
     public function agregarPrestamo(Request $request)
     {
         $request->validate([
@@ -97,7 +92,6 @@ class RepartoController extends Controller
         return redirect()->back()->with('success', 'Préstamo registrado correctamente.');
     }
 
-    /** Buscar ejidatario para Select2 */
     public function buscarEjidatario(Request $request)
     {
         $q = $request->q;
@@ -118,8 +112,6 @@ class RepartoController extends Controller
         );
     }
 
-    /** Obtener saldo disponible del ejidatario */
-// Retorna saldo y datos del ejidatario
     public function obtenerSaldo($id_ejidatario)
     {
         $ejidatario = \App\Models\Ejidatario::with('usuario')->find($id_ejidatario);
@@ -128,11 +120,8 @@ class RepartoController extends Controller
             return response()->json(['error' => 'Ejidatario no encontrado'], 404);
         }
 
-        // Suma total de préstamos otorgados
         $total_prestamos = \App\Models\Prestamo::where('id_ejidatario', $id_ejidatario)->sum('Cantidad');
-        // Suma de saldo pendiente
         $prestamo_actual = \App\Models\Prestamo::where('id_ejidatario', $id_ejidatario)->sum('Saldo_Continuo');
-        // Saldo disponible para nuevo préstamo
         $saldo_disponible = max($total_prestamos - $prestamo_actual, 0);
 
         return response()->json([
@@ -145,7 +134,6 @@ class RepartoController extends Controller
     }
 
 
-// Editar préstamo
     public function actualizarPrestamo(Request $request, $id)
     {
         $prestamo = \App\Models\Prestamo::findOrFail($id);
@@ -158,14 +146,12 @@ class RepartoController extends Controller
         $prestamo->update([
             'Motivo' => $request->motivo,
             'Cantidad' => $request->cantidad,
-            // Ajustamos saldo si es necesario
             'Saldo_Continuo' => $prestamo->Saldo_Continuo + ($request->cantidad - $prestamo->Cantidad),
         ]);
 
         return redirect()->back()->with('success', 'Préstamo actualizado correctamente.');
     }
 
-// Registrar abono
     public function agregarAbono(Request $request, $id)
     {
         $prestamo = \App\Models\Prestamo::findOrFail($id);
@@ -180,24 +166,18 @@ class RepartoController extends Controller
         return redirect()->back()->with('success', 'Abono registrado correctamente.');
     }
 
-    /** Registrar abono a préstamo */
-
-
-    /** Eliminar préstamo */
     public function eliminarPrestamo($id)
     {
         Prestamo::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Préstamo eliminado correctamente.');
     }
 
-    /** Obtener fecha límite del primer reparto */
     public function obtenerFechaLimite()
     {
         $utilidad = Utilidad::find(2);
         return response()->json(['fecha_limite' => $utilidad?->Fecha_Eliminado ?? '']);
     }
 
-    /** Fijar fecha límite del primer reparto */
     public function fijarFechaLimite(Request $request)
     {
         $request->validate(['fecha_limite' => 'required|date']);
