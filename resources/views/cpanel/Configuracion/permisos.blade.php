@@ -16,7 +16,6 @@
         .form-switch .form-check-input { width: 2.5em; height: 1.25em; cursor: pointer; }
         .icon-container { width: 35px; color: #1a4d2e; font-size: 1.1rem; }
 
-        /* Personalización Select2 Verde Ejidal */
         .select2-container--bootstrap-5 .select2-selection {
             border-color: #1a4d2e !important;
             min-height: 38px;
@@ -51,8 +50,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="fw-bold small mb-1">BUSCAR USUARIO (Escribe para buscar)</label>
-                            <select name="Id_Usuario" id="selectUsuario" class="form-select" required>
-                            </select>
+                            <select name="Id_Usuario" id="selectUsuario" class="form-select" required></select>
                         </div>
                         <div class="col-md-6">
                             <label class="fw-bold small mb-1">ROL DEL SISTEMA</label>
@@ -95,10 +93,12 @@
                                 ['key'=>'usuarios','label'=>'Usuarios','icon'=>'fas fa-users'],
                                 ['key'=>'ejidatarios','label'=>'Ejidatarios','icon'=>'fas fa-person-digging'],
                                 ['key'=>'actividades','label'=>'Actividades','icon'=>'fas fa-clipboard-check'],
+                                ['key'=>'gestion','label'=>'Gestión (Actividades/Progr.)','icon'=>'fas fa-tasks'],
                                 ['key'=>'asambleas','label'=>'Asambleas','icon'=>'fas fa-gavel'],
                                 ['key'=>'asistencia','label'=>'Pase de Lista','icon'=>'fas fa-list-check'],
+                                ['key'=>'expedientes','label'=>'Expedientes Digitales','icon'=>'fas fa-folder-open'],
                                 ['key'=>'parcelas','label'=>'Parcelas','icon'=>'fas fa-map-marked-alt'],
-                                ['key'=>'utilidades','label'=>'Finanzas','icon'=>'fas fa-hand-holding-usd'],
+                                ['key'=>'utilidades','label'=>'Finanzas / Repartos','icon'=>'fas fa-hand-holding-usd'],
                                 ['key'=>'gastos','label'=>'Gastos','icon'=>'fas fa-wallet'],
                                 ['key'=>'inventario','label'=>'Inventario','icon'=>'fas fa-warehouse'],
                                 ['key'=>'apoyos','label'=>'Apoyos Sociales','icon'=>'fas fa-hands-helping'],
@@ -192,6 +192,7 @@
             $('#selectUsuario').on('change', function() {
                 cargarDatos(this.value);
             });
+
             function actualizarCheckTodos() {
                 const total = permisos.length;
                 const marcados = document.querySelectorAll('.permiso:checked').length;

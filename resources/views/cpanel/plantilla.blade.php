@@ -22,57 +22,23 @@
 
         <ul class="navbar-nav ms-auto">
             <li class="nav-item dropdown">
-
-                <a class="nav-link dropdown-toggle d-flex align-items-center py-0"
-                   href="#"
-                   id="navbarDropdown"
-                   role="button"
-                   data-bs-toggle="dropdown"
-                   aria-expanded="false"
-                   style="height: 30px;">
-
+                <a class="nav-link dropdown-toggle d-flex align-items-center py-0" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 30px;">
                     <div class="d-flex align-items-center gap-2">
-
                         <i class="fas fa-user-circle fs-4"></i>
-
                         <div class="d-flex align-items-center gap-2 text-start">
-
-                    <span class="fw-semibold">
-                        {{ session('usuario.nombre_completo') }}
-                    </span>
-
-                            <span class="px-2 rounded-pill fw-semibold text-white"
-                                  style="
-                              font-size: 0.6rem;
-                              line-height: 1.4;
-                              background: linear-gradient(135deg, #0d6efd, #198754);
-                              white-space: nowrap;
-                          ">
-                        {{ session('usuario.rol', 'SIN ROL') }}
-                    </span>
-
+                            <span class="fw-semibold">{{ session('usuario.nombre_completo') }}</span>
+                            <span class="px-2 rounded-pill fw-semibold text-white" style="font-size: 0.6rem; line-height: 1.4; background: linear-gradient(135deg, #0d6efd, #198754); white-space: nowrap;">
+                                {{ session('usuario.rol', 'SIN ROL') }}
+                            </span>
                         </div>
-
                     </div>
                 </a>
-
                 <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li>
-                        <a class="dropdown-item" href="{{ route('perfil.index') }}">
-                            <i class="fas fa-user me-2"></i> Perfil
-                        </a>
-                    </li>
-
+                    <li><a class="dropdown-item" href="{{ route('perfil.index') }}"><i class="fas fa-user me-2"></i> Perfil</a></li>
                     @if(in_array('configuracion_ver', session('usuario.permisos', [])))
-                        <li>
-                            <a class="dropdown-item" href="{{ route('configuracion.permisos') }}">
-                                <i class="fas fa-cog me-2"></i> Configuración
-                            </a>
-                        </li>
+                        <li><a class="dropdown-item" href="{{ route('configuracion.permisos') }}"><i class="fas fa-cog me-2"></i> Configuración</a></li>
                     @endif
-
                     <li><hr class="dropdown-divider"></li>
-
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -82,7 +48,6 @@
                         </form>
                     </li>
                 </ul>
-
             </li>
         </ul>
     </div>
@@ -144,9 +109,24 @@
                             <div class="collapse" id="actividadesMenu">
                                 <ul class="nav flex-column submenu">
                                     @if(in_array('actividades_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="/admon/actividades/create"><i class="fas fa-plus-circle"></i> Nueva Actividad</a></li>
+                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.create') }}"><i class="fas fa-plus-circle"></i> Nueva Actividad</a></li>
                                     @endif
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="/admon/actividades"><i class="fas fa-calendar-alt"></i> Consulta de Faenas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.index') }}"><i class="fas fa-calendar-alt"></i> Consulta de Faenas</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
+
+                    {{-- GESTIÓN --}}
+                    @if(in_array('gestion_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#gestionMenu">
+                                <i class="fas fa-tasks"></i> GESTIÓN <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="gestionMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gestion.actividades.index') }}"><i class="fas fa-briefcase"></i> Gestión de Actividades</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gestion.programas.index') }}"><i class="fas fa-project-diagram"></i> Gestión de Programas</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -181,6 +161,20 @@
                         </li>
                     @endif
 
+                    {{-- EXPEDIENTES --}}
+                    @if(in_array('expedientes_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#expedientesMenu">
+                                <i class="fas fa-folder-open"></i> Expedientes Digitales <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="expedientesMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('expedientes.index') }}"><i class="fas fa-user-file"></i> Mi Expediente</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
+
                     {{-- PARCELAS --}}
                     @if(in_array('parcelas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
@@ -196,7 +190,7 @@
                         </li>
                     @endif
 
-                    {{-- FINANZAS --}}
+                    {{-- UTILIDADES / FINANZAS --}}
                     @if(in_array('utilidades_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white d-flex align-items-center" data-bs-toggle="collapse" href="#utilidadesMenu">
@@ -207,6 +201,14 @@
                             <div class="collapse" id="utilidadesMenu">
                                 <ul class="nav flex-column submenu">
                                     <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-calculator"></i> Calcular Reparto</a></li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white-50" href="{{ route('menu') }}">
+                                            <i class="fas fa-file-invoice-dollar"></i> Registro Repartos
+                                        </a>
+                                    </li>                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('repartos.primero') }}"><i class="fas fa-coins"></i> Primer Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('repartos.segundo') }}"><i class="fas fa-coins"></i> Segundo Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}"><i class="fas fa-user-minus"></i> Descuentos Asambleas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}"><i class="fas fa-tools"></i> Descuentos Faenas</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -251,7 +253,12 @@
                             </a>
                             <div class="collapse" id="apoyosMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-plus-circle"></i> Nuevo Apoyo</a></li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white-50" {{ route('programas.index') }}">
+                                            <i class="fas fa-plus-circle"></i> Nuevo Apoyo
+                                        </a>
+                                    </li>
+
                                 </ul>
                             </div>
                         </li>

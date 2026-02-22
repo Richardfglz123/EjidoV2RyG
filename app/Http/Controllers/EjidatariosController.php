@@ -154,5 +154,17 @@ class EjidatariosController extends Controller
         return redirect()->route('Ejidatarios.index')
             ->with('success', 'Ejidatario eliminado correctamente');
     }
+    public function show($id)
+    {
+        // Buscamos el monto en la tabla que corresponda (asumiendo que es Reparto o una columna en Ejidatario)
+        // Por ahora, devolveremos un valor para que el AJAX no truene
+        $monto = DB::table('Reparto')
+            ->where('id_ejidatario', $id)
+            ->value('monto') ?? 0;
+
+        return response()->json([
+            'saldo_disponible' => $monto
+        ]);
+    }
 
 }
