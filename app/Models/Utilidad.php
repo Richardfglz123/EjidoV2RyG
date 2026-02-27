@@ -14,17 +14,22 @@ class Utilidad extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'monto',
-        'anio',
-        'tipo_reparto',
-        'fecha_limite',
-        'fecha_registro',
-        'id_user'
+        'Año',
+        'UtilidadAnual',
+        'Primer_Reparto',
+        'SegundoReparto',
+        'Reparto_Finiquito',
+        'Fecha_Eliminado',
+        'Fecha_Modificado',
+        'Fecha_Creo',
+        'Id_Elimino',
+        'Id_Modificado',
+        'Id_Creo',
+        'Fecha_Limite'
     ];
-
 
     public function prestamos()
     {
-        return $this->hasMany(Prestamo::class, 'id_utilidad', 'id_utilidad');
+        return $this->hasMany(Prestamo::class, 'Id_Utilidad', 'Id_Utilidad');
     }
 }

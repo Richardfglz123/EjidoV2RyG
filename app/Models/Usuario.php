@@ -21,4 +21,9 @@ class Usuario extends Authenticatable
     {
         return $this->Contraseña;
     }
+
+    public function documentos()
+    {
+        return $this->hasMany(DocumentoUsuario::class, 'Id_Usuario', 'Id_Usuario');
+    }
 }

@@ -36,14 +36,15 @@ class Ejidatario extends Model
     {
         $ejidatarios = Ejidatario::with('usuario')->get();
 
-        return view('prestamo.create', compact('ejidatarios'));
+        return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios'));
     }
     public function descuentos()
     {
         return $this->hasMany(Descuento::class, 'id_ejidatario', 'Id_Ejidatario');
     }
+// En Ejidatario.php
     public function prestamos()
     {
-        return $this->hasMany(Prestamo::class, 'id_ejidatario', 'Id_Ejidatario');
+        return $this->hasMany(Prestamo::class, 'Id_Ejidatario', 'Id_Ejidatario');
     }
 }

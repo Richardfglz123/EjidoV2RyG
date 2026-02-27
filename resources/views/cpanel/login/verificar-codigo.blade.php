@@ -11,9 +11,11 @@
             background: linear-gradient(to bottom right, #d3e8d3, #ffffff);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* NAVBAR */
         .navbar-ejidal {
             background: url(https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg)
             center / cover no-repeat;
@@ -29,7 +31,7 @@
             font-size: 18px;
             letter-spacing: 0.3px;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-            text-decoration: none; /* sin subrayado */
+            text-decoration: none;
         }
 
         .navbar-ejidal .navbar-brand:hover,
@@ -38,7 +40,6 @@
             opacity: 0.95;
         }
 
-        /* CONTENEDOR LOGIN */
         .login-container {
             max-width: 420px;
             margin: 90px auto;
@@ -48,6 +49,7 @@
             border-radius: 18px;
             box-shadow: 0 14px 35px rgba(0,0,0,0.14);
             animation: fadeIn 0.6s ease-out;
+            flex-grow: 0;
         }
 
         @keyframes fadeIn {
@@ -69,7 +71,6 @@
             letter-spacing: 0.4px;
         }
 
-        /* FORM */
         .form-group {
             margin-bottom: 22px;
         }
@@ -91,6 +92,7 @@
             letter-spacing: 6px;
             text-align: center;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
         }
 
         input[type="text"]:focus {
@@ -99,7 +101,6 @@
             box-shadow: 0 0 0 3px #2c5e1a33;
         }
 
-        /* BOTÓN */
         button {
             width: 100%;
             background-color: #2c5e1a;
@@ -118,11 +119,11 @@
             transform: translateY(-1px);
         }
 
-        button:active {
-            transform: translateY(0);
+        button:disabled {
+            background-color: #a5c09a;
+            cursor: not-allowed;
         }
 
-        /* ERRORES */
         .messages {
             list-style: none;
             padding: 0;
@@ -132,20 +133,36 @@
             text-align: center;
         }
 
-        /* RESPONSIVE */
+        .footer {
+            background-color: #ffffffcc;
+            backdrop-filter: blur(8px);
+            color: #444;
+            padding: 15px 0;
+            font-size: 14px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin-top: auto;
+        }
+
+        .footer .container-fluid {
+            padding: 0 30px;
+        }
+
+        .footer .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         @media (max-width: 480px) {
             .login-container {
-                margin: 60px 16px;
+                margin: 40px 16px;
                 padding: 32px 24px;
             }
-
-            .navbar-ejidal {
-                height: auto;
-                padding: 12px 16px;
-            }
-
-            .navbar-ejidal .navbar-brand {
-                font-size: 16px;
+            .footer .row {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
             }
         }
     </style>
@@ -164,7 +181,7 @@
 <div class="login-container">
     <h2>Validación para acceso</h2>
 
-    <form method="POST" action="{{ route('2fa.check') }}">
+    <form id="two-fa-form" method="POST" action="{{ route('2fa.check') }}">
         @csrf
 
         <div class="form-group">
@@ -177,6 +194,7 @@
                     autofocus
                     inputmode="numeric"
                     autocomplete="one-time-code"
+                    required
             >
         </div>
 
@@ -186,9 +204,39 @@
         </ul>
         @enderror
 
-        <button type="submit">Acceder</button>
+        <button type="submit" id="btn-submit">Acceder</button>
     </form>
 </div>
+
+<footer class="footer">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-start">
+                <span>Sistema de Gestión Ejidal &copy; 2026</span>
+            </div>
+            <div class="col-md-6 text-end">
+                <span>Versión 1.3.1</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    const codeInput = document.getElementById('code');
+    const faForm = document.getElementById('two-fa-form');
+    const submitBtn = document.getElementById('btn-submit');
+
+    codeInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+
+        if (this.value.length === 6) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Verificando...';
+
+            faForm.submit();
+        }
+    });
+</script>
 
 </body>
 </html>

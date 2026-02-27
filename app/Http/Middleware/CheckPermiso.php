@@ -26,12 +26,13 @@ class CheckPermiso
             abort(403, "Usuario sin rol asignado en el sistema.");
         }
 
+        session(['usuario.rol_nombre' => $datosUsuario->Tipo_Rol]);
+
         if ($datosUsuario->Tipo_Rol === 'Administrador') {
             return $next($request);
         }
 
         $permisosArray = json_decode($datosUsuario->Permisos, true) ?? [];
-
         $permisoBuscado = strtolower($permisoRequerido);
         $misPermisos = array_map('strtolower', (array)$permisosArray);
 

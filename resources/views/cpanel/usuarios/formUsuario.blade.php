@@ -17,8 +17,6 @@
             @csrf
 
             <div class="card-body">
-
-                {{-- Nombres y Apellidos --}}
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Nombre(s)</label>
@@ -44,8 +42,6 @@
                         @error('Apellido_Materno')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
-
-                {{-- Usuario, correo, teléfono --}}
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Usuario</label>
@@ -56,16 +52,20 @@
                         <small class="text-muted">Nombre único para acceder al sistema.</small>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-4" style="position: relative;">
                         <label>Correo</label>
-                        <input type="email" name="Correo"
+                        <input type="email" name="Correo" id="emailInput"
                                class="form-control @error('Correo') is-invalid @enderror"
                                value="{{ old('Correo') }}" required
-                               placeholder="ejemplo@correo.com">
+                               placeholder="ejemplo@correo.com"
+                               autocomplete="off">
+
+                        <div id="emailSuggestions" class="list-group" style="position: absolute; z-index: 1000; width: 92%; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        </div>
+
                         @error('Correo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    {{-- restricción de 10 dígitos --}}
                     <div class="col-md-4">
                         <label>Teléfono</label>
                         <input type="text" name="Telefono"
@@ -81,7 +81,6 @@
                 </div>
 
                 <div class="row mb-3">
-                    {{-- Contraseña--}}
                     <div class="col-md-6">
                         <label>Contraseña</label>
                         <input type="password" name="Contraseña"
@@ -97,8 +96,6 @@
                                class="form-control" required>
                     </div>
                 </div>
-
-                {{-- Botones --}}
                 <div class="text-end">
                     <a href="{{ route('Usuarios.index') }}" class="btn btn-secondary">
                         Cancelar
@@ -111,5 +108,55 @@
             </div>
         </form>
     </div>
+
+    <script>
+        const emailInput = document.getElementById('emailInput');
+        const suggestionsContainer = document.getElementById('emailSuggestions');
+        const domains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
+
+        emailInput.addEventListener('input', function() {
+            const value = this.value;
+            const atIndex = value.indexOf('@');
+
+            if (atIndex === -1) {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+
+            const username = value.substring(0, atIndex);
+            const domainPart = value.substring(atIndex + 1);
+
+            let suggestionsHtml = '';
+            const filteredDomains = domains.filter(d => d.startsWith(domainPart));
+
+            if (filteredDomains.length > 0 && username.length > 0) {
+                filteredDomains.forEach(domain => {
+                    suggestionsHtml += `
+                        <button type="button" class="list-group-item list-group-item-action py-1" onclick="selectEmail('${username}@${domain}')">
+                            ${username}@<strong>${domain}</strong>
+                        </button>`;
+                });
+                suggestionsContainer.innerHTML = suggestionsHtml;
+                suggestionsContainer.style.display = 'block';
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+        window.selectEmail = function(fullEmail) {
+            emailInput.value = fullEmail;
+            suggestionsContainer.style.display = 'none';
+            emailInput.focus();
+        };
+        document.addEventListener('click', function(e) {
+            if (e.target !== emailInput && e.target !== suggestionsContainer) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+        emailInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+    </script>
 
 @endsection

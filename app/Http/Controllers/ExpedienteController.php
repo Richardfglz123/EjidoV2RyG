@@ -8,74 +8,66 @@ use App\Models\DocumentoUsuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-
 class ExpedienteController extends Controller
-{
 
+{
     public function index()
     {
         $usuarios = Usuario::whereNull('fecha_eliminado')
-            ->orderBy('apellido_paterno', 'asc')
+            ->with('documentos')
+            ->orderBy('Apellido_Paterno', 'asc')
             ->get();
 
-
         $total_usuarios = $usuarios->count();
-        $total_con_expediente = DocumentoUsuario::count();
-
+        $total_con_expediente = DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
 
         return view('cpanel.Expedientes.expediente', compact('usuarios', 'total_usuarios', 'total_con_expediente'));
     }
 
     public function store(Request $request)
     {
-
+        // Validación básica
         $request->validate([
-            'id_usuario' => 'required|exists:usuario,id_usuario',
+            'id_usuario' => 'required',
             'doc_ine' => 'nullable|file|mimes:pdf|max:5000',
             'doc_curp' => 'nullable|file|mimes:pdf|max:5000',
             'doc_comprobante' => 'nullable|file|mimes:pdf|max:5000',
         ]);
 
-        $usuario = Usuario::find($request->id_usuario);
-
-
-        $slugUsuario = Str::slug($usuario->nombre . '-' . $usuario->apellido_paterno . '-' . $usuario->id_usuario);
+        $usuario = Usuario::findOrFail($request->id_usuario);
+        $slugUsuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_Usuario);
         $rutaBase = "expedientes/{$slugUsuario}";
 
-        if (!Storage::disk('public')->exists($rutaBase)) {
-            Storage::disk('public')->makeDirectory($rutaBase);
+        $tipos = [
+            'doc_ine' => 'INE',
+            'doc_curp' => 'CURP',
+            'doc_comprobante' => 'DOMICILIO'
+        ];
+
+        foreach ($tipos as $input => $nombreDoc) {
+            if ($request->hasFile($input)) {
+                // Guardamos en storage/app/public/expedientes/...
+                $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
+
+                DocumentoUsuario::updateOrCreate(
+                    ['Id_Usuario' => $usuario->Id_Usuario, 'nombre_documento' => $nombreDoc],
+                    ['ruta_archivo' => 'storage/' . $path]
+                );
+            }
         }
 
-
-        $docs = DocumentoUsuario::firstOrNew(['id_usuario' => $usuario->id_usuario]);
-
-
-        if($request->hasFile('doc_ine')) {
-            $docs->ruta_ine = 'storage/' . $request->file('doc_ine')->storeAs($rutaBase, 'INE.'.$request->file('doc_ine')->extension(), 'public');
-        }
-
-        if($request->hasFile('doc_curp')) {
-            $docs->ruta_curp = 'storage/' . $request->file('doc_curp')->storeAs($rutaBase, 'CURP.'.$request->file('doc_curp')->extension(), 'public');
-        }
-
-        if($request->hasFile('doc_comprobante')) {
-            $docs->ruta_comprobante = 'storage/' . $request->file('doc_comprobante')->storeAs($rutaBase, 'COMPROBANTE.'.$request->file('doc_comprobante')->extension(), 'public');
-        }
-
-        $docs->save();
-
-        return redirect()->back()->with('success', 'Expediente actualizado correctamente.');
+        return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado correctamente.');
     }
 
     public function guardarMio(Request $request)
     {
-
         $idUsuario = Auth::guard('ejidatario')->id();
 
+        if(!$idUsuario) {
+            return redirect()->back()->with('error', 'No se pudo identificar al usuario.');
+        }
 
         $request->merge(['id_usuario' => $idUsuario]);
-
-
         return $this->store($request);
     }
 }

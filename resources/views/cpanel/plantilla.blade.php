@@ -74,10 +74,9 @@
                             <div class="collapse" id="usuariosMenu">
                                 <ul class="nav flex-column submenu">
                                     @if(in_array('usuarios_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('admon/Usuarios/create') }}"><i class="far fa-address-card"></i> Nuevo Usuario</a></li>
+                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Usuarios.create') }}"><i class="far fa-address-card"></i> Nuevo Usuario</a></li>
                                     @endif
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('/admon/Usuarios') }}"><i class="fas fa-list"></i> Listado</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('usuarios.buscar') }}"><i class="fas fa-search"></i> Buscar</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Usuarios.index') }}"><i class="fas fa-list"></i> Listado</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -92,9 +91,9 @@
                             <div class="collapse" id="ejidatariosMenu">
                                 <ul class="nav flex-column submenu">
                                     @if(in_array('ejidatarios_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('admon/Ejidatarios/create') }}"><i class="far fa-address-card"></i> Nuevo Ejidatario</a></li>
+                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Ejidatarios.create') }}"><i class="far fa-address-card"></i> Nuevo Ejidatario</a></li>
                                     @endif
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ url('/admon/Ejidatarios') }}"><i class="fas fa-list"></i> Listado Completo</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Ejidatarios.index') }}"><i class="fas fa-list"></i> Listado Completo</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -117,16 +116,16 @@
                         </li>
                     @endif
 
-                    {{-- GESTIÓN --}}
-                    @if(in_array('gestion_ver', session('usuario.permisos', [])))
+                    {{-- GESTIÓN (Usando Faenas y Programas según web.php) --}}
+                    @if(in_array('faenas_ver', session('usuario.permisos', [])) || in_array('programas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#gestionMenu">
                                 <i class="fas fa-tasks"></i> GESTIÓN <i class="fas fa-angle-down float-end mt-1"></i>
                             </a>
                             <div class="collapse" id="gestionMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gestion.actividades.index') }}"><i class="fas fa-briefcase"></i> Gestión de Actividades</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gestion.programas.index') }}"><i class="fas fa-project-diagram"></i> Gestión de Programas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('faenas.index') }}"><i class="fas fa-briefcase"></i> Gestión de Faenas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.index') }}"><i class="fas fa-project-diagram"></i> Gestión de Programas</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -147,29 +146,17 @@
                         </li>
                     @endif
 
-                    {{-- PASE DE LISTA --}}
-                    @if(in_array('asistencia_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#asistenciaMenu">
-                                <i class="fas fa-list-check"></i> Pase de Lista <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="asistenciaMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-plus-circle"></i> Nuevo Pase</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
-
                     {{-- EXPEDIENTES --}}
                     @if(in_array('expedientes_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#expedientesMenu">
-                                <i class="fas fa-folder-open"></i> Expedientes Digitales <i class="fas fa-angle-down float-end mt-1"></i>
+                                <i class="fas fa-folder-open"></i> Expedientes <i class="fas fa-angle-down float-end mt-1"></i>
                             </a>
                             <div class="collapse" id="expedientesMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('expedientes.index') }}"><i class="fas fa-user-file"></i> Mi Expediente</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('expedientes.index') }}"><i class="fas fa-user-tag"></i> Listado de Expedientes</a></li>
+                                    @if(in_array('expedientes_crear', session('usuario.permisos', [])))
+                                    @endif
                                 </ul>
                             </div>
                         </li>
@@ -200,13 +187,13 @@
                             </a>
                             <div class="collapse" id="utilidadesMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="#"><i class="fas fa-calculator"></i> Calcular Reparto</a></li>
                                     <li class="nav-item">
                                         <a class="nav-link text-white-50" href="{{ route('menu') }}">
                                             <i class="fas fa-file-invoice-dollar"></i> Registro Repartos
                                         </a>
-                                    </li>                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('repartos.primero') }}"><i class="fas fa-coins"></i> Primer Reparto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('repartos.segundo') }}"><i class="fas fa-coins"></i> Segundo Reparto</a></li>
+                                    </li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.primer') }}"><i class="fas fa-coins"></i> Primer Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.segundo') }}"><i class="fas fa-coins"></i> Segundo Reparto</a></li>
                                     <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}"><i class="fas fa-user-minus"></i> Descuentos Asambleas</a></li>
                                     <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}"><i class="fas fa-tools"></i> Descuentos Faenas</a></li>
                                 </ul>
@@ -246,19 +233,17 @@
                     @endif
 
                     {{-- APOYOS --}}
-                    @if(in_array('apoyos_ver', session('usuario.permisos', [])))
+                    @if(in_array('programas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#apoyosMenu">
                                 <i class="fas fa-hands-helping"></i> Apoyos Sociales <i class="fas fa-angle-down float-end mt-1"></i>
                             </a>
                             <div class="collapse" id="apoyosMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white-50" {{ route('programas.index') }}">
-                                            <i class="fas fa-plus-circle"></i> Nuevo Apoyo
-                                        </a>
-                                    </li>
-
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.index') }}"><i class="fas fa-list"></i> Ver Apoyos</a></li>
+                                    @if(in_array('programas_crear', session('usuario.permisos', [])))
+                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.create') }}"><i class="fas fa-plus-circle"></i> Nuevo Apoyo</a></li>
+                                    @endif
                                 </ul>
                             </div>
                         </li>
@@ -282,8 +267,7 @@
                     {{-- RESPALDO --}}
                     @if(in_array('respaldo_ver', session('usuario.permisos', [])))
                         <li class="nav-item mt-3 border-top border-secondary pt-2">
-                            <a class="nav-link text-white {{ request()->is('admon/Respaldos*') ? 'active bg-secondary' : '' }}"
-                               href="{{ route('Respaldos.index') }}">
+                            <a class="nav-link text-white {{ request()->routeIs('Respaldos.index') ? 'active bg-secondary' : '' }}" href="{{ route('Respaldos.index') }}">
                                 <i class="fas fa-database me-2"></i> Respaldo
                             </a>
                         </li>
@@ -292,7 +276,7 @@
                     {{-- CONFIGURACIÓN --}}
                     @if(in_array('configuracion_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="{{ route('configuracion.permisos') }}">
+                            <a class="nav-link text-white {{ request()->routeIs('configuracion.permisos') ? 'active bg-secondary' : '' }}" href="{{ route('configuracion.permisos') }}">
                                 <i class="fas fa-cogs"></i> Configuración
                             </a>
                         </li>

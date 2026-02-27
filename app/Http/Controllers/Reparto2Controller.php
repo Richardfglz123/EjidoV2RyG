@@ -7,6 +7,7 @@ use App\Models\Utilidad;
 use App\Models\Ejidatario;
 use App\Models\Usuario;
 use App\Models\Descuento;
+use App\Models\CatalogoMulta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
@@ -33,6 +34,75 @@ class Reparto2Controller extends Controller
         'Descuento faenas de saneamient',
         'Descuento faenas de aprovecham'
     ];
+
+    public function index(Request $request)
+    {
+        $asambleas = $this->tiposAsamblea;
+        $query = Ejidatario::with(['usuario', 'descuentos']);
+
+        $hayBusqueda = $request->filled('query');
+        $soloDeudores = $request->get('filtrar_descuentos') === 'on';
+
+        // Lógica para que aparezca "en blanco" si no hay búsqueda ni filtro activo
+        if (!$hayBusqueda && !$soloDeudores) {
+            $ejidatarios = Ejidatario::where('id_ejidatario', 0)->paginate(10);
+        } else {
+            if ($hayBusqueda) {
+                $search = $request->get('query');
+                $query->whereHas('usuario', function($q) use ($search) {
+                    $q->where('Nombres', 'LIKE', "%$search%")
+                        ->orWhere('Apellido_Paterno', 'LIKE', "%$search%")
+                        ->orWhere('Apellido_Materno', 'LIKE', "%$search%");
+                });
+            }
+
+            if ($soloDeudores) {
+                $query->whereHas('descuentos', function($q) use ($asambleas) {
+                    $q->whereIn('tipo', $asambleas)->where('descuento', '>', 0);
+                });
+            }
+
+            $ejidatarios = $query->paginate(10)->appends($request->all());
+        }
+
+        $catalogoMultas = CatalogoMulta::all();
+
+        return view('cpanel.Descuentos.index', compact('ejidatarios', 'asambleas', 'catalogoMultas'));
+    }
+
+    public function indexFaenas(Request $request)
+    {
+        $faenas = $this->tiposFaena;
+        $query = Ejidatario::with(['usuario', 'descuentos']);
+
+        $hayBusqueda = $request->filled('query');
+        $soloDeudores = $request->get('filtrar_deudores') === 'on';
+
+        if (!$hayBusqueda && !$soloDeudores) {
+            $ejidatarios = Ejidatario::where('id_ejidatario', 0)->paginate(10);
+        } else {
+            if ($hayBusqueda) {
+                $search = $request->get('query');
+                $query->whereHas('usuario', function($q) use ($search) {
+                    $q->where('Nombres', 'LIKE', "%$search%")
+                        ->orWhere('Apellido_Paterno', 'LIKE', "%$search%")
+                        ->orWhere('Apellido_Materno', 'LIKE', "%$search%");
+                });
+            }
+
+            if ($soloDeudores) {
+                $query->whereHas('descuentos', function($q) use ($faenas) {
+                    $q->whereIn('tipo', $faenas)->where('descuento', '>', 0);
+                });
+            }
+
+            $ejidatarios = $query->paginate(10)->appends($request->all());
+        }
+
+        $catalogoFaenas = CatalogoMulta::all();
+
+        return view('cpanel.Descuentos.faenas', compact('ejidatarios', 'faenas', 'catalogoFaenas'));
+    }
 
     private function estaPeriodoCerrado()
     {
@@ -103,9 +173,9 @@ class Reparto2Controller extends Controller
             if ($request->has('query') && $request->query('query') != '') {
                 $searchQuery = $request->query('query');
                 $query->whereHas('usuario', function ($q) use ($searchQuery) {
-                    $q->where('nombre', 'LIKE', '%' . $searchQuery . '%')
-                        ->orWhere('apellido_paterno', 'LIKE', '%' . $searchQuery . '%')
-                        ->orWhere('apellido_materno', 'LIKE', '%' . $searchQuery . '%');
+                    $q->where('Nombres', 'LIKE', '%' . $searchQuery . '%')
+                        ->orWhere('Apellido_Paterno', 'LIKE', '%' . $searchQuery . '%')
+                        ->orWhere('Apellido_Materno', 'LIKE', '%' . $searchQuery . '%');
                 });
             }
 
@@ -157,14 +227,12 @@ class Reparto2Controller extends Controller
     public function buscarEjidatarios(Request $request)
     {
         try {
-            // Select2 envía el término de búsqueda en el parámetro 'q' o 'query'
             $query = $request->get('query') ?? $request->get('q');
 
             if (empty($query) || strlen($query) < 2) {
                 return response()->json([]);
             }
 
-            // Buscamos ejidatarios a través de la relación usuario
             $ejidatarios = Ejidatario::with('usuario')
                 ->whereHas('usuario', function($q) use ($query) {
                     $q->where('Nombres', 'LIKE', '%' . $query . '%')
@@ -175,14 +243,12 @@ class Reparto2Controller extends Controller
                 ->get();
 
             $resultados = $ejidatarios->map(function ($e) {
-                // Calculamos el saldo para enviarlo de una vez (opcional pero útil)
                 $saldo = $this->obtenerSaldoDisponibleReal($e->id_ejidatario);
 
                 return [
-                    // 'id' y 'text' son OBLIGATORIOS para Select2
                     'id' => $e->id_ejidatario,
                     'text' => trim($e->usuario->Nombres . ' ' . $e->usuario->Apellido_Paterno . ' ' . ($e->usuario->Apellido_Materno ?? '')),
-                    'saldo_disponible' => $saldo // Dato extra para el JS
+                    'saldo_disponible' => $saldo
                 ];
             });
 
@@ -371,8 +437,6 @@ class Reparto2Controller extends Controller
 
             $prestamo->save();
 
-            // Aquí puedes agregar lógica para guardar el historial de abonos si tienes una tabla para eso
-
             return Redirect::route('reparto.segundo')
                 ->with('success', 'Abono de $' . number_format($montoAbono, 2) . ' registrado correctamente');
 
@@ -465,5 +529,4 @@ class Reparto2Controller extends Controller
             return response()->json(['success' => false, 'message' => 'Error'], 500);
         }
     }
-
 }

@@ -114,22 +114,27 @@ class RepartoController extends Controller
 
     public function obtenerSaldo($id_ejidatario)
     {
-        $ejidatario = \App\Models\Ejidatario::with('usuario')->find($id_ejidatario);
+        $ejidatario = Ejidatario::with('usuario')->find($id_ejidatario);
 
         if (!$ejidatario) {
             return response()->json(['error' => 'Ejidatario no encontrado'], 404);
         }
 
-        $total_prestamos = \App\Models\Prestamo::where('id_ejidatario', $id_ejidatario)->sum('Cantidad');
-        $prestamo_actual = \App\Models\Prestamo::where('id_ejidatario', $id_ejidatario)->sum('Saldo_Continuo');
-        $saldo_disponible = max($total_prestamos - $prestamo_actual, 0);
+        // Buscamos por el identificador de texto para evitar errores de ID cambiado
+        $utilidad = Utilidad::where('SegundoReparto', 'primer_reparto')->first();
+
+        // Si UtilidadAnual es el gran total, divídelo aquí por el número de ejidatarios
+        $monto_individual = $utilidad ? (float)$utilidad->UtilidadAnual : 0;
+
+        $ya_prestado = \App\Models\Prestamo::where('Id_Ejidatario', $id_ejidatario)
+            ->where('Id_Utilidad', $utilidad->Id_Utilidad ?? 0)
+            ->sum('Cantidad');
 
         return response()->json([
             'nombre' => $ejidatario->usuario->Nombres . ' ' . $ejidatario->usuario->Apellido_Paterno,
-            'descripcion' => '-', // opcional: último motivo o vacío
-            'total_repartos' => $total_prestamos,
-            'prestamo_actual' => $prestamo_actual,
-            'saldo_disponible' => $saldo_disponible
+            'total_repartos' => $monto_individual,
+            'prestamo_actual' => (float)$ya_prestado,
+            'saldo_disponible' => max($monto_individual - $ya_prestado, 0)
         ]);
     }
 

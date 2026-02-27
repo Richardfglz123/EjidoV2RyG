@@ -94,15 +94,24 @@
                                     <i class="fas fa-edit"></i>
                                 </a>
 
-                                <form action="{{ url('/admon/Usuarios/'.$fila->Id_Usuario) }}" method="post" class="d-inline">
-                                    @csrf
-                                    {{ method_field('DELETE') }}
-                                    <button class="btn btn-danger btn-sm"
-                                            title="Eliminar Usuario"
-                                            onclick="return confirm('¿Estás seguro que lo quieres eliminar?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                @php
+                                    $rolFila = strtolower(trim($fila->rol));
+                                @endphp
+
+                                @if(
+                                    in_array('usuarios_eliminar', session('usuario.permisos', [])) &&
+                                    session('usuario.id') !== $fila->Id_Usuario &&
+                                    $rolFila !== 'administrador'
+                                )
+                                    <form action="{{ url('/admon/Usuarios/'.$fila->Id_Usuario) }}" method="post" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-danger btn-sm"
+                                                onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

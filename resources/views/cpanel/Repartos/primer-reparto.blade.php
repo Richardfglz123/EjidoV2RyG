@@ -8,6 +8,11 @@
         .card-header-ejidal { background-color: #1b4b36; color: white; }
         .btn-ejidal { background-color: #1b4b36; color: white; border: none; }
         .btn-ejidal:hover { background-color: #143828; color: white; }
+
+        .info-card { background-color: #f8f9fa; border-left: 5px solid #1b4b36; }
+        .info-label { font-weight: bold; color: #6c757d; font-size: 0.9rem; text-transform: uppercase; }
+        .info-value { font-weight: 700; color: #1b4b36; font-size: 1.1rem; }
+        .text-neto { color: #0d6efd !important; }
     </style>
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -24,6 +29,32 @@
         </div>
     </div>
 
+    <div class="card info-card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="info-label">Ejidatario</div>
+                    <div id="info-ejidatario" class="info-value">-</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Descripción</div>
+                    <div id="info-descripcion" class="info-value">-</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Disponible (Total)</div>
+                    <div id="info-disponible" class="info-value">$0.00</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-label">Préstamo Actual</div>
+                    <div id="info-prestamo" class="info-value text-danger">$0.00</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-label">Saldo Neto Restante</div>
+                    <div id="info-neto" class="info-value text-neto">$0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -44,13 +75,13 @@
                 <table class="table table-hover align-middle mb-0" id="tabla-prestamos">
                     <thead class="table-light">
                     <tr>
-                        <th class="ps-3">No.</th>
-                        <th>Ejidatario</th>
-                        <th>Monto</th>
-                        <th>Descripción</th>
-                        <th>Fecha</th>
-                        <th>Saldo Restante</th>
-                        <th class="text-center">Acciones</th>
+                        <th class="ps-3">NO.</th>
+                        <th>EJIDATARIO</th>
+                        <th>PRÉSTAMO</th>
+                        <th>DESCRIPCIÓN</th>
+                        <th>FECHA</th>
+                        <th>SALDO RESTANTE (REPARTO 1)</th>
+                        <th class="text-center">ACCIONES</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -60,7 +91,7 @@
                             <td class="fw-bold">
                                 {{ $prestamo->ejidatario->usuario->Nombres ?? '' }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno ?? '' }}
                             </td>
-                            <td class="text-success fw-bold">${{ number_format($prestamo->Cantidad, 2) }}</td>
+                            <td class="text-danger fw-bold">${{ number_format($prestamo->Cantidad, 2) }}</td>
                             <td class="text-muted small">{{ $prestamo->Motivo }}</td>
                             <td>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y') }}</td>
                             <td>
@@ -128,11 +159,11 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Descripción / Motivo</label>
-                                <input type="text" name="motivo" class="form-control" required placeholder="Ej. Gastos médicos">
+                                <input type="text" id="input-motivo" name="motivo" class="form-control" required placeholder="Ej. Gastos médicos">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Cantidad ($)</label>
-                                <input type="number" name="cantidad" step="0.01" class="form-control" required min="1">
+                                <input type="number" id="input-cantidad" name="cantidad" step="0.01" class="form-control" required min="1">
                             </div>
                         </div>
                     </div>
@@ -211,12 +242,13 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
     <script>
         $(document).ready(function() {
             const modalPrestamo = document.getElementById('modalPrestamo');
+            let saldoDisponibleGlobal = 0;
+
             $('#ejidatario-select').select2({
-                placeholder: 'Buscar...',
+                placeholder: 'Buscar ejidatario...',
                 dropdownParent: $('#modalPrestamo'),
                 minimumInputLength: 2,
                 ajax: {
@@ -228,25 +260,66 @@
                     cache: true
                 }
             });
+
             $('#ejidatario-select').on('select2:select', function(e) {
-                const url = modalPrestamo.dataset.saldoUrl.replace('__ID__', e.params.data.id);
-                fetch(url).then(res => res.json()).then(data => {
-                    $('#saldo-info').removeClass('alert-secondary').addClass('alert-success fw-bold')
-                        .text("Saldo Disponible: $" + parseFloat(data.saldo_disponible).toFixed(2));
-                });
+                const dataEjidatario = e.params.data;
+                const url = modalPrestamo.dataset.saldoUrl.replace('__ID__', dataEjidatario.id);
+
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        saldoDisponibleGlobal = parseFloat(data.saldo_disponible) || 0;
+
+                        $('#saldo-info').removeClass('alert-secondary alert-danger').addClass('alert-success fw-bold')
+                            .text("Saldo Disponible: $" + saldoDisponibleGlobal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
+                        $('#info-ejidatario').text(dataEjidatario.text || "-");
+                        $('#info-disponible').text("$" + saldoDisponibleGlobal.toLocaleString('en-US', {minimumFractionDigits: 2}));
+
+                        actualizarCalculosPanel();
+                    })
+                    .catch(err => {
+                        console.error("Error:", err);
+                        $('#saldo-info').text("Error al obtener saldo").addClass('alert-danger');
+                    });
             });
+
+            $('#input-motivo').on('input', function() {
+                $('#info-descripcion').text($(this).val() || "-");
+            });
+
+            $('#input-cantidad').on('input', function() {
+                actualizarCalculosPanel();
+            });
+
+            function actualizarCalculosPanel() {
+                const cantidadInput = parseFloat($('#input-cantidad').val()) || 0;
+
+                $('#info-prestamo').text("$" + cantidadInput.toLocaleString('en-US', {minimumFractionDigits: 2}));
+
+                const neto = saldoDisponibleGlobal - cantidadInput;
+
+                if(neto < 0) {
+                    $('#info-neto').removeClass('text-neto').addClass('text-danger');
+                } else {
+                    $('#info-neto').removeClass('text-danger').addClass('text-neto');
+                }
+
+                $('#info-neto').text("$" + neto.toLocaleString('en-US', {minimumFractionDigits: 2}));
+            }
+
             $(document).on('click', '.btn-editar', function() {
                 const id = $(this).data('id');
                 const nombre = $(this).data('nombre');
                 const motivo = $(this).data('motivo');
-                const cantidad = $(this).data('cantidad');
+                const cantidad = parseFloat($(this).data('cantidad')) || 0;
 
                 const actionUrl = "{{ route('prestamo.actualizar', ':id') }}".replace(':id', id);
 
                 $('#form-editar').attr('action', actionUrl);
                 $('#editar-nombre').val(nombre);
                 $('#editar-motivo').val(motivo);
-                $('#editar-cantidad').val(cantidad);
+                $('#editar-cantidad').val(cantidad.toFixed(2));
 
                 $('#modalEditar').modal('show');
             });
@@ -254,11 +327,11 @@
             $(document).on('click', '.btn-abonar', function() {
                 const url = $(this).data('url');
                 const nombre = $(this).data('nombre');
-                const saldo = $(this).data('saldo');
+                const saldo = parseFloat($(this).data('saldo')) || 0;
 
                 $('#form-abono').attr('action', url);
                 $('#abono-nombre').val(nombre);
-                $('#abono-saldo').val("$" + parseFloat(saldo).toFixed(2));
+                $('#abono-saldo').val("$" + saldo.toLocaleString('en-US', {minimumFractionDigits: 2}));
 
                 $('#modalAbono').modal('show');
             });

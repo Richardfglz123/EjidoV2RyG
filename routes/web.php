@@ -20,7 +20,6 @@ use App\Http\Controllers\ProgramaController;
 use App\Http\Controllers\Reparto2Controller;
 use App\Http\Controllers\RepartoController;
 use App\Http\Controllers\MenuController;
-
 // Modulos Ezequiel
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\ArticuloController;
@@ -233,15 +232,17 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::delete('/Respaldos/eliminar/{filename}', [RespaldoController::class, 'destroy'])->name('Respaldos.destroy');
     });
 
-    // --- MÓDULO: Config ---
+// --- MÓDULO: Config ---
     Route::middleware(['permiso:configuracion_ver'])->group(function () {
         Route::prefix('configuracion')->group(function () {
+
             Route::get('/permisos', [ConfiguracionController::class, 'permisos'])->name('configuracion.permisos');
             Route::get('/permisos/buscar/{id}', [ConfiguracionController::class, 'obtenerPermisosUsuario']);
 
             Route::middleware(['permiso:configuracion_crear'])->group(function () {
                 Route::post('/permisos/guardar', [ConfiguracionController::class, 'guardarPermisos'])->name('configuracion.permisos.guardar');
-                Route::get('/configuracion/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])->name('configuracion.usuarios.buscar_ajax');
+                Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])->name('configuracion.usuarios.buscar_ajax');
+                Route::get('/permisos/rol/{id}', [ConfiguracionController::class, 'obtenerPermisosRol']);
             });
         });
     });
@@ -295,7 +296,6 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: DESCUENTOS---
 
     //DESCUENTOS
     Route::get('/descuentos', [DescuentoController::class, 'index'])->name('descuento.index');
@@ -339,14 +339,14 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
 // --- MÓDULO: REPARTOS Y FINANZAS ---
     Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(function () {
 
-        // 1. El Menú Principal (Dashboard)
+        // El Menú Principal (Dashboard)
         Route::get('/menu-repartos', [RepartoController::class, 'menu'])->name('menu');
 
-        // 2. Registro/Configuración de Montos (Lo que pide el Sidebar y el botón "Agregar Monto")
+        // Registro/Configuración de Montos (Lo que pide el Sidebar y el botón "Agregar Monto")
         Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('monto.index');
         Route::get('/registro-repartos-alias', [RepartoController::class, 'index'])->name('repartos.registro'); // Alias para que el sidebar no falle
 
-        // 3. Tablas de detalles (Lo que pide el Sidebar)
+        // Tablas de detalles (Lo que pide el Sidebar)
         Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
         Route::get('/primer-reparto-alias', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.primero'); // Alias
 
