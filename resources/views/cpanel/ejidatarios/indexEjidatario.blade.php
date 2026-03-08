@@ -61,15 +61,18 @@
                                 <i class="fas fa-edit"></i>
                             </a>
 
-                            <form action="{{ route('Ejidatarios.destroy', $fila->Id_Ejidatario) }}"
-                                  method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('¿Eliminar ejidatario?')" title="Eliminar">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </form>
+                            @if(in_array('usuarios_eliminar', session('usuario.permisos', [])))
+                                <form action="{{ route('Ejidatarios.destroy', $fila->Id_Usuario) }}"
+                                      method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')"
+                                            title="Eliminar">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

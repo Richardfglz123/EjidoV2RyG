@@ -147,17 +147,48 @@ class EjidatariosController extends Controller
     // Eliminar
     public function destroy($id)
     {
-        DB::table('Ejidatario')
-            ->where('Id_Ejidatario', $id)
-            ->delete();
+        $authId = session('usuario.id');
+        $authPermisos = session('usuario.permisos', []);
 
-        return redirect()->route('Ejidatarios.index')
-            ->with('success', 'Ejidatario eliminado correctamente');
+        if (!in_array('usuarios_eliminar', $authPermisos)) {
+            abort(403, 'No tienes permiso para eliminar usuarios.');
+        }
+
+        if ($authId == $id) {
+            return back()->withErrors('No puedes eliminar tu propio usuario.');
+        }
+
+        $permisosObjetivoRaw = DB::table('Relacion_Ejidatario as re')
+            ->join('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
+            ->where('re.Id_Usuario', $id)
+            ->value('r.Permisos');
+
+        $permisosObjetivo = json_decode($permisosObjetivoRaw ?? '[]', true);
+
+        if (in_array('usuarios_eliminar', $permisosObjetivo)) {
+            return back()->withErrors('No puedes eliminar a un usuario con permisos administrativos.');
+        }
+
+        try {
+            DB::transaction(function () use ($id) {
+                DB::table('Relacion_Ejidatario')
+                    ->where('Id_Usuario', $id)
+                    ->delete();
+
+                DB::table('Ejidatario')
+                    ->where('Id_Usuario', $id)
+                    ->delete();
+
+            });
+
+            return back()->with('success', 'El perfil de ejidatario ha sido eliminado, pero el usuario permanece activo');
+
+        } catch (\Exception $e) {
+            return back()->withErrors('Error al eliminar los datos de ejidatario: ' . $e->getMessage());
+        }
     }
     public function show($id)
     {
-        // Buscamos el monto en la tabla que corresponda (asumiendo que es Reparto o una columna en Ejidatario)
-        // Por ahora, devolveremos un valor para que el AJAX no truene
         $monto = DB::table('Reparto')
             ->where('id_ejidatario', $id)
             ->value('monto') ?? 0;

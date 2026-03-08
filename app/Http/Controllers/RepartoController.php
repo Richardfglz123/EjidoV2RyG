@@ -3,25 +3,27 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\Prestamo;
 use App\Models\Utilidad;
-use App\Models\Ejidatario;
 use App\Models\Usuario;
+use App\Models\Ejidatario;
+use App\Models\CatalogoMulta;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class RepartoController extends Controller
 {
     public function menu()
     {
         $data = [
-            'finiquito_saneamiento'     => Utilidad::find(1),
-            'primer_reparto'            => Utilidad::find(2),
-            'segundo_reparto'           => Utilidad::find(3),
-            'finiquito_utilidades'      => Utilidad::find(4),
-            'descuento_saneamiento'     => Utilidad::find(5),
-            'descuento_aprovechamiento' => Utilidad::find(6),
-            'descuento_asambleas'       => Utilidad::find(7),
+            'finiquito_saneamiento'     => Utilidad::where('Tipo_Reparto', 'reparto_finiquito')->first(),
+            'primer_reparto'            => Utilidad::where('Tipo_Reparto', 'primer_reparto')->first(),
+            'segundo_reparto'           => Utilidad::where('Tipo_Reparto', 'segundo_reparto')->first(),
+            'finiquito_utilidades'      => Utilidad::where('Tipo_Reparto', 'finiquito_utilidades')->first(),
+
+            'descuento_saneamiento'     => CatalogoMulta::where('tipo', 'SANEAMIENTO')->first(),
+            'descuento_aprovechamiento' => CatalogoMulta::where('tipo', 'APROVECHAMIENTO')->first(),
+            'descuento_asambleas'       => CatalogoMulta::where('tipo', 'ASAMBLEAS')->first(),
         ];
 
         return view('cpanel.monto.menu', $data);
@@ -31,7 +33,6 @@ class RepartoController extends Controller
     {
         $utilidades = Utilidad::all();
         $usuarios = Usuario::all();
-
         $idSeleccionado = $request->input('id_utilidad');
         $utilidadSeleccionada = $idSeleccionado ? Utilidad::find($idSeleccionado) : null;
 
@@ -46,21 +47,25 @@ class RepartoController extends Controller
         ]);
 
         $utilidad = Utilidad::findOrFail($id);
-        $utilidad->UtilidadAnual = $request->monto;
+        $utilidad->Monto = $request->monto;
         $utilidad->Año = $request->anio;
+        $utilidad->Id_Modificado = $request->responsable ?? null;
+        $utilidad->Fecha_Modificado = now();
         $utilidad->save();
 
-        return redirect()->route('menu')->with('success', 'Reparto actualizado correctamente.');
+        return redirect()->route('menu')->with('success', 'Monto actualizado correctamente.');
     }
 
     public function mostrarPrimerReparto()
     {
         $idPrimerReparto = 1;
         $reparto1 = Utilidad::find($idPrimerReparto);
-        $montoReparto1 = $reparto1?->monto ?? 0;
-        $fechaLimite = $reparto1?->fecha_limite;
+        $montoReparto1 = $reparto1?->Monto ?? 0;
+
+        $fechaLimite = $reparto1?->Fecha_Eliminado;
+
         $deadlinePasada = $fechaLimite
-            ? Carbon::now()->startOfDay()->gt(Carbon::parse($fechaLimite)->startOfDay())
+            ? Carbon::now()->gt(Carbon::parse($fechaLimite)->endOfDay())
             : false;
 
         $prestamos = Prestamo::where('Id_Utilidad', $idPrimerReparto)
@@ -69,6 +74,29 @@ class RepartoController extends Controller
 
         return view('cpanel.repartos.primer-reparto', compact(
             'prestamos', 'montoReparto1', 'deadlinePasada', 'reparto1'
+        ));
+    }
+
+    public function mostrarSegundoReparto()
+    {
+        $primerReparto = Utilidad::where('Tipo_Reparto', 'primer_reparto')->first();
+        $segundoReparto = Utilidad::where('Tipo_Reparto', 'segundo_reparto')->first();
+
+        $fechaLimite = $primerReparto?->Fecha_Eliminado;
+
+        $puedeManipularSegundo = false;
+        if ($fechaLimite) {
+            $puedeManipularSegundo = Carbon::now()->gt(Carbon::parse($fechaLimite)->endOfDay());
+        }
+
+        $prestamos = Prestamo::where('Id_Utilidad', $segundoReparto->Id_Utilidad)
+            ->with('ejidatario.usuario')
+            ->paginate(10);
+
+        return view('cpanel.repartos.segundo-reparto', compact(
+            'prestamos',
+            'segundoReparto',
+            'puedeManipularSegundo'
         ));
     }
 
@@ -82,11 +110,10 @@ class RepartoController extends Controller
 
         Prestamo::create([
             'Id_Ejidatario' => $request->id_ejidatario,
-            'Motivo' => $request->motivo,
-            'Cantidad' => $request->cantidad,
-            'Saldo_Continuo' => $request->cantidad,
-            'Fecha' => now(),
-            'Id_Utilidad' => 1,
+            'Motivo'        => $request->motivo,
+            'Cantidad'      => $request->cantidad,
+            'Fecha'         => now(),
+            'Id_Utilidad'   => 1,
         ]);
 
         return redirect()->back()->with('success', 'Préstamo registrado correctamente.');
@@ -114,34 +141,35 @@ class RepartoController extends Controller
 
     public function obtenerSaldo($id_ejidatario)
     {
-        $ejidatario = Ejidatario::with('usuario')->find($id_ejidatario);
+        try {
+            $utilidad = DB::table('utilidad')
+            ->where('Id_Utilidad', 1)
+                ->first();
 
-        if (!$ejidatario) {
-            return response()->json(['error' => 'Ejidatario no encontrado'], 404);
+            if (!$utilidad) {
+                return response()->json(['saldo_disponible' => 0]);
+            }
+
+            $monto_base = (float)$utilidad->Monto;
+
+            $deuda_actual = Prestamo::where('Id_Ejidatario', $id_ejidatario)
+                ->where('Id_Utilidad', 1)
+                ->sum('Cantidad');
+
+            $disponible = $monto_base - $deuda_actual;
+
+            return response()->json([
+                'saldo_disponible' => max($disponible, 0)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // Buscamos por el identificador de texto para evitar errores de ID cambiado
-        $utilidad = Utilidad::where('SegundoReparto', 'primer_reparto')->first();
-
-        // Si UtilidadAnual es el gran total, divídelo aquí por el número de ejidatarios
-        $monto_individual = $utilidad ? (float)$utilidad->UtilidadAnual : 0;
-
-        $ya_prestado = \App\Models\Prestamo::where('Id_Ejidatario', $id_ejidatario)
-            ->where('Id_Utilidad', $utilidad->Id_Utilidad ?? 0)
-            ->sum('Cantidad');
-
-        return response()->json([
-            'nombre' => $ejidatario->usuario->Nombres . ' ' . $ejidatario->usuario->Apellido_Paterno,
-            'total_repartos' => $monto_individual,
-            'prestamo_actual' => (float)$ya_prestado,
-            'saldo_disponible' => max($monto_individual - $ya_prestado, 0)
-        ]);
     }
-
 
     public function actualizarPrestamo(Request $request, $id)
     {
-        $prestamo = \App\Models\Prestamo::findOrFail($id);
+        $prestamo = Prestamo::findOrFail($id);
 
         $request->validate([
             'motivo' => 'required|string',
@@ -149,9 +177,8 @@ class RepartoController extends Controller
         ]);
 
         $prestamo->update([
-            'Motivo' => $request->motivo,
+            'Motivo'   => $request->motivo,
             'Cantidad' => $request->cantidad,
-            'Saldo_Continuo' => $prestamo->Saldo_Continuo + ($request->cantidad - $prestamo->Cantidad),
         ]);
 
         return redirect()->back()->with('success', 'Préstamo actualizado correctamente.');
@@ -159,13 +186,10 @@ class RepartoController extends Controller
 
     public function agregarAbono(Request $request, $id)
     {
-        $prestamo = \App\Models\Prestamo::findOrFail($id);
+        $request->validate(['monto_abono' => 'required|numeric|min:0.01']);
 
-        $request->validate([
-            'monto_abono' => 'required|numeric|min:0.01',
-        ]);
-
-        $prestamo->Saldo_Continuo = max($prestamo->Saldo_Continuo - $request->monto_abono, 0);
+        $prestamo = Prestamo::findOrFail($id);
+        $prestamo->Cantidad = max($prestamo->Cantidad - $request->monto_abono, 0);
         $prestamo->save();
 
         return redirect()->back()->with('success', 'Abono registrado correctamente.');
@@ -179,14 +203,14 @@ class RepartoController extends Controller
 
     public function obtenerFechaLimite()
     {
-        $utilidad = Utilidad::find(2);
+        $utilidad = Utilidad::find(1);
         return response()->json(['fecha_limite' => $utilidad?->Fecha_Eliminado ?? '']);
     }
 
     public function fijarFechaLimite(Request $request)
     {
         $request->validate(['fecha_limite' => 'required|date']);
-        $utilidad = Utilidad::find(2);
+        $utilidad = Utilidad::find(1);
         if ($utilidad) {
             $utilidad->Fecha_Eliminado = $request->fecha_limite;
             $utilidad->save();

@@ -179,13 +179,13 @@
 </nav>
 
 <div class="login-container">
-    <h2>Validación para acceso</h2>
+    <h2>Validación de acceso</h2>
 
     <form id="two-fa-form" method="POST" action="{{ route('2fa.check') }}">
         @csrf
 
         <div class="form-group">
-            <label for="code">Ingresa el código de verificación</label>
+            <label for="code">Ingresa el código de verificación que te enviamos</label>
             <input
                     type="text"
                     id="code"

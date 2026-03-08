@@ -35,21 +35,15 @@ class ConfiguracionController extends Controller
             'permisos' => json_decode($datos->Permisos ?? '[]', true)
         ]);
     }
+
     public function obtenerPermisosRol($id) {
         $rol = DB::table('Roles')->where('Id_Rol', $id)->first();
-
-        if (!$rol) {
-            return response()->json(['permisos' => []]);
-        }
+        if (!$rol) return response()->json(['permisos' => []]);
 
         $permisosRaw = $rol->Permisos;
-        $permisosDecodificados = is_string($permisosRaw)
-            ? json_decode($permisosRaw, true)
-            : $permisosRaw;
+        $permisosDecodificados = is_string($permisosRaw) ? json_decode($permisosRaw, true) : $permisosRaw;
 
-        return response()->json([
-            'permisos' => $permisosDecodificados ?? []
-        ]);
+        return response()->json(['permisos' => $permisosDecodificados ?? []]);
     }
 
     public function guardarPermisos(Request $request)
@@ -79,51 +73,70 @@ class ConfiguracionController extends Controller
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_Usuario', $request->Id_Usuario)
-            ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol')
+            ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol', 'Roles.Id_Rol')
             ->first();
 
-        $nivelTarget = ($usuarioTarget) ? ($jerarquia[$usuarioTarget->Tipo_Rol] ?? 0) : 0;
-
-        if ($miNivel === 0) {
-            return back()->withErrors("Error de sistema: No se pudo identificar tu nivel de rango. Reintenta iniciando sesión.");
+        if (!$usuarioTarget) {
+            return back()->withErrors("El usuario destino no tiene un rol asignado actualmente.");
         }
 
-        if ($miNivel < $nivelTarget) {
-            return back()->withErrors("No tienes rango suficiente para modificar a un {$usuarioTarget->Tipo_Rol}.");
+        $nivelTarget = $jerarquia[$usuarioTarget->Tipo_Rol] ?? 0;
+
+        if ($usuarioTarget->Tipo_Rol === 'Administrador' && $request->Id_Usuario != session('usuario.id')) {
+            return back()->withErrors("No está permitido que un Administrador modifique a otro Administrador.");
+        }
+
+        if ($miNivel <= $nivelTarget && $request->Id_Usuario != session('usuario.id')) {
+            return back()->withErrors("No tienes rango suficiente para modificar a un {$usuarioTarget->Tipo_Rol}. Debes tener un rango estrictamente superior.");
         }
 
         $nuevoRolNombre = DB::table('Roles')->where('Id_Rol', $request->Id_Rol)->value('Tipo_Rol');
-        if (($jerarquia[$nuevoRolNombre] ?? 0) > $miNivel) {
-            return back()->withErrors("No puedes asignar el rango de {$nuevoRolNombre} porque es superior al tuyo.");
+        if (($jerarquia[$nuevoRolNombre] ?? 0) >= $miNivel && $miRolNombre !== 'Administrador') {
+            return back()->withErrors("No puedes asignar el rango de {$nuevoRolNombre} porque es igual o superior al tuyo.");
         }
 
-        if (!$request->has('confirmacion_global')) {
-            return back()->withErrors('Debes confirmar que entiendes el impacto del cambio.');
+        if ($request->Id_Rol == 2 && $miRolNombre === 'Administrador') {
+            return back()->withErrors("No se pueden editar los permisos del Rol Administrador para evitar bloqueos del sistema.");
         }
 
         if ($request->Id_Usuario == session('usuario.id')) {
-            return back()->withErrors('No puedes modificar tus propios permisos directamente para evitar bloqueos accidentales.');
+            return back()->withErrors('No puedes modificar tus propios permisos directamente.');
         }
 
-        if ($usuarioTarget && $usuarioTarget->Id_Rol == 2 && $request->Id_Rol != 2) {
-            return back()->withErrors('Por seguridad, no se puede degradar el rango de un Administrador.');
+        if (!$request->has('confirmacion_global')) {
+            return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol.');
         }
 
         $permisosPermitidos = [
+            // Usuarios
             'usuarios_ver','usuarios_crear','usuarios_eliminar',
-            'ejidatarios_ver','ejidatarios_crear',
-            'actividades_ver','actividades_crear',
-            'gestion_ver','gestion_crear',
-            'asambleas_ver','asambleas_crear',
-            'asistencia_ver','asistencia_crear',
+            // Ejidatarios
+            'ejidatarios_ver','ejidatarios_crear','ejidatarios_eliminar',
+            // Actividades
+            'actividades_ver','actividades_crear','actividades_eliminar',
+            // Gestión
+            'gestion_ver','gestion_crear','gestion_eliminar',
+            // Asambleas
+            'asambleas_ver','asambleas_crear','asambleas_eliminar',
+            // Asistencia
+            'asistencia_ver','asistencia_crear','asistencia_eliminar',
+            // Expedientes (Solo ver/crear según tu regla)
             'expedientes_ver','expedientes_crear',
-            'parcelas_ver','parcelas_crear',
-            'utilidades_ver','utilidades_crear',
-            'gastos_ver','gastos_crear',
-            'inventario_ver','inventario_crear',
-            'apoyos_ver','apoyos_crear',
-            'historicos_ver','historicos_crear',
+            // Parcelas
+            'parcelas_ver','parcelas_crear','parcelas_eliminar',
+            // Finanzas (Utilidades)
+            'utilidades_ver','utilidades_crear','utilidades_eliminar',
+            // Gastos
+            'gastos_ver','gastos_crear','gastos_eliminar',
+            // Inventario
+            'inventario_ver','inventario_crear','inventario_eliminar',
+            // Apoyos
+            'apoyos_ver','apoyos_crear','apoyos_eliminar',
+            // Históricos
+            'historicos_ver','historicos_crear','historicos_eliminar',
+            // Respaldo (Solo ver/crear)
             'respaldo_ver','respaldo_crear',
+            // Configuración (Solo ver/crear)
             'configuracion_ver','configuracion_crear'
         ];
 
@@ -135,7 +148,6 @@ class ConfiguracionController extends Controller
 
         DB::beginTransaction();
         try {
-            // Actualizar el rol del usuario
             DB::table('Relacion_Ejidatario')
                 ->where('Id_Usuario', $request->Id_Usuario)
                 ->update([
@@ -143,7 +155,7 @@ class ConfiguracionController extends Controller
                     'Fecha_Modificado' => now()
                 ]);
 
-            if ($miRolNombre === 'Administrador') {
+            if ($request->Id_Rol != 2) {
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
                     ->update([
@@ -153,7 +165,7 @@ class ConfiguracionController extends Controller
             }
 
             DB::commit();
-            return back()->with('success', 'Permisos y rol actualizados correctamente');
+            return back()->with('success', 'Permisos y rol actualizados correctamente.');
 
         } catch (\Throwable $e) {
             DB::rollBack();

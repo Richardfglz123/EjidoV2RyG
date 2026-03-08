@@ -112,7 +112,7 @@
     <script>
         const emailInput = document.getElementById('emailInput');
         const suggestionsContainer = document.getElementById('emailSuggestions');
-        const domains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
+        const domains = ['gmail.com', 'outlook.com', 'icloud.com', 'yahoo.com', 'hotmail.com'];
 
         emailInput.addEventListener('input', function() {
             const value = this.value;

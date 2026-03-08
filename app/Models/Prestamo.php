@@ -9,8 +9,8 @@ class Prestamo extends Model
 {
     use HasFactory;
 
-    protected $table = 'prestamo';
-    protected $primaryKey = 'Id_Prestamo'; // OK, coincide con la DB
+    protected $table = 'Prestamo';
+    protected $primaryKey = 'Id_Prestamo';
     public $timestamps = false;
 
     protected $fillable = [
@@ -19,10 +19,7 @@ class Prestamo extends Model
         'Motivo',
         'Id_Ejidatario',
         'Id_Utilidad',
-        'Saldo_Continuo',   // coincide con la DB
-        'total_abonado',     // si la vas a usar
-        'estado_prestamo',   // si la vas a usar
-        'monto_original',    // si la vas a usar
+        'Saldo_Continuo',
     ];
 
     public function ejidatario()

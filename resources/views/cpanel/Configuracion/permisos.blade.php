@@ -1,12 +1,11 @@
 @extends('cpanel.plantilla')
 
-@section('title', 'Gestión de Accesos')
+@section('title', 'Configuracion')
 
 @section('content')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
-    {{-- estilo --}}
     <style>
         .loading-overlay {
             position:absolute; top:0; left:0; width:100%; height:100%;
@@ -142,9 +141,16 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    @if($m['key'] === 'usuarios')
+                                    @php
+                                        $excluidos = ['configuracion', 'respaldo', 'expedientes'];
+                                    @endphp
+
+                                    @if(!in_array($m['key'], $excluidos))
                                         <div class="form-check form-switch d-inline-block">
-                                            <input class="form-check-input permiso permiso-eliminar" type="checkbox" name="permisos[]" value="usuarios_eliminar">
+                                            <input class="form-check-input permiso permiso-eliminar"
+                                                   type="checkbox"
+                                                   name="permisos[]"
+                                                   value="{{ $m['key'] }}_eliminar">
                                         </div>
                                     @endif
                                 </td>
@@ -290,7 +296,6 @@
                     type: 'GET',
                     cache: false,
                     success: function (data) {
-                        // Accedemos a data.permisos que envía tu nuevo controlador
                         pintarInterfaz(data.permisos);
                     },
                     error: err => {

@@ -2,34 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Utilidad extends Model
 {
-    use HasFactory;
-
     protected $table = 'Utilidad';
     protected $primaryKey = 'Id_Utilidad';
     public $timestamps = false;
 
     protected $fillable = [
+        'Monto',
+        'Fecha_Limite',
         'Año',
-        'UtilidadAnual',
-        'Primer_Reparto',
-        'SegundoReparto',
-        'Reparto_Finiquito',
-        'Fecha_Eliminado',
+        'Tipo_Reparto',
+        'Fecha_Registro',
         'Fecha_Modificado',
-        'Fecha_Creo',
-        'Id_Elimino',
         'Id_Modificado',
-        'Id_Creo',
-        'Fecha_Limite'
+        'Fecha_Creo',
+        'Id_Creo'
     ];
-
-    public function prestamos()
-    {
-        return $this->hasMany(Prestamo::class, 'Id_Utilidad', 'Id_Utilidad');
-    }
 }

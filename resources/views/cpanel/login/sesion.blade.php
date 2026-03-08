@@ -51,7 +51,7 @@
         </form>
 
         <div class="extra-options">
-            <a href="{{ route('password.forgot') }}">¿Olvidaste tu contraseña?</a>
+            <a href="{{ route('password.forgot') }}">Olvide mi contraseña</a>
         </div>
     @endif
 </div>
@@ -59,7 +59,7 @@
 <footer class="footer bg-ejidal-light">
     <div class="footer-container container">
         <div class="footer-left"><span>Sistema de Gestión Ejidal &copy; 2026</span></div>
-        <div class="footer-right"><span>Versión 1.3.1</span></div>
+        <div class="footer-right"><span>Versión 1.4.1</span></div>
     </div>
 </footer>
 

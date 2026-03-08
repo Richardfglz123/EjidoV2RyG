@@ -22,22 +22,22 @@
                 <div class="col-md-5">
                     <label class="form-label small fw-bold">Nombre</label>
                     <input
-                        type="text"
-                        name="nombre"
-                        class="form-control"
-                        placeholder="Buscar por nombre..."
-                        value="{{ request('nombre') }}"
+                            type="text"
+                            name="nombre"
+                            class="form-control"
+                            placeholder="Buscar por nombre..."
+                            value="{{ request('nombre') }}"
                     >
                 </div>
 
                 <div class="col-md-5">
                     <label class="form-label small fw-bold">Apellido</label>
                     <input
-                        type="text"
-                        name="apellido"
-                        class="form-control"
-                        placeholder="Buscar por apellido..."
-                        value="{{ request('apellido') }}"
+                            type="text"
+                            name="apellido"
+                            class="form-control"
+                            placeholder="Buscar por apellido..."
+                            value="{{ request('apellido') }}"
                     >
                 </div>
 
@@ -72,7 +72,7 @@
                     <th class="ps-3">Nombres</th>
                     <th>Apellido Paterno</th>
                     <th>Apellido Materno</th>
-                    <th>Usuario</th>
+                    <th>Usuario / Rol</th>
                     <th>Correo</th>
                     <th>Teléfono</th>
                     <th class="text-center">Acciones</th>
@@ -84,7 +84,24 @@
                         <td class="ps-3">{{ $fila->Nombres }}</td>
                         <td>{{ $fila->Apellido_Paterno }}</td>
                         <td>{{ $fila->Apellido_Materno }}</td>
-                        <td><span class="badge bg-light text-dark border">{{ $fila->Usuario }}</span></td>
+                        <td>
+                            <div class="fw-bold text-dark mb-1">{{ $fila->Usuario }}</div>
+
+                            @php
+                                $rolNombre = strtolower(trim($fila->rol ?? ''));
+                                $badgeClass = 'bg-secondary'; // Color por defecto
+
+                                if (str_contains($rolNombre, 'admin')) {
+                                    $badgeClass = 'bg-danger';
+                                } elseif (str_contains($rolNombre, 'ejidatario')) {
+                                    $badgeClass = 'bg-success';
+                                }
+                            @endphp
+
+                            <span class="badge {{ $badgeClass }} shadow-sm" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                <i class="fas fa-shield-alt me-1"></i> {{ strtoupper($fila->rol ?? 'SIN ROL') }}
+                            </span>
+                        </td>
                         <td>{{ $fila->Correo }}</td>
                         <td>{{ $fila->Telefono }}</td>
                         <td class="text-center">
@@ -95,7 +112,7 @@
                                 </a>
 
                                 @php
-                                    $rolFila = strtolower(trim($fila->rol));
+                                    $rolFila = strtolower(trim($fila->rol ?? ''));
                                 @endphp
 
                                 @if(

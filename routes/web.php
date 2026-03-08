@@ -49,7 +49,6 @@ Route::post('/logout', function () {
 
 // --- RECUPERACIÓN DE CONTRASEÑA ---
 Route::get('password/forgot', [UsuariosController::class, 'forgotForm'])->name('password.forgot');
-// Corregido: nombre de ruta único para evitar conflictos
 Route::post('password/forgot-send', [UsuariosController::class, 'sendResetCode'])->name('password.send');
 Route::get('password/reset', [UsuariosController::class, 'resetForm'])->name('password.reset.form');
 Route::post('password/reset', [UsuariosController::class, 'resetPassword'])->name('password.reset');
@@ -80,15 +79,11 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-// --- MÓDULO: EJIDATARIOS ---
+    // --- MÓDULO: EJIDATARIOS ---
     Route::prefix('admon/Ejidatarios')->group(function () {
-
-        // 1. RUTAS DE AJAX (Deben ir primero para que no las confunda con el ID de un ejidatario)
         Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
-        // Para el JSON del saldo disponible
-        Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])
-            ->name('ejidatarios.saldo');
-        // 2. CRUD ESTÁNDAR
+        Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
+
         Route::middleware(['permiso:ejidatarios_crear'])->group(function () {
             Route::get('/create', [EjidatariosController::class, 'create'])->name('Ejidatarios.create');
             Route::post('/', [EjidatariosController::class, 'store'])->name('Ejidatarios.store');
@@ -103,8 +98,23 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
+    // --- MÓDULO: DESCUENTOS (Acomodado aquí para que herede la sesión) ---
+    Route::get('/descuentos-asambleas', [DescuentoController::class, 'index'])->name('descuentos.asambleas');
+    Route::get('/descuentos-faenas', [DescuentoController::class, 'faenas'])->name('descuentos.faenas');
+    Route::get('/ejidatarios/buscar-descuentos', [DescuentoController::class, 'buscar'])->name('descuentos.buscar_ejidatario');
+    Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
+    Route::post('/faenas/aplicar', [DescuentoController::class, 'store'])->name('faenas.aplicar');
+    Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
+    Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
+
+    Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
+    Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
+// Rutas para los detalles y perdonar multas
+    Route::get('/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto.detalle.asambleas');
+    Route::get('/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto.detalle.faenas');
+    Route::post('/perdonar-descuento/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto.perdonar');
+
     Route::post('/prestamo/guardar', [RepartoController::class, 'agregarPrestamo'])->name('prestamo.agregar');
-    // Rutas para la fecha límite (Primer Reparto)
     Route::get('/reparto/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
     Route::post('/reparto/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
 
@@ -183,39 +193,30 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: INVENTARIO (Artículos, Entradas, Salidas) ---
+    // --- MÓDULO: INVENTARIO ---
     Route::middleware(['permiso:inventario_ver'])->group(function () {
         Route::get('/articulos', [ArticuloController::class, 'index'])->name('articulos.index');
         Route::get('/articulos/buscar', [ArticuloController::class, 'buscar'])->name('articulos.buscar');
         Route::get('/articulos-pdf', [ArticuloController::class, 'generarPdf'])->name('articulos.pdf');
         Route::get('/articulos-excel', [ArticuloController::class, 'generarExcel'])->name('articulos.excel');
-
-        // ENTRADAS
         Route::get('/entradas', [EntradaController::class, 'index'])->name('entradas.index');
         Route::get('/entradas/pdf', [EntradaController::class, 'generarPdf'])->name('entradas.pdf');
         Route::get('/entradas/excel', [EntradaController::class, 'generarExcel'])->name('entradas.excel');
-
-        // SALIDAS
         Route::get('/salidas', [SalidaController::class, 'index'])->name('salidas.index');
         Route::get('/salidas/pdf', [SalidaController::class, 'generarPdf'])->name('salidas.pdf');
         Route::get('/salidas/excel', [SalidaController::class, 'generarExcel'])->name('salidas.excel');
 
         Route::middleware(['permiso:inventario_crear'])->group(function () {
-            // Artículos CRUD
             Route::get('/articulos/nuevo', [ArticuloController::class, 'create'])->name('articulos.create');
             Route::post('/articulos', [ArticuloController::class, 'store'])->name('articulos.store');
             Route::get('/articulos/{id}/editar', [ArticuloController::class, 'edit'])->name('articulos.edit');
             Route::put('/articulos/{articulo}', [ArticuloController::class, 'update'])->name('articulos.update');
             Route::post('/articulos/{id}/eliminar', [ArticuloController::class, 'destroy'])->name('articulos.destroy');
-
-            // Entradas CRUD
             Route::get('/entradas/nueva', [EntradaController::class, 'create'])->name('entradas.create');
             Route::post('/entradas/guardar', [EntradaController::class, 'store'])->name('entradas.store');
             Route::get('/entradas/{id}/edit', [EntradaController::class, 'edit'])->name('entradas.edit');
             Route::put('/entradas/{id}', [EntradaController::class, 'update'])->name('entradas.update');
             Route::delete('/entradas/{id}', [EntradaController::class, 'destroy'])->name('entradas.destroy');
-
-            // Salidas CRUD
             Route::get('/salidas/nueva', [SalidaController::class, 'create'])->name('salidas.create');
             Route::post('/salidas/guardar', [SalidaController::class, 'store'])->name('salidas.store');
             Route::get('/salidas/{id}/edit', [SalidaController::class, 'edit'])->name('salidas.edit');
@@ -232,10 +233,9 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::delete('/Respaldos/eliminar/{filename}', [RespaldoController::class, 'destroy'])->name('Respaldos.destroy');
     });
 
-// --- MÓDULO: Config ---
+    // --- MÓDULO: Config ---
     Route::middleware(['permiso:configuracion_ver'])->group(function () {
         Route::prefix('configuracion')->group(function () {
-
             Route::get('/permisos', [ConfiguracionController::class, 'permisos'])->name('configuracion.permisos');
             Route::get('/permisos/buscar/{id}', [ConfiguracionController::class, 'obtenerPermisosUsuario']);
 
@@ -246,7 +246,8 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             });
         });
     });
-// --- MÓDULO: EXPEDIENTES ---
+
+    // --- MÓDULO: EXPEDIENTES ---
     Route::middleware(['permiso:expedientes_ver'])->prefix('admon/expedientes')->group(function () {
         Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
         Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
@@ -286,7 +287,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: REPARTOS (Reparto ---
+    // --- MÓDULO: REPARTOS ---
     Route::middleware(['permiso:repartos_ver'])->prefix('admon/repartos')->group(function () {
         Route::get('/', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.index');
 
@@ -296,125 +297,62 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
+    // Rutas de Reparto 2 (Detalles y Perdonar)
+    Route::get('/reparto2/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
+    Route::get('/reparto2/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
+    Route::delete('/reparto2/perdonar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.perdonar');
 
-    //DESCUENTOS
-    Route::get('/descuentos', [DescuentoController::class, 'index'])->name('descuento.index');
-    Route::get('/descuentos-asambleas', [DescuentoController::class, 'index'])->name('descuentos.asambleas');
-    Route::get('/descuentos-faenas', [DescuentoController::class, 'faenas'])->name('descuentos.faenas');
-    Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
-    Route::get('/asambleas/buscar', [DescuentoController::class, 'buscar'])
-        ->name('asambleas.buscar');
-    Route::get('/faenas/buscar', [DescuentoController::class, 'buscar'])
-        ->name('faenas.buscar');
-    Route::post('/faenas/aplicar', [DescuentoController::class, 'store'])
-        ->name('faenas.aplicar');
-// Vista para agregar/editar un descuento
-    Route::get('/descuento', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
-        // El Dashboard de los cuadros
-        Route::get('/dashboard-repartos', [RepartoController::class, 'menu'])->name('menu');
+    // Dashboards y otros de Reparto
+    Route::get('/repartos/dashboard', [RepartoController::class, 'menu'])->name('menu');
+    Route::get('/repartos/configurar', [RepartoController::class, 'index'])->name('monto.index');
+    Route::patch('/update-monto/{id}', [RepartoController::class, 'update'])->name('monto.update');
+    Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
 
-        // El formulario de edición (Botón Registro Repartos)
-        Route::get('/configurar-montos', [RepartoController::class, 'index'])->name('monto.index');
-        Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('repartos.registro');
-
-        // La tabla de préstamos (Botón Primer Reparto)
-        Route::get('/tabla-primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
-        Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.primero');
-
-        // Acción de actualizar
-        Route::patch('/update-monto/{id}', [RepartoController::class, 'update'])->name('monto.update');
-    });
-
-    // --- MÓDULO: EXPEDIENTES DIGITALES ---
-    Route::middleware(['permiso:expedientes_ver'])->prefix('admon/expedientes')->group(function () {
-        Route::get('/mi-expediente', [ExpedienteController::class, 'index'])->name('expedientes.index');
-        Route::get('/ver/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
-
-        Route::middleware(['permiso:expedientes_crear'])->group(function () {
-            Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
-            Route::post('/guardar', [ExpedienteController::class, 'store'])->name('expedientes.store');
-        });
-    });
-
-// --- MÓDULO: REPARTOS Y FINANZAS ---
+    // --- MÓDULO: REPARTOS Y FINANZAS ---
     Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(function () {
-
-        // El Menú Principal (Dashboard)
         Route::get('/menu-repartos', [RepartoController::class, 'menu'])->name('menu');
-
-        // Registro/Configuración de Montos (Lo que pide el Sidebar y el botón "Agregar Monto")
         Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('monto.index');
-        Route::get('/registro-repartos-alias', [RepartoController::class, 'index'])->name('repartos.registro'); // Alias para que el sidebar no falle
-
-        // Tablas de detalles (Lo que pide el Sidebar)
-        Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
-        Route::get('/primer-reparto-alias', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.primero'); // Alias
-
-        Route::get('/segundo-reparto', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('reparto.segundo');
-        Route::get('/segundo-reparto-alias', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('repartos.segundo'); // Alias
-
-        // Acción de Guardar Cambios
+        Route::get('/registro-repartos-alias', [RepartoController::class, 'index'])->name('repartos.registro');
+        Route::get('/menu', [MenuController::class, 'index'])->name('menu');
         Route::patch('/configurar-monto/{id}', [RepartoController::class, 'update'])->name('monto.update');
 
-
-        // Descuentos
-        Route::get('/descuentos-asambleas', [DescuentoController::class, 'asambleas'])->name('descuentos.asambleas');
-        Route::get('/descuentos-faenas', [DescuentoController::class, 'faenas'])->name('descuentos.faenas');
-
-        Route::middleware(['permiso:utilidades_crear'])->group(function () {
-            Route::post('/reparto/guardar', [RepartoController::class, 'store'])->name('repartos.store');
-            Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
+        Route::prefix('primer-reparto')->group(function () {
+            Route::get('/', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
+            Route::get('/alias', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.primero');
+            Route::get('/pdf', [RepartoController::class, 'generarPDF'])->name('reparto.primer.pdf');
+            Route::get('/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
+            Route::post('/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
+            Route::get('/buscar-ejidatario', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
+            Route::get('/ejidatario/{id}/saldo', [RepartoController::class, 'obtenerSaldo'])->name('prestamo.saldo');
         });
+
+        Route::prefix('prestamo')->group(function () {
+            Route::post('/agregar', [RepartoController::class, 'agregarPrestamo'])->name('prestamo.agregar');
+            Route::patch('/actualizar/{id}', [RepartoController::class, 'actualizarPrestamo'])->name('prestamo.actualizar');
+            Route::delete('/{id}', [RepartoController::class, 'eliminarPrestamo'])->name('prestamo.eliminar');
+            Route::post('/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
+            Route::get('/{id}/ticket', [RepartoController::class, 'generarTicketPDF'])->name('prestamo.ticket');
+        });
+
+        Route::prefix('segundo-reparto')->group(function () {
+            Route::get('/', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('reparto.segundo');
+            Route::get('/alias', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('repartos.segundo');
+            Route::get('/pdf', [Reparto2Controller::class, 'generarPDF'])->name('reparto.segundo.pdf');
+        });
+
+        Route::prefix('prestamo2')->group(function () {
+            Route::post('/agregar', [Reparto2Controller::class, 'agregarPrestamo'])->name('prestamo2.agregar');
+            Route::patch('/actualizar/{id}', [Reparto2Controller::class, 'actualizarPrestamo'])->name('prestamo2.actualizar');
+            Route::delete('/eliminar/{id}', [Reparto2Controller::class, 'eliminarPrestamo'])->name('prestamo2.eliminar');
+            Route::post('/abonar/{id}', [Reparto2Controller::class, 'agregarAbono'])->name('prestamo2.abonar');
+        });
+
+        Route::post('/reparto/segundo/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
+        Route::get('/reparto/segundo/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
+        Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
     });
-    //prestamos
-Route::post('/prestamo/agregar', [RepartoController::class, 'agregarPrestamo'])->name('prestamo.agregar');
-Route::patch('/prestamo/actualizar/{id}', [RepartoController::class, 'actualizarPrestamo'])->name('prestamo.actualizar');
-Route::delete('/prestamo/{id}', [RepartoController::class, 'eliminarPrestamo'])->name('prestamo.eliminar');
-Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
-Route::get('/prestamo/{id}/ticket', [RepartoController::class, 'generarTicketPDF'])->name('prestamo.ticket');
-    Route::get('/primer-reparto/pdf', [RepartoController::class, 'generarPDF'])->name('reparto.primer.pdf');
-    Route::post('/reparto/primer/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
-    Route::get('/reparto/primer/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
-    Route::post('/reparto/primer/abono/{id}', [RepartoController::class, 'agregarAbono'])->name('reparto.primer.abono');
-    Route::get('/menu', [MenuController::class, 'index'])->name('menu');
-Route::get('primer-reparto/ejidatario/{id}/saldo', [RepartoController::class, 'obtenerSaldo'])->name('prestamo.saldo');
-    Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
-    Route::get('/segundo-reparto', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('reparto.segundo');
-    Route::get('/reporte/concentrado', [RepartoController::class, 'descargarConcentrado'])->name('reporte.concentrado');
-Route::get('/primer-reparto/ejidatario/{id}/saldo', [RepartoController::class, 'obtenerSaldo'])->name('prestamo.saldo');
-Route::patch('/prestamo/actualizar/{id}', [RepartoController::class, 'actualizarPrestamo'])->name('prestamo.actualizar');
-Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
-
-// Rutas para el Segundo Reparto
-Route::get('/segundo-reparto', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('reparto.segundo');
-Route::get('/segundo-reparto/pdf', [Reparto2Controller::class, 'generarPDF'])->name('reparto.segundo.pdf');
-
-// CRUD Préstamos Segundo Reparto
-Route::post('/prestamo2/agregar', [Reparto2Controller::class, 'agregarPrestamo'])->name('prestamo2.agregar');
-Route::patch('/prestamo2/actualizar/{id}', [Reparto2Controller::class, 'actualizarPrestamo'])->name('prestamo2.actualizar');
-Route::delete('/prestamo2/eliminar/{id}', [Reparto2Controller::class, 'eliminarPrestamo'])->name('prestamo2.eliminar');
-Route::post('/prestamo2/abonar/{id}', [Reparto2Controller::class, 'agregarAbono'])->name('prestamo2.abonar');
-
-// Búsqueda y saldos
-Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
-Route::get('/primer-reparto/ejidatario/{id}/saldo', [Reparto2Controller::class, 'obtenerSaldoEjidatario'])->name('prestamo.saldo');
-
-// Detalles y gestión de descuentos
-Route::get('/reparto2/detalle-prestamos/{id_ejidatario}', [Reparto2Controller::class, 'obtenerDetallePrestamos'])->name('reparto2.detalle.prestamos');
-Route::get('/reparto2/detalle-faenas/{id_ejidatario}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
-Route::delete('/reparto2/faena-perdonar/{id_descuento}', [Reparto2Controller::class, 'perdonarFaena'])->name('reparto2.faena.perdonar');
-Route::get('/reparto2/detalle-asambleas/{id_ejidatario}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
-Route::delete('/reparto2/asamblea-perdonar/{id_descuento}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.asamblea.perdonar');
-
-// Gestión de fechas límite
-Route::post('/reparto/segundo/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
-Route::get('/reparto/segundo/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
-//
-Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
-// Tickets
-Route::get('/prestamo2/{id}/ticket', [Reparto2Controller::class, 'generarTicketPDF'])->name('prestamo2.ticket');
-Route::get('/reparto2/ticket-general/{id}', [Reparto2Controller::class, 'generarTicketGeneral'])->name('reparto2.ticket.general');
 
     Route::get('/debug-auth', function () {
         return response()->json(session()->all());
     });
+});

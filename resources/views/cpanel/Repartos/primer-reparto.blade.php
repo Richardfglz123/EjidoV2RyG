@@ -2,117 +2,90 @@
 @section('title', 'Primer Reparto')
 
 @section('content')
-    <style>
-        .select2-container--open { z-index: 9999 !important; }
-        .select2-container .select2-selection--single { height: 38px !important; display: flex; align-items: center; border: 1px solid #ced4da; }
-        .card-header-ejidal { background-color: #1b4b36; color: white; }
-        .btn-ejidal { background-color: #1b4b36; color: white; border: none; }
-        .btn-ejidal:hover { background-color: #143828; color: white; }
-
-        .info-card { background-color: #f8f9fa; border-left: 5px solid #1b4b36; }
-        .info-label { font-weight: bold; color: #6c757d; font-size: 0.9rem; text-transform: uppercase; }
-        .info-value { font-weight: 700; color: #1b4b36; font-size: 1.1rem; }
-        .text-neto { color: #0d6efd !important; }
-    </style>
-
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2 text-ejidal">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-ejidal fw-normal">
             <i class="fas fa-hand-holding-usd me-2"></i> Primer Reparto
         </h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-sm btn-ejidal" data-bs-toggle="modal" data-bs-target="#modalPrestamo"
-                    @if(isset($deadlinePasada) && $deadlinePasada) disabled title="Periodo Cerrado" @endif>
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="buscador-tabla" class="form-control border-start-0" placeholder="Buscar en préstamos...">
+            </div>
+
+            <button type="button" class="btn btn-ejidal shadow-sm px-3 fw-normal" data-bs-toggle="modal" data-bs-target="#modalPrestamo"
+                    @if(isset($deadlinePasada) && $deadlinePasada) disabled @endif>
                 <i class="fas fa-plus me-1"></i> Agregar Préstamo
             </button>
         </div>
     </div>
 
-    <div class="card info-card mb-4 shadow-sm">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="info-label">Ejidatario</div>
-                    <div id="info-ejidatario" class="info-value">-</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="info-label">Descripción</div>
-                    <div id="info-descripcion" class="info-value">-</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="info-label">Disponible (Total)</div>
-                    <div id="info-disponible" class="info-value">$0.00</div>
-                </div>
-                <div class="col-md-6">
-                    <div class="info-label">Préstamo Actual</div>
-                    <div id="info-prestamo" class="info-value text-danger">$0.00</div>
-                </div>
-                <div class="col-md-6">
-                    <div class="info-label">Saldo Neto Restante</div>
-                    <div id="info-neto" class="info-value text-neto">$0.00</div>
-                </div>
+    @if(isset($deadlinePasada) && $deadlinePasada)
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-3 fa-lg"></i>
+            <div class="fw-normal">
+                Periodo de préstamos cerrado. La fecha límite ({{ \Carbon\Carbon::parse($reparto1->Fecha_Eliminado)->format('d/m/Y') }}) ha vencido. Ya no es posible registrar o modificar movimientos en el primer reparto.
             </div>
         </div>
-    </div>
+    @endif
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm fw-normal" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-list me-2"></i> Listado de Préstamos Registrados</span>
-            <div style="width: 300px;">
-                <input type="text" id="tabla-search" class="form-control form-control-sm" placeholder="Buscar ejidatario...">
-            </div>
+    <div class="card card-ejidal shadow-sm border-0">
+        <div class="card-header card-header-ejidal py-3 fw-normal">
+            <i class="fas fa-list me-2"></i> Préstamos Registrados (Fondo: ${{ number_format($montoReparto1, 2) }})
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="tabla-prestamos">
-                    <thead class="table-light">
-                    <tr>
-                        <th class="ps-3">NO.</th>
-                        <th>EJIDATARIO</th>
-                        <th>PRÉSTAMO</th>
-                        <th>DESCRIPCIÓN</th>
-                        <th>FECHA</th>
-                        <th>SALDO RESTANTE (REPARTO 1)</th>
-                        <th class="text-center">ACCIONES</th>
+                    <thead>
+                    <tr class="bg-light fw-normal" style="font-size: 0.9rem;">
+                        <th class="ps-3 text-muted fw-normal" width="50">#</th>
+                        <th class="fw-normal">EJIDATARIO</th>
+                        <th class="fw-normal">DEUDA ACTUAL</th>
+                        <th class="fw-normal">DESCRIPCIÓN</th>
+                        <th class="fw-normal">FECHA</th>
+                        <th class="fw-normal">SALDO DISPONIBLE</th>
+                        <th class="text-center fw-normal">ACCIONES</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="fw-normal">
                     @forelse ($prestamos as $prestamo)
                         <tr>
                             <td class="ps-3 text-muted small">{{ $loop->iteration }}</td>
-                            <td class="fw-bold">
+                            <td class="text-dark">
                                 {{ $prestamo->ejidatario->usuario->Nombres ?? '' }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno ?? '' }}
                             </td>
-                            <td class="text-danger fw-bold">${{ number_format($prestamo->Cantidad, 2) }}</td>
+                            <td class="text-danger fw-normal">${{ number_format($prestamo->Cantidad, 2) }}</td>
                             <td class="text-muted small">{{ $prestamo->Motivo }}</td>
                             <td>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y') }}</td>
                             <td>
-                                <span class="badge {{ $prestamo->Saldo_Continuo > 0 ? 'bg-warning text-dark' : 'bg-success' }}">
-                                    ${{ number_format($prestamo->Saldo_Continuo, 2) }}
+                                <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4;">
+                                    ${{ number_format($montoReparto1 - $prestamo->Cantidad, 2) }}
                                 </span>
                             </td>
                             <td class="text-center">
                                 @if(!(isset($deadlinePasada) && $deadlinePasada))
                                     <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-primary btn-editar"
+                                        <button class="btn btn-outline-secondary btn-editar"
                                                 data-id="{{ $prestamo->Id_Prestamo }}"
+                                                data-idejidatario="{{ $prestamo->Id_Ejidatario }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
                                                 data-motivo="{{ $prestamo->Motivo }}"
                                                 data-cantidad="{{ $prestamo->Cantidad }}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-success btn-abonar"
+                                        <button class="btn btn-outline-success btn-abonar"
+                                                style="border: 1px solid #1b4b36 !important;"
                                                 data-url="{{ route('prestamo.abonar', $prestamo->Id_Prestamo) }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
-                                                data-saldo="{{ $prestamo->Saldo_Continuo }}">
+                                                data-saldo="{{ $prestamo->Cantidad }}">
                                             <i class="fas fa-money-bill-wave"></i>
                                         </button>
                                         <form action="{{ route('prestamo.eliminar', $prestamo->Id_Prestamo) }}" method="POST" class="d-inline">
@@ -123,12 +96,12 @@
                                         </form>
                                     </div>
                                 @else
-                                    <span class="text-muted small"><i class="fas fa-lock"></i> Cerrado</span>
+                                    <span class="badge bg-light text-muted fw-normal border px-3"><i class="fas fa-lock me-1"></i> Cerrado</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center py-4">No hay registros.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">No hay registros de préstamos.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -136,123 +109,136 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true"
-         data-search-url="{{ route('ejidatarios.buscar') }}"
-         data-saldo-url="{{ url('primer-reparto/ejidatario') }}/__ID__/saldo">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-ejidal text-white">
-                    <h5 class="modal-title">Nueva Solicitud</h5>
+    {{-- MODAL AGREGAR --}}
+    <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header card-header-ejidal">
+                    <h5 class="modal-title text-white fw-normal"><i class="fas fa-plus-circle me-2"></i>Nueva Solicitud</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="{{ route('prestamo.agregar') }}" method="POST">
+                <form id="form-agregar-prestamo" action="{{ route('prestamo.agregar') }}" method="POST">
                     @csrf
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-bold">Seleccionar Ejidatario</label>
-                                <select id="ejidatario-select" name="id_ejidatario" class="form-control" style="width:100%" required></select>
+                    <div class="modal-body p-4 fw-normal">
+                        <div class="mb-3 text-start">
+                            <label class="text-muted small text-uppercase">Ejidatario</label>
+                            <select id="ejidatario-select" name="id_ejidatario" class="form-control" style="width:100%" required></select>
+                        </div>
+                        <div class="row mb-3 text-center bg-light py-3 rounded mx-0">
+                            <div class="col-6 border-end">
+                                <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Saldo Disponible</small>
+                                <span id="saldo-info" class="text-ejidal h5 mb-0 fw-normal">$0.00</span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Saldo Disponible</label>
-                                <div id="saldo-info" class="alert alert-secondary py-2 text-center">Seleccione ejidatario</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Descripción / Motivo</label>
-                                <input type="text" id="input-motivo" name="motivo" class="form-control" required placeholder="Ej. Gastos médicos">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Cantidad ($)</label>
-                                <input type="number" id="input-cantidad" name="cantidad" step="0.01" class="form-control" required min="1">
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase mb-1">Monto a Prestar</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white border-end-0">$</span>
+                                    <input type="number" id="input-cantidad" name="cantidad" step="0.01" class="form-control text-center fw-normal border-start-0" required min="1">
+                                </div>
                             </div>
                         </div>
+                        <div class="mb-0 text-start">
+                            <label class="text-muted small text-uppercase">Motivo del Préstamo</label>
+                            <input type="text" name="motivo" class="form-control fw-normal" required placeholder="Ej. Gastos médicos">
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="submit" class="btn btn-ejidal">Guardar</button>
+                    <div class="modal-footer bg-light justify-content-center">
+                        <button type="button" class="btn btn-secondary px-4 fw-normal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-ejidal px-4 fw-normal" id="btn-guardar-prestamo">
+                            <i class="fas fa-save me-1"></i> Guardar
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    {{-- MODAL EDITAR --}}
     <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form id="form-editar" method="POST">
-                @csrf @method('PATCH')
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">Editar Préstamo</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Ejidatario</label>
-                            <input type="text" id="editar-nombre" class="form-control bg-light" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Descripción</label>
-                            <input type="text" id="editar-motivo" name="motivo" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Monto</label>
-                            <input type="number" id="editar-cantidad" name="cantidad" class="form-control" step="0.01" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    </div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header card-header-ejidal">
+                    <h5 class="modal-title text-white fw-normal"><i class="fas fa-edit me-2"></i>Editar Préstamo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-            </form>
+                <form id="form-editar" method="POST">
+                    @csrf @method('PATCH')
+                    <div class="modal-body p-4 fw-normal">
+                        <div class="mb-3 text-start">
+                            <label class="text-muted small text-uppercase">Ejidatario</label>
+                            <input type="text" id="editar-nombre" class="form-control bg-light border-0 fw-normal" readonly>
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="text-muted small text-uppercase">Monto ($)</label>
+                            <input type="number" id="editar-cantidad" name="cantidad" class="form-control fw-normal" step="0.01" required>
+                            <small id="error-editar-cantidad" class="text-danger d-none">Este monto excede el saldo disponible.</small>
+                        </div>
+                        <div class="mb-0 text-start">
+                            <label class="text-muted small text-uppercase">Descripción</label>
+                            <input type="text" id="editar-motivo" name="motivo" class="form-control fw-normal" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light justify-content-center">
+                        <button type="button" class="btn btn-secondary fw-normal" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-ejidal px-4 fw-normal">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
+    {{-- MODAL ABONO --}}
     <div class="modal fade" id="modalAbono" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form id="form-abono" method="POST">
-                @csrf
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">Registrar Abono</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Ejidatario</label>
-                            <input type="text" id="abono-nombre" class="form-control bg-light" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Saldo Pendiente</label>
-                            <input type="text" id="abono-saldo" class="form-control bg-light text-danger fw-bold" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Monto a Abonar</label>
-                            <input type="number" name="monto_abono" class="form-control" step="0.01" required min="0.01">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Confirmar Abono</button>
-                    </div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow text-center">
+                <div class="modal-header card-header-ejidal">
+                    <h5 class="modal-title mx-auto text-white fw-normal"><i class="fas fa-cash-register me-2"></i>Registrar Abono</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal"></button>
                 </div>
-            </form>
+                <form id="form-abono" method="POST">
+                    @csrf
+                    <div class="modal-body p-4 fw-normal">
+                        <h6 id="abono-nombre" class="mb-3 text-dark fw-normal">Cargando...</h6>
+                        <div class="alert alert-warning py-2 border-0 shadow-sm fw-normal">
+                            Deuda actual: <span id="abono-saldo" class="text-danger fw-normal">$0.00</span>
+                        </div>
+                        <div class="mb-0">
+                            <label class="text-muted small text-uppercase mb-2">Monto a Abonar ($)</label>
+                            <input type="number" id="input-abono" name="monto_abono" class="form-control form-control-lg text-center text-ejidal fw-normal" step="0.01" required min="0.01">
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-center bg-light">
+                        <button type="button" class="btn btn-secondary px-4 fw-normal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-ejidal px-4 shadow-sm fw-normal">Confirmar Pago</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
+    {{-- SCRIPTS --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         $(document).ready(function() {
-            const modalPrestamo = document.getElementById('modalPrestamo');
-            let saldoDisponibleGlobal = 0;
+            let saldoMaximoPrestamo = 0;
+            let deudaActualAbono = 0;
+            let saldoDisponibleParaEditar = 0; // Variable para el modal editar
+
+            $("#buscador-tabla").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $("#tabla-prestamos tbody tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
 
             $('#ejidatario-select').select2({
-                placeholder: 'Buscar ejidatario...',
+                placeholder: 'Seleccionar ejidatario...',
                 dropdownParent: $('#modalPrestamo'),
-                minimumInputLength: 2,
                 ajax: {
-                    url: modalPrestamo.dataset.searchUrl,
+                    url: "{{ route('ejidatarios.buscar') }}",
                     dataType: 'json',
                     delay: 250,
                     data: params => ({ q: params.term }),
@@ -262,85 +248,73 @@
             });
 
             $('#ejidatario-select').on('select2:select', function(e) {
-                const dataEjidatario = e.params.data;
-                const url = modalPrestamo.dataset.saldoUrl.replace('__ID__', dataEjidatario.id);
-
-                fetch(url)
-                    .then(res => res.json())
-                    .then(data => {
-                        saldoDisponibleGlobal = parseFloat(data.saldo_disponible) || 0;
-
-                        $('#saldo-info').removeClass('alert-secondary alert-danger').addClass('alert-success fw-bold')
-                            .text("Saldo Disponible: $" + saldoDisponibleGlobal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-
-                        $('#info-ejidatario').text(dataEjidatario.text || "-");
-                        $('#info-disponible').text("$" + saldoDisponibleGlobal.toLocaleString('en-US', {minimumFractionDigits: 2}));
-
-                        actualizarCalculosPanel();
-                    })
-                    .catch(err => {
-                        console.error("Error:", err);
-                        $('#saldo-info').text("Error al obtener saldo").addClass('alert-danger');
-                    });
+                const id = e.params.data.id;
+                let url = "{{ route('prestamo.saldo', ':id') }}".replace(':id', id);
+                $('#saldo-info').html('<i class="fas fa-spinner fa-spin"></i>');
+                fetch(url).then(res => res.json()).then(data => {
+                    saldoMaximoPrestamo = parseFloat(data.saldo_disponible) || 0;
+                    $('#saldo-info').text("$" + saldoMaximoPrestamo.toLocaleString('en-US', { minimumFractionDigits: 2 }));
+                    $('#input-cantidad').attr('max', saldoMaximoPrestamo);
+                });
             });
 
-            $('#input-motivo').on('input', function() {
-                $('#info-descripcion').text($(this).val() || "-");
-            });
-
-            $('#input-cantidad').on('input', function() {
-                actualizarCalculosPanel();
-            });
-
-            function actualizarCalculosPanel() {
-                const cantidadInput = parseFloat($('#input-cantidad').val()) || 0;
-
-                $('#info-prestamo').text("$" + cantidadInput.toLocaleString('en-US', {minimumFractionDigits: 2}));
-
-                const neto = saldoDisponibleGlobal - cantidadInput;
-
-                if(neto < 0) {
-                    $('#info-neto').removeClass('text-neto').addClass('text-danger');
-                } else {
-                    $('#info-neto').removeClass('text-danger').addClass('text-neto');
+            $('#form-agregar-prestamo').on('submit', function(e) {
+                const cantidad = parseFloat($('#input-cantidad').val());
+                if (cantidad > saldoMaximoPrestamo) {
+                    e.preventDefault();
+                    alert('Error: El monto excede el saldo disponible ($' + saldoMaximoPrestamo.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
+                    return false;
                 }
+            });
 
-                $('#info-neto').text("$" + neto.toLocaleString('en-US', {minimumFractionDigits: 2}));
-            }
+            $('#form-abono').on('submit', function(e) {
+                const abono = parseFloat($('#input-abono').val());
+                if (abono > deudaActualAbono) {
+                    e.preventDefault();
+                    alert('Error: No puedes abonar más de la deuda actual ($' + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
+                    return false;
+                }
+            });
 
             $(document).on('click', '.btn-editar', function() {
-                const id = $(this).data('id');
+                const idPrestamo = $(this).data('id');
+                const idEjidatario = $(this).data('idejidatario');
+                const cantidadActual = parseFloat($(this).data('cantidad'));
                 const nombre = $(this).data('nombre');
                 const motivo = $(this).data('motivo');
-                const cantidad = parseFloat($(this).data('cantidad')) || 0;
 
-                const actionUrl = "{{ route('prestamo.actualizar', ':id') }}".replace(':id', id);
-
-                $('#form-editar').attr('action', actionUrl);
+                $('#form-editar').attr('action', "{{ route('prestamo.actualizar', ':id') }}".replace(':id', idPrestamo));
                 $('#editar-nombre').val(nombre);
                 $('#editar-motivo').val(motivo);
-                $('#editar-cantidad').val(cantidad.toFixed(2));
+                $('#editar-cantidad').val(cantidadActual);
+                $('#error-editar-cantidad').addClass('d-none');
+
+                let url = "{{ route('prestamo.saldo', ':id') }}".replace(':id', idEjidatario);
+                fetch(url).then(res => res.json()).then(data => {
+                    saldoDisponibleParaEditar = (parseFloat(data.saldo_disponible) || 0) + cantidadActual;
+                    $('#editar-cantidad').attr('max', saldoDisponibleParaEditar);
+                });
 
                 $('#modalEditar').modal('show');
             });
 
-            $(document).on('click', '.btn-abonar', function() {
-                const url = $(this).data('url');
-                const nombre = $(this).data('nombre');
-                const saldo = parseFloat($(this).data('saldo')) || 0;
-
-                $('#form-abono').attr('action', url);
-                $('#abono-nombre').val(nombre);
-                $('#abono-saldo').val("$" + saldo.toLocaleString('en-US', {minimumFractionDigits: 2}));
-
-                $('#modalAbono').modal('show');
+            $('#form-editar').on('submit', function(e) {
+                const cantidadNueva = parseFloat($('#editar-cantidad').val());
+                if (cantidadNueva > saldoDisponibleParaEditar) {
+                    e.preventDefault();
+                    $('#error-editar-cantidad').removeClass('d-none').text('Error: El límite es $' + saldoDisponibleParaEditar.toLocaleString('en-US', { minimumFractionDigits: 2 }));
+                    alert('No puedes superar el saldo disponible de $' + saldoDisponibleParaEditar.toLocaleString('en-US', { minimumFractionDigits: 2 }));
+                    return false;
+                }
             });
 
-            $('#tabla-search').on('keyup', function() {
-                const val = $(this).val().toLowerCase();
-                $('#tabla-prestamos tbody tr').filter(function() {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
-                });
+            $(document).on('click', '.btn-abonar', function() {
+                deudaActualAbono = parseFloat($(this).data('saldo'));
+                $('#form-abono').attr('action', $(this).data('url'));
+                $('#abono-nombre').text($(this).data('nombre'));
+                $('#abono-saldo').text("$" + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }));
+                $('#input-abono').attr('max', deudaActualAbono);
+                $('#modalAbono').modal('show');
             });
         });
     </script>

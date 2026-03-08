@@ -302,7 +302,7 @@
                 <span>Sistema de Gestión Ejidal &copy; 2026</span>
             </div>
             <div class="col-md-6 text-end text-center text-md-end">
-                <span>Versión 1.3.1</span>
+                <span>Versión 1.4.1</span>
             </div>
         </div>
     </div>

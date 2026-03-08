@@ -14,7 +14,7 @@
         <div class="card-body py-4">
             <h6 class="text-uppercase text-muted fw-bold mb-1">Monto Actual Seleccionado</h6>
             <h2 class="display-5 text-ejidal fw-bold">
-                ${{ number_format($utilidadSeleccionada->UtilidadAnual ?? 0, 2) }}
+                ${{ number_format($utilidadSeleccionada->Monto ?? 0, 2) }}
             </h2>
             <p class="text-muted mb-0">Pesos Mexicanos (MXN)</p>
         </div>
@@ -34,8 +34,9 @@
                             <option value="">Seleccionar reparto...</option>
                             @foreach ($utilidades as $utilidad)
                                 <option value="{{ $utilidad->Id_Utilidad }}"
-                                        @if($utilidadSeleccionada && $utilidadSeleccionada->Id_Utilidad == $utilidad->Id_Utilidad) selected @endif>
-                                    {{ ucwords(str_replace('_', ' ', $utilidad->SegundoReparto)) }}
+                                        @if(isset($utilidadSeleccionada) && $utilidadSeleccionada->Id_Utilidad == $utilidad->Id_Utilidad) selected @endif>
+                                    {{-- CAMBIO AQUÍ: Tipo_Reparto --}}
+                                    {{ ucwords(str_replace('_', ' ', $utilidad->Tipo_Reparto)) }}
                                 </option>
                             @endforeach
                         </select>
@@ -46,7 +47,7 @@
     </div>
 
     {{-- Formulario 2: Edición --}}
-    @if ($utilidadSeleccionada)
+    @if (isset($utilidadSeleccionada) && $utilidadSeleccionada)
         <div class="card card-ejidal">
             <div class="card-header card-header-ejidal">
                 <i class="fas fa-edit me-2"></i> 2. Edite la Información del Reparto
@@ -63,7 +64,7 @@
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" name="monto" class="form-control" step="0.01"
-                                       value="{{ $utilidadSeleccionada->UtilidadAnual }}" required>
+                                       value="{{ $utilidadSeleccionada->Monto }}" required>
                             </div>
                         </div>
 
@@ -76,21 +77,19 @@
                         <div class="col-md-4">
                             <label class="fw-bold">Tipo de reparto</label>
                             <input type="text" name="nombre_reparto" class="form-control bg-light"
-                                   value="{{ $utilidadSeleccionada->SegundoReparto }}" readonly>
+                                   value="{{ $utilidadSeleccionada->Tipo_Reparto }}" readonly>
                         </div>
                     </div>
 
                     <div class="row mb-3">
-                        {{-- SELECT DE RESPONSABLE --}}
-                        {{-- Buscamos la fila de Responsable y reemplazamos el SELECT --}}
                         <div class="col-md-6">
                             <label class="fw-bold">Responsable</label>
                             <select name="responsable" class="form-select" required>
                                 <option value="">Seleccione un usuario...</option>
                                 @foreach($usuarios as $usuario)
-                                    {{-- Concatenamos los campos reales de tu tabla Usuario --}}
                                     @php
                                         $nombreCompleto = $usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno;
+                                        // Comprobamos contra Id_Modificado o Id_Creo
                                         $responsableActual = $utilidadSeleccionada->Id_Modificado ?? $utilidadSeleccionada->Id_Creo;
                                     @endphp
                                     <option value="{{ $nombreCompleto }}"
@@ -101,16 +100,18 @@
                             </select>
                         </div>
 
-                        {{-- INPUT DE CALENDARIO --}}
                         <div class="col-md-6">
                             <label class="fw-bold">Fecha de Registro (Calendario)</label>
                             <input type="date" name="fecha_registro" class="form-control"
-                                   value="{{ $utilidadSeleccionada->Fecha_Creo ? \Carbon\Carbon::parse($utilidadSeleccionada->Fecha_Creo)->format('Y-m-d') : '' }}">
+                                   value="{{ $utilidadSeleccionada->Fecha_Registro ? \Carbon\Carbon::parse($utilidadSeleccionada->Fecha_Registro)->format('Y-m-d') : '' }}">
                         </div>
                     </div>
 
                     <div class="text-end border-top pt-3">
-                        <a href="{{ route('menu') }}" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-secondary me-2">
+                            Cancelar
+                        </button>
+
                         <button type="submit" class="btn btn-ejidal">
                             <i class="fas fa-save me-1"></i> Guardar cambios
                         </button>

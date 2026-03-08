@@ -2,23 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CatalogoMulta extends Model
 {
-    use HasFactory;
-
-    protected $table = 'catalogo_multa';
-    protected $primaryKey = 'id_multa_c';
+    protected $table = 'Catalogo_Multa';
+    protected $primaryKey = 'Id_MultaC';
     public $timestamps = false;
 
-
     protected $fillable = [
-        'monto',
-        'anio',
-        'tipo',
-        'fecha_registro',
-        'id_user'
+        'Año',
+        'Tipo',
+        'Costo',
+        'Id_Creo',
+        'Fecha_Creo',
+        'Id_Modificado',
+        'Fecha_Modificado'
     ];
 }
