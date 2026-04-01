@@ -41,6 +41,23 @@ class UsuariosController extends Controller
         ];
     }
 
+    // MÉTODO ACTUALIZADO: El administrador siempre tiene permiso
+    private function checkPermission($permission)
+    {
+        $sesion = session('usuario', session('2fa_user', []));
+        $permisos = $sesion['permisos'] ?? [];
+        $rol = strtolower(trim($sesion['rol'] ?? ''));
+
+        // Si es administrador, tiene permiso para todo por defecto
+        if ($rol === 'administrador') {
+            return true;
+        }
+
+        if (!in_array($permission, $permisos)) {
+            abort(403, 'No tienes permiso para realizar esta acción.');
+        }
+    }
+
     public function index(Request $request)
     {
         $query = DB::table('Usuario as u')
@@ -60,14 +77,19 @@ class UsuariosController extends Controller
         }
 
         $data = $query->paginate(10)->withQueryString();
-
         return view('cpanel.usuarios.indexUsuario', compact('data'));
     }
 
-    public function create() { return view('cpanel.usuarios.formUsuario'); }
+    public function create()
+    {
+        $this->checkPermission('usuarios_crear');
+        return view('cpanel.usuarios.formUsuario');
+    }
 
     public function store(Request $request)
     {
+        $this->checkPermission('usuarios_crear');
+
         $request->validate([
             'Usuario' => 'required|unique:Usuario,Usuario',
             'Correo' => 'required|email|unique:Usuario,Correo',
@@ -103,6 +125,7 @@ class UsuariosController extends Controller
 
     public function edit($id)
     {
+        $this->checkPermission('usuarios_editar');
         $fila = DB::table('Usuario')->where('Id_Usuario', $id)->first();
         abort_if(!$fila, 404);
         return view('cpanel.usuarios.editUsuario', compact('fila'));
@@ -110,12 +133,23 @@ class UsuariosController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $this->checkPermission('usuarios_editar');
+
+        $sesion = session('usuario', session('2fa_user'));
+        $esAdmin = (strtolower($sesion['rol'] ?? '') === 'administrador');
+
+        $reglas = [
             'Nombres' => 'required',
             'Apellido_Paterno' => 'required',
             'Apellido_Materno' => 'required',
             'Telefono' => 'required|numeric',
-        ], $this->validationMessages(), $this->validationAttributes());
+        ];
+
+        if ($esAdmin && $request->filled('Correo')) {
+            $reglas['Correo'] = 'required|email|unique:Usuario,Correo,' . $id . ',Id_Usuario';
+        }
+
+        $request->validate($reglas, $this->validationMessages(), $this->validationAttributes());
 
         $data = [
             'Nombres' => $request->Nombres,
@@ -125,46 +159,37 @@ class UsuariosController extends Controller
             'Fecha_Modificado' => now()
         ];
 
-        DB::table('Usuario')->where('Id_Usuario', $id)->update($data);
+        if ($esAdmin && $request->filled('Correo')) {
+            $data['Correo'] = $request->Correo;
+        }
 
-        return redirect()->route('Usuarios.index')
-            ->with('success', 'Datos actualizados (credenciales protegidas)');
+        DB::table('Usuario')->where('Id_Usuario', $id)->update($data);
+        return redirect()->route('Usuarios.index')->with('success', 'Usuario actualizado');
     }
 
     public function destroy($id)
     {
-        $authId = session('usuario.id');
-        $authPermisos = session('usuario.permisos', []);
+        $this->checkPermission('usuarios_eliminar');
 
-        if (!in_array('usuarios_eliminar', $authPermisos)) {
-            abort(403, 'No tienes permiso para eliminar usuarios.');
-        }
+        $sesion = session('usuario', session('2fa_user'));
+        $authId = $sesion['id'];
 
         if ($authId == $id) {
             return back()->withErrors('No puedes eliminar tu propio usuario.');
         }
 
-        $permisosObjetivo = DB::table('Relacion_Ejidatario as re')
+        $rolObjetivo = DB::table('Relacion_Ejidatario as re')
             ->join('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_Usuario', $id)
-            ->value('r.Permisos');
+            ->value('r.Tipo_Rol');
 
-        $permisosObjetivo = json_decode($permisosObjetivo ?? '[]', true);
-
-        if (in_array('usuarios_eliminar', $permisosObjetivo)) {
-            return back()->withErrors(
-                'No puedes eliminar a un usuario con permisos administrativos.'
-            );
+        if (strtolower($rolObjetivo) === 'administrador') {
+            return back()->withErrors('No puedes eliminar a otro administrador.');
         }
 
         DB::transaction(function () use ($id) {
-            DB::table('Relacion_Ejidatario')
-                ->where('Id_Usuario', $id)
-                ->delete();
-
-            DB::table('Usuario')
-                ->where('Id_Usuario', $id)
-                ->delete();
+            DB::table('Relacion_Ejidatario')->where('Id_Usuario', $id)->delete();
+            DB::table('Usuario')->where('Id_Usuario', $id)->delete();
         });
 
         return back()->with('success', 'Usuario eliminado correctamente.');
@@ -211,6 +236,7 @@ class UsuariosController extends Controller
         return redirect()->route('2fa.form');
     }
 
+    // Los demás métodos (buscar, forgot, reset) permanecen igual...
     public function buscar(Request $request)
     {
         $query = DB::table('Usuario as u')->select('u.*');
@@ -229,10 +255,7 @@ class UsuariosController extends Controller
 
     public function sendResetCode(Request $request)
     {
-        $request->validate([
-            'username' => 'required'
-        ], $this->validationMessages(), $this->validationAttributes());
-
+        $request->validate(['username' => 'required'], $this->validationMessages(), $this->validationAttributes());
         $user = DB::table('Usuario')->where('Correo', $request->username)->orWhere('Usuario', $request->username)->first();
         if (!$user) { return back()->withErrors(['username' => 'No encontrado']); }
         $code = rand(100000, 999999);
@@ -257,20 +280,15 @@ class UsuariosController extends Controller
             ->where('expires_at', '>=', now())
             ->first();
 
-        if (!$record) {
-            return back()->withErrors(['code' => 'Código inválido o expirado']);
-        }
+        if (!$record) { return back()->withErrors(['code' => 'Código inválido o expirado']); }
 
-        DB::table('Usuario')
-            ->where('Correo', session('reset_email'))
-            ->update([
-                'Contraseña' => Hash::make($request->password),
-                'Fecha_Modificado' => now()
-            ]);
+        DB::table('Usuario')->where('Correo', session('reset_email'))->update([
+            'Contraseña' => Hash::make($request->password),
+            'Fecha_Modificado' => now()
+        ]);
 
         DB::table('password_resets')->where('email', session('reset_email'))->delete();
-
         session()->forget('reset_email');
-        return redirect()->route('login')->with('success', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.');
+        return redirect()->route('login')->with('success', '¡Contraseña actualizada con éxito!');
     }
 }

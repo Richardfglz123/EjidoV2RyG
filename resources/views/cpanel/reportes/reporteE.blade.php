@@ -106,7 +106,7 @@
         <th width="8%">No.</th>
         <th width="35%">Datos del Ejidatario / Dirección</th>
         <th width="20%">Identificación</th>
-        <th width="22%">Responsable</th>
+        <th width="22%">Ejidatario</th>
         <th width="15%">Estatus</th>
     </tr>
     </thead>

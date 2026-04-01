@@ -17,7 +17,7 @@
         </button>
 
         <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{{ route('inicio') }}">
-            <i class="fas fa-tractor me-2"></i> Sistema Ejidal San Rafael Ixtapalucan
+            <i class="fas fa-tractor me-2"></i> Sistema Ejidal San Rafael Ixatapluacan
         </a>
 
         <ul class="navbar-nav ms-auto">
@@ -116,7 +116,7 @@
                         </li>
                     @endif
 
-                    {{-- GESTIÓN (Usando Faenas y Programas según web.php) --}}
+                    {{-- GESTIÓN--}}
                     @if(in_array('faenas_ver', session('usuario.permisos', [])) || in_array('programas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#gestionMenu">
@@ -131,7 +131,7 @@
                         </li>
                     @endif
 
-                    {{-- ASAMBLEAS --}}
+                    {{-- ASAMBLEAS
                     @if(in_array('asambleas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#asambleasMenu">
@@ -145,18 +145,25 @@
                             </div>
                         </li>
                     @endif
-
+                    --}}
                     {{-- EXPEDIENTES --}}
-                    @if(in_array('expedientes_ver', session('usuario.permisos', [])))
+                    @if(
+                        in_array('expedientes_ver', session('usuario.permisos', [])) ||
+                        in_array('expedientes_crear', session('usuario.permisos', []))
+                    )
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#expedientesMenu">
-                                <i class="fas fa-folder-open"></i> Expedientes <i class="fas fa-angle-down float-end mt-1"></i>
+                                <i class="fas fa-folder-open"></i> Expedientes
+                                <i class="fas fa-angle-down float-end mt-1"></i>
                             </a>
+
                             <div class="collapse" id="expedientesMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('expedientes.index') }}"><i class="fas fa-user-tag"></i> Listado de Expedientes</a></li>
-                                    @if(in_array('expedientes_crear', session('usuario.permisos', [])))
-                                    @endif
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white-50" href="{{ route('expedientes.index') }}">
+                                            <i class="fas fa-user-tag"></i> Listado de Expedientes
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         </li>
@@ -182,7 +189,7 @@
                         <li class="nav-item">
                             <a class="nav-link text-white d-flex align-items-center" data-bs-toggle="collapse" href="#utilidadesMenu">
                                 <i class="fas fa-hand-holding-usd me-2"></i>
-                                <span class="flex-grow-1" style="font-size: 0.85rem;">Utilidades / Finanzas</span>
+                                <span class="flex-grow-1" style="font-size: 0.85rem;">Finanzas</span>
                                 <i class="fas fa-angle-down ms-1"></i>
                             </a>
                             <div class="collapse" id="utilidadesMenu">
@@ -302,7 +309,7 @@
                 <span>Sistema de Gestión Ejidal &copy; 2026</span>
             </div>
             <div class="col-md-6 text-end text-center text-md-end">
-                <span>Versión 1.4.1</span>
+                <span>Versión 2.0</span>
             </div>
         </div>
     </div>

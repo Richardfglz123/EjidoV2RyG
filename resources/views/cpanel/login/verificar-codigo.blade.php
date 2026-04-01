@@ -2,222 +2,207 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Verificación 2FA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'Verificación 2FA - Sistema Ejidal')</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(to bottom right, #d3e8d3, #ffffff);
+        html, body {
+            height: 100%;
             margin: 0;
-            padding: 0;
-            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+        }
+
+        body {
             display: flex;
             flex-direction: column;
         }
 
         .navbar-ejidal {
-            background: url(https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg)
-            center / cover no-repeat;
-            height: 56px;
+            background-color: #212529 !important;
+            padding: 0.8rem 1rem;
+            width: 100%;
+            border-bottom: 3px solid #198754;
+        }
+
+        .navbar-brand {
             display: flex;
             align-items: center;
-            padding: 0 24px;
-        }
-
-        .navbar-ejidal .navbar-brand {
-            color: #ffffff;
             font-weight: 700;
-            font-size: 18px;
-            letter-spacing: 0.3px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-            text-decoration: none;
+            color: #fff !important;
+            margin: 0;
+            white-space: nowrap;
         }
 
-        .navbar-ejidal .navbar-brand:hover,
-        .navbar-ejidal .navbar-brand:focus {
-            text-decoration: none;
-            opacity: 0.95;
+        @media (max-width: 768px) {
+            .navbar-brand {
+                white-space: normal;
+                font-size: 0.95rem;
+                text-align: center;
+                justify-content: center;
+                width: 100%;
+            }
         }
 
-        .login-container {
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .login-card {
+            width: 100%;
             max-width: 420px;
-            margin: 90px auto;
-            padding: 40px;
-            background-color: #ffffffcc;
-            backdrop-filter: blur(6px);
-            border-radius: 18px;
-            box-shadow: 0 14px 35px rgba(0,0,0,0.14);
-            animation: fadeIn 0.6s ease-out;
-            flex-grow: 0;
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .login-container h2 {
-            text-align: center;
-            color: #2c5e1a;
-            font-weight: 700;
-            margin-bottom: 30px;
-            letter-spacing: 0.4px;
-        }
-
-        .form-group {
-            margin-bottom: 22px;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
+        h2 {
             color: #333;
-            font-size: 14px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #b6b6b6;
-            border-radius: 10px;
-            font-size: 18px;
-            letter-spacing: 6px;
+            font-weight: 700;
             text-align: center;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            box-sizing: border-box;
+            margin-bottom: 1.5rem;
         }
 
-        input[type="text"]:focus {
-            border-color: #2c5e1a;
-            outline: none;
-            box-shadow: 0 0 0 3px #2c5e1a33;
+        .instruction-text {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
         }
 
-        button {
+        .form-label {
+            font-weight: 600;
+            color: #444;
+            font-size: 0.9rem;
+        }
+
+        .input-2fa {
             width: 100%;
-            background-color: #2c5e1a;
+            padding: 0.8rem;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            letter-spacing: 8px;
+            text-align: center;
+            font-weight: 700;
+            color: #198754;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-2fa:focus {
+            border-color: #198754;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1);
+        }
+
+        .btn-ejidal {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #198754;
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.25s ease, transform 0.15s ease;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
         }
 
-        button:hover {
-            background-color: #214715;
+        .btn-ejidal:hover:not(:disabled) {
+            background-color: #157347;
             transform: translateY(-1px);
         }
 
-        button:disabled {
+        .btn-ejidal:disabled {
             background-color: #a5c09a;
             cursor: not-allowed;
         }
 
-        .messages {
+        .footer-ejidal {
+            background: #fff;
+            padding: 1rem 0;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .error-list {
+            background-color: #fff5f5;
+            border-left: 4px solid #dc3545;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
             list-style: none;
-            padding: 0;
-            color: #b00020;
-            font-size: 14px;
-            margin: 10px 0 18px 0;
-            text-align: center;
-        }
-
-        .footer {
-            background-color: #ffffffcc;
-            backdrop-filter: blur(8px);
-            color: #444;
-            padding: 15px 0;
-            font-size: 14px;
-            border-top: 1px solid rgba(0,0,0,0.1);
-            margin-top: auto;
-        }
-
-        .footer .container-fluid {
-            padding: 0 30px;
-        }
-
-        .footer .row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                margin: 40px 16px;
-                padding: 32px 24px;
-            }
-            .footer .row {
-                flex-direction: column;
-                gap: 10px;
-                text-align: center;
-            }
+            font-size: 0.85rem;
+            color: #dc3545;
         }
     </style>
 </head>
-
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark navbar-ejidal">
-    <div class="container">
+<nav class="navbar navbar-dark navbar-ejidal">
+    <div class="container-fluid px-lg-5">
         <a class="navbar-brand" href="{{ route('login') }}">
-            Sistema Ejidal San Rafael Ixtapalucan
+            <i class="fas fa-tractor me-3"></i>
+            <span>SISTEMA EJIDAL SAN RAFAEL IXTAPALUCAN</span>
         </a>
     </div>
 </nav>
 
-<div class="login-container">
-    <h2>Validación de acceso</h2>
+<div class="main-content">
+    <div class="login-card">
+        <h2>Verificación de Acceso</h2>
+        <p class="instruction-text">Por seguridad, ingresa el código de 6 dígitos enviado a tu correp</p>
 
-    <form id="two-fa-form" method="POST" action="{{ route('2fa.check') }}">
-        @csrf
+        @if ($errors->any())
+            <ul class="error-list">
+                @foreach ($errors->all() as $error)
+                    <li><i class="fas fa-times-circle me-2"></i>{{ $error }}</li>
+                @endforeach
+            </ul>
+        @endif
 
-        <div class="form-group">
-            <label for="code">Ingresa el código de verificación que te enviamos</label>
-            <input
-                    type="text"
-                    id="code"
-                    name="code"
-                    maxlength="6"
-                    autofocus
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    required
-            >
+        <form id="two-fa-form" method="POST" action="{{ route('2fa.check') }}">
+            @csrf
+            <div class="mb-3">
+                <label class="form-label d-block text-center mb-3">Código de Verificación</label>
+                <input
+                        type="text"
+                        id="code"
+                        name="code"
+                        class="input-2fa"
+                        maxlength="6"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        required
+                        autofocus
+                >
+            </div>
+
+            <button type="submit" id="btn-submit" class="btn-ejidal">
+                <i class="fas fa-shield-alt me-2"></i> Verificar y Entrar
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <a href="{{ route('login') }}" class="text-decoration-none small text-muted">
+                <i class="fas fa-arrow-left me-1"></i> Volver al inicio
+            </a>
         </div>
-
-        @error('code')
-        <ul class="messages">
-            <li>{{ $message }}</li>
-        </ul>
-        @enderror
-
-        <button type="submit" id="btn-submit">Acceder</button>
-    </form>
+    </div>
 </div>
 
-<footer class="footer">
-    <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-md-6 text-start">
-                <span>Sistema de Gestión Ejidal &copy; 2026</span>
-            </div>
-            <div class="col-md-6 text-end">
-                <span>Versión 1.3.1</span>
-            </div>
-        </div>
+<footer class="footer-ejidal">
+    <div class="container-fluid px-lg-5 d-flex justify-content-between">
+        <span>Sistema de Gestión Ejidal &copy; 2026</span>
+        <span class="d-none d-sm-inline">Versión 1.4.1</span>
     </div>
 </footer>
 
@@ -231,12 +216,12 @@
 
         if (this.value.length === 6) {
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Verificando...';
-
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Verificando...';
             faForm.submit();
         }
     });
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -35,24 +35,24 @@ class Reparto2Controller extends Controller
 
         $ejidatarios = $query->paginate(30);
 
+        // Transformamos la colección dentro del paginador
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2) {
 
-            $ejidatario->deuda_arrastrada_r1 = $ejidatario->prestamos->sum('Cantidad');
+            // 1. Sumar deuda de préstamos (R1)
+            $ejidatario->deuda_arrastrada_r1 = $ejidatario->prestamos->sum('Cantidad') ?? 0;
+
+            // 2. Sumar descuentos de Asambleas
             $ejidatario->total_asambleas = $ejidatario->descuentos
-                ->filter(function($d) {
-                    return stripos($d->tipo, 'ASAMBLEA') !== false;
-                })->sum('Descuento');
+                ->filter(fn($d) => stripos($d->tipo, 'ASAMBLEA') !== false)
+                ->sum('Descuento') ?? 0;
 
+            // 3. Sumar descuentos de Faenas
             $ejidatario->total_faenas = $ejidatario->descuentos
-                ->filter(function($d) {
-                    $tipo = $d->tipo;
-                    return stripos($tipo, 'saneamient') !== false ||
-                        stripos($tipo, 'aprovecham') !== false;
-                })->sum('Descuento');
+                ->filter(fn($d) => stripos($d->tipo, 'saneamient') !== false || stripos($d->tipo, 'aprovecham') !== false)
+                ->sum('Descuento') ?? 0;
 
-            $ejidatario->segundo_reparto_calculado = $montoFijoR2 - $ejidatario->deuda_arrastrada_r1;
-            $ejidatario->total_a_pagar = $ejidatario->segundo_reparto_calculado
-                - ($ejidatario->total_asambleas + $ejidatario->total_faenas);
+            // 4. CÁLCULO FINAL: Al monto base se le resta TODO
+            $ejidatario->total_a_pagar = $montoFijoR2 - ($ejidatario->deuda_arrastrada_r1 + $ejidatario->total_asambleas + $ejidatario->total_faenas);
 
             return $ejidatario;
         });

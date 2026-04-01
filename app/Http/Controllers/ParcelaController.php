@@ -13,6 +13,21 @@ use App\Models\InfAdmin;
 
 class ParcelaController extends Controller
 {
+    private function checkPermission($permission)
+    {
+        $sesion = session('usuario', session('2fa_user', []));
+        $permisos = $sesion['permisos'] ?? [];
+        $rol = strtolower(trim($sesion['rol'] ?? ''));
+
+        if ($rol === 'administrador' || ($sesion['id_rol'] ?? null) == 2) {
+            return true;
+        }
+
+        if (!in_array($permission, $permisos)) {
+            abort(403, 'No tienes permiso para gestionar parcelas.');
+        }
+    }
+
     public function index()
     {
         $parcelas = DB::table('Parcela as p')
@@ -32,15 +47,13 @@ class ParcelaController extends Controller
 
     public function create(Request $request)
     {
+        $this->checkPermission('usuarios_crear'); // Permiso para crear
+
         $Ejidatario = null;
         $error = null;
 
         if ($request->filled('numeroEjidatario')) {
-            $Ejidatario = Ejidatario::where(
-                'Num_Ejidatario',
-                $request->numeroEjidatario
-            )->first();
-
+            $Ejidatario = Ejidatario::where('Num_Ejidatario', $request->numeroEjidatario)->first();
             if (!$Ejidatario) {
                 $error = 'No se encontró un ejidatario con ese número.';
             }
@@ -55,6 +68,8 @@ class ParcelaController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkPermission('usuarios_crear');
+
         DB::beginTransaction();
         try {
             $ejidatario = Ejidatario::where('Num_Ejidatario', $request->numeroEjidatario)->first();
@@ -71,18 +86,20 @@ class ParcelaController extends Controller
             ]);
 
             $parcela->colindancia()->create([
-                'norte'    => $request->norte, 'sur' => $request->sur, 'este' => $request->este,
-                'oeste'    => $request->oeste, 'noreste' => $request->noreste, 'noroeste' => $request->noroeste,
-                'sureste'  => $request->sureste, 'suroeste' => $request->suroeste,
+                'norte' => $request->norte, 'sur' => $request->sur, 'este' => $request->este,
+                'oeste' => $request->oeste, 'noreste' => $request->noreste, 'noroeste' => $request->noroeste,
+                'sureste' => $request->sureste, 'suroeste' => $request->suroeste,
             ]);
 
-            foreach ($request->punto as $i => $p) {
-                if (!empty($request->coordenadaX[$i]) && !empty($request->coordenadaY[$i])) {
-                    $parcela->coordenadas()->create([
-                        'Punto'        => $p,
-                        'CoordenadaX'  => $request->coordenadaX[$i],
-                        'CoordenadaY'  => $request->coordenadaY[$i],
-                    ]);
+            if ($request->has('punto')) {
+                foreach ($request->punto as $i => $p) {
+                    if (!empty($request->coordenadaX[$i]) && !empty($request->coordenadaY[$i])) {
+                        $parcela->coordenadas()->create([
+                            'Punto'       => $p,
+                            'CoordenadaX' => $request->coordenadaX[$i],
+                            'CoordenadaY' => $request->coordenadaY[$i],
+                        ]);
+                    }
                 }
             }
 
@@ -103,7 +120,7 @@ class ParcelaController extends Controller
 
     public function verParcela(Request $request)
     {
-        $parcela = Parcela::with(['ejidatario.usuario', 'colindancia', 'coordenadas', 'infAdmin'])
+        $parcela = Parcela::with(['ejidatario.usuario', 'colindancia', 'coordenadas', 'infAdmin', 'usoSuelo'])
             ->where('No_Parcela', $request->noParcela)
             ->first();
 
@@ -111,43 +128,28 @@ class ParcelaController extends Controller
             return back()->with('error', 'Parcela no encontrada.');
         }
 
-        $usos = TipoUsoSuelo::all();
-        $todosLosEjidatarios = Ejidatario::with('usuario')->get();
-        $Ejidatario = $parcela->ejidatario;
-
-        return view('cpanel.EditViews.editarParcela', compact('parcela', 'usos', 'Ejidatario', 'todosLosEjidatarios'));
+        return view('cpanel.ListViews.verDetalleParcela', compact('parcela'));
     }
 
     public function editarParcela($id)
     {
+        $this->checkPermission('usuarios_editar');
+
         $parcela = Parcela::with(['colindancia', 'coordenadas', 'infAdmin', 'ejidatario.usuario'])->findOrFail($id);
         $usos = TipoUsoSuelo::all();
-
-        // Se cargan todos los ejidatarios para que el buscador de Select2 tenga datos
         $todosLosEjidatarios = Ejidatario::with('usuario')->get();
         $Ejidatario = $parcela->ejidatario;
 
         return view('cpanel.EditViews.editarParcela', compact('parcela', 'usos', 'Ejidatario', 'todosLosEjidatarios'));
     }
 
-    public function eliminarParcela($id)
-    {
-        try {
-            $parcela = Parcela::findOrFail($id);
-            $parcela->delete();
-            return redirect()->route('parcelas.index')->with('success', 'Parcela eliminada correctamente.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Error al eliminar: ' . $e->getMessage());
-        }
-    }
-
     public function actualizarParcela(Request $request, $id)
     {
+        $this->checkPermission('usuarios_editar');
+
         DB::beginTransaction();
         try {
             $parcela = Parcela::findOrFail($id);
-
-            // Actualizar datos y el nuevo ID del Ejidatario seleccionado en el buscador
             $parcela->update([
                 'No_Parcela'    => $request->noParcela,
                 'Superficie'    => $request->superficie,
@@ -157,14 +159,8 @@ class ParcelaController extends Controller
             ]);
 
             $parcela->colindancia()->update([
-                'norte'    => $request->norte ?? '',
-                'sur'      => $request->sur ?? '',
-                'este'     => $request->este ?? '',
-                'oeste'    => $request->oeste ?? '',
-                'noreste'  => $request->noreste ?? '',
-                'noroeste' => $request->noroeste ?? '',
-                'sureste'  => $request->sureste ?? '',
-                'suroeste' => $request->suroeste ?? '',
+                'norte' => $request->norte ?? '', 'sur' => $request->sur ?? '',
+                'este'  => $request->este ?? '',  'oeste' => $request->oeste ?? '',
             ]);
 
             $parcela->coordenadas()->delete();
@@ -180,19 +176,23 @@ class ParcelaController extends Controller
                 }
             }
 
-            $parcela->infAdmin()->update([
-                'Num_InscripcionRAN' => $request->num_inscripcionRAN ?? '',
-                'ClaveNucleoAgrario' => $request->claveNucleoAgrario ?? '',
-                'Comunidad'          => $request->comunidad ?? '',
-                'FechaExpedicion'    => $request->fechaExpedicion,
-            ]);
-
             DB::commit();
-            return redirect()->route('parcelas.index')->with('success', 'Información actualizada correctamente.');
-
+            return redirect()->route('parcelas.index')->with('success', 'Información actualizada.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()->with('error', 'Error al actualizar: ' . $e->getMessage());
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    public function eliminarParcela($id)
+    {
+        $this->checkPermission('usuarios_eliminar');
+        try {
+            $parcela = Parcela::findOrFail($id);
+            $parcela->delete();
+            return redirect()->route('parcelas.index')->with('success', 'Parcela eliminada correctamente.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al eliminar: ' . $e->getMessage());
         }
     }
 }

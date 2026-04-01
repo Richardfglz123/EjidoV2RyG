@@ -43,7 +43,8 @@
                                 '{{ $usuario->Nombres }} {{ $usuario->Apellido_Paterno }}',
                                 '{{ $docs['INE'] ?? '' }}',
                                 '{{ $docs['CURP'] ?? '' }}',
-                                '{{ $docs['DOMICILIO'] ?? '' }}'
+                                '{{ $docs['DOMICILIO'] ?? '' }}',
+                                '{{ $docs['TITULO'] ?? '' }}'
                              )"
                              onmouseover="this.style.transform='translateY(-5px)';"
                              onmouseout="this.style.transform='translateY(0)';"
@@ -68,8 +69,7 @@
     </div>
 
     <div class="modal fade" id="modalExpediente" tabindex="-1" aria-labelledby="modalExpedienteLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0">
+        <div class="modal-dialog modal-xl modal-dialog-centered"> <div class="modal-content border-0">
                 <form action="{{ route('expedientes.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="id_usuario" id="modal_id_usuario">
@@ -84,7 +84,7 @@
 
                     <div class="modal-body p-4 bg-light">
                         <div class="row g-3">
-                            <div class="col-md-4 text-center">
+                            <div class="col-md-3 text-center">
                                 <div id="card-ine" class="card h-100 border-0 shadow-sm p-3">
                                     <i class="fas fa-address-card fa-2x mb-2 text-secondary"></i>
                                     <h6 class="fw-bold small">INE</h6>
@@ -94,7 +94,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4 text-center">
+                            <div class="col-md-3 text-center">
                                 <div id="card-curp" class="card h-100 border-0 shadow-sm p-3">
                                     <i class="fas fa-file-invoice fa-2x mb-2 text-secondary"></i>
                                     <h6 class="fw-bold small">CURP</h6>
@@ -104,13 +104,23 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4 text-center">
+                            <div class="col-md-3 text-center">
                                 <div id="card-comp" class="card h-100 border-0 shadow-sm p-3">
                                     <i class="fas fa-home fa-2x mb-2 text-secondary"></i>
                                     <h6 class="fw-bold small">Comprobante</h6>
                                     <span id="status-comp" class="badge bg-secondary mb-2">Pendiente</span>
                                     <input type="file" name="doc_comprobante" class="form-control form-control-sm mb-2" accept=".pdf">
                                     <a id="btn-comp" href="#" target="_blank" class="btn btn-sm btn-outline-primary d-none w-100">Ver PDF</a>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 text-center">
+                                <div id="card-titulo" class="card h-100 border-0 shadow-sm p-3">
+                                    <i class="fas fa-file-contract fa-2x mb-2 text-secondary"></i>
+                                    <h6 class="fw-bold small">Título Propiedad</h6>
+                                    <span id="status-titulo" class="badge bg-secondary mb-2">Pendiente</span>
+                                    <input type="file" name="doc_titulo" class="form-control form-control-sm mb-2" accept=".pdf">
+                                    <a id="btn-titulo" href="#" target="_blank" class="btn btn-sm btn-outline-primary d-none w-100">Ver PDF</a>
                                 </div>
                             </div>
                         </div>
@@ -128,7 +138,7 @@
     </div>
 
     <script>
-        function abrirExpediente(id, nombre, rutaIne, rutaCurp, rutaComp) {
+        function abrirExpediente(id, nombre, rutaIne, rutaCurp, rutaComp, rutaTitulo) {
             document.getElementById('modal_id_usuario').value = id;
             document.getElementById('modal_nombre_usuario').innerText = nombre;
 
@@ -138,6 +148,7 @@
             configurarFichaModal('ine', rutaIne);
             configurarFichaModal('curp', rutaCurp);
             configurarFichaModal('comp', rutaComp);
+            configurarFichaModal('titulo', rutaTitulo);
 
             var myModal = new bootstrap.Modal(document.getElementById('modalExpediente'));
             myModal.show();

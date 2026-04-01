@@ -2,6 +2,19 @@
 @section('title','Actividades')
 @section('content')
 
+    @php
+        $sesionActual = session('usuario', session('2fa_user', []));
+        $misPermisos = $sesionActual['permisos'] ?? [];
+        $miRol = strtolower(trim($sesionActual['rol'] ?? ''));
+
+        // Lógica de Superusuario
+        $esAdmin = ($miRol === 'administrador' || ($sesionActual['id_rol'] ?? null) == 2);
+
+        $puedeCrear = $esAdmin || in_array('usuarios_crear', $misPermisos);
+        $puedeEditar = $esAdmin || in_array('usuarios_editar', $misPermisos);
+        $puedeEliminar = $esAdmin || in_array('usuarios_eliminar', $misPermisos);
+    @endphp
+
     <div class="card card-ejidal mb-3">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-filter me-2"></i> Filtros de Reporte
@@ -30,11 +43,13 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end mb-3">
-        <a href="{{ route('actividades.create') }}" class="btn btn-ejidal">
-            <i class="fas fa-plus me-1"></i> Nueva Actividad
-        </a>
-    </div>
+    @if($puedeCrear)
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ route('actividades.create') }}" class="btn btn-ejidal">
+                <i class="fas fa-plus me-1"></i> Nueva Actividad
+            </a>
+        </div>
+    @endif
 
     <div class="card card-ejidal">
         <div class="card-header card-header-ejidal">
@@ -49,11 +64,8 @@
                     <th>Fecha de inicio</th>
                     <th>Fecha de fin</th>
                     <th>Estado</th>
-                    <th>Fecha de registro</th>
-                    <th>Fecha nueva</th>
-                    <th>Fecha de realización</th>
                     <th>Registrado por</th>
-                    <th>Acciones</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -63,51 +75,51 @@
                         <td>{{ $fila->Descripcion }}</td>
                         <td>{{ $fila->FechaInicio }}</td>
                         <td>{{ $fila->FechaFin }}</td>
-                        <td>{{ $fila->Estado_Actividad }}</td>
-                        <td>{{ $fila->Registro_Original }}</td>
-                        <td>{{ $fila->Nueva_Fecha }}</td>
-                        <td>{{ $fila->Fecha_Realizo }}</td>
-                        <td>{{ $fila->Id_Creo }}</td>
                         <td>
-                            <a href="{{ route('actividades.edit', $fila->Id_Actividad) }}"
-                               class="btn btn-sm btn-outline-success me-1"
-                               title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            <span class="badge {{ $fila->Estado_Actividad == 'Completada' ? 'bg-success' : 'bg-warning' }}">
+                                {{ $fila->Estado_Actividad }}
+                            </span>
+                        </td>
+                        <td>{{ $fila->Id_Creo }}</td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                @if($puedeEditar)
+                                    <a href="{{ route('actividades.edit', $fila->Id_Actividad) }}"
+                                       class="btn btn-sm btn-outline-success" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
 
-                            <form action="{{ route('actividades.destroy', $fila->Id_Actividad) }}"
-                                  method="POST"
-                                  style="display:inline-block">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="btn btn-sm btn-outline-danger"
-                                        title="Eliminar"
-                                        onclick="return confirm('¿Estás seguro que deseas eliminar esta actividad?')">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </form>
+                                @if($puedeEliminar)
+                                    <form action="{{ route('actividades.destroy', $fila->Id_Actividad) }}"
+                                          method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('¿Seguro?')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @endforeach
                 </tbody>
-
             </table>
         </div>
     </div>
 
+    {{-- Script de Reportes (Sin cambios) --}}
     <script>
         const form = document.getElementById('filtrosForm');
-
         document.getElementById('pdfBtn').onclick = () => {
             const params = new URLSearchParams(new FormData(form)).toString();
             window.open("{{ route('actividades.reporte.pdf') }}?" + params, "_blank");
         };
-
         document.getElementById('excelBtn').onclick = () => {
             const params = new URLSearchParams(new FormData(form)).toString();
             window.location = "{{ route('actividades.reporte.excel') }}?" + params;
         };
     </script>
-
 @endsection

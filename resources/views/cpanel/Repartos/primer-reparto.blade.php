@@ -133,7 +133,7 @@
                                 <label class="small text-muted text-uppercase mb-1">Monto a Prestar</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-white border-end-0">$</span>
-                                    <input type="number" id="input-cantidad" name="cantidad" step="0.01" class="form-control text-center fw-normal border-start-0" required min="1">
+                                    <input type="number" id="input-cantidad" name="cantidad" step="0.01" class="form-control text-center fw-normal border-start-0" required min="0.01">
                                 </div>
                             </div>
                         </div>
@@ -170,8 +170,8 @@
                         </div>
                         <div class="mb-3 text-start">
                             <label class="text-muted small text-uppercase">Monto ($)</label>
-                            <input type="number" id="editar-cantidad" name="cantidad" class="form-control fw-normal" step="0.01" required>
-                            <small id="error-editar-cantidad" class="text-danger d-none">Este monto excede el saldo disponible.</small>
+                            <input type="number" id="editar-cantidad" name="cantidad" class="form-control fw-normal" step="0.01" required min="0.01">
+                            <small id="error-editar-cantidad" class="text-danger d-none"></small>
                         </div>
                         <div class="mb-0 text-start">
                             <label class="text-muted small text-uppercase">Descripción</label>
@@ -225,7 +225,7 @@
         $(document).ready(function() {
             let saldoMaximoPrestamo = 0;
             let deudaActualAbono = 0;
-            let saldoDisponibleParaEditar = 0; // Variable para el modal editar
+            let saldoDisponibleParaEditar = 0;
 
             $("#buscador-tabla").on("keyup", function() {
                 var value = $(this).val().toLowerCase();
@@ -258,8 +258,14 @@
                 });
             });
 
+            // Validación Agregar Préstamo
             $('#form-agregar-prestamo').on('submit', function(e) {
                 const cantidad = parseFloat($('#input-cantidad').val());
+                if (cantidad <= 0) {
+                    e.preventDefault();
+                    alert('El monto debe ser mayor a 0.');
+                    return false;
+                }
                 if (cantidad > saldoMaximoPrestamo) {
                     e.preventDefault();
                     alert('Error: El monto excede el saldo disponible ($' + saldoMaximoPrestamo.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
@@ -267,8 +273,14 @@
                 }
             });
 
+            // Validación Abono
             $('#form-abono').on('submit', function(e) {
                 const abono = parseFloat($('#input-abono').val());
+                if (abono <= 0) {
+                    e.preventDefault();
+                    alert('El monto del abono debe ser mayor a 0.');
+                    return false;
+                }
                 if (abono > deudaActualAbono) {
                     e.preventDefault();
                     alert('Error: No puedes abonar más de la deuda actual ($' + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
@@ -276,6 +288,7 @@
                 }
             });
 
+            // Modal Editar - Cargar datos
             $(document).on('click', '.btn-editar', function() {
                 const idPrestamo = $(this).data('id');
                 const idEjidatario = $(this).data('idejidatario');
@@ -291,6 +304,7 @@
 
                 let url = "{{ route('prestamo.saldo', ':id') }}".replace(':id', idEjidatario);
                 fetch(url).then(res => res.json()).then(data => {
+                    // El saldo disponible real para editar es (SaldoActualEnFondo + LoQueYaTeníaPrestado)
                     saldoDisponibleParaEditar = (parseFloat(data.saldo_disponible) || 0) + cantidadActual;
                     $('#editar-cantidad').attr('max', saldoDisponibleParaEditar);
                 });
@@ -298,8 +312,14 @@
                 $('#modalEditar').modal('show');
             });
 
+            // Validación Editar
             $('#form-editar').on('submit', function(e) {
                 const cantidadNueva = parseFloat($('#editar-cantidad').val());
+                if (cantidadNueva <= 0) {
+                    e.preventDefault();
+                    alert('El monto debe ser mayor a 0.');
+                    return false;
+                }
                 if (cantidadNueva > saldoDisponibleParaEditar) {
                     e.preventDefault();
                     $('#error-editar-cantidad').removeClass('d-none').text('Error: El límite es $' + saldoDisponibleParaEditar.toLocaleString('en-US', { minimumFractionDigits: 2 }));
@@ -308,12 +328,13 @@
                 }
             });
 
+            // Modal Abonar - Cargar datos
             $(document).on('click', '.btn-abonar', function() {
                 deudaActualAbono = parseFloat($(this).data('saldo'));
                 $('#form-abono').attr('action', $(this).data('url'));
                 $('#abono-nombre').text($(this).data('nombre'));
                 $('#abono-saldo').text("$" + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-                $('#input-abono').attr('max', deudaActualAbono);
+                $('#input-abono').attr('max', deudaActualAbono).val('');
                 $('#modalAbono').modal('show');
             });
         });

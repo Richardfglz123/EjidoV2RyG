@@ -16,6 +16,10 @@
             border-color: #86b7fe !important;
             box-shadow: 0 0 0 .2rem rgba(13,110,253,.25);
         }
+        /* Resaltado para errores en Select2 */
+        .is-invalid + .select2-container--bootstrap-5 .select2-selection {
+            border-color: #dc3545 !important;
+        }
     </style>
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -42,8 +46,12 @@
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Número de Ejidatario</label>
-                        <input type="text" name="Num_Ejidatario" class="form-control"
+                        <input type="text" name="Num_Ejidatario"
+                               class="form-control @error('Num_Ejidatario') is-invalid @enderror"
                                value="{{ old('Num_Ejidatario', $fila->Num_Ejidatario ?? '') }}" required>
+                        @error('Num_Ejidatario')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-4">
@@ -57,7 +65,7 @@
                         <input type="date" name="Fecha_Nacimiento" id="fecha_nacimiento"
                                class="form-control" max="{{ date('Y-m-d') }}"
                                value="{{ old('Fecha_Nacimiento', $fila->Fecha_Nacimiento ?? '') }}" required>
-                        <small class="text-muted">Ingresa una fecha valida</small>
+                        <small class="text-muted">Ingresa una fecha válida</small>
                     </div>
                 </div>
 
@@ -65,35 +73,47 @@
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label>CURP</label>
-                        <input type="text" name="CURP" class="form-control contador"
+                        <input type="text" name="CURP" class="form-control contador @error('CURP') is-invalid @enderror"
                                placeholder="GARC900101HDFLNS09" maxlength="18"
                                oninput="this.value=this.value.toUpperCase()"
                                value="{{ old('CURP', $fila->CURP ?? '') }}" required>
-                        <small class="text-muted">
-                            18 caracteres · Ej: <code>GARC900101HDFLNS09</code> · <span class="chars">0</span>/18
-                        </small>
+                        @error('CURP')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @else
+                            <small class="text-muted">
+                                18 caracteres · Ej: <code>GARC900101HDFLNS09</code> · <span class="chars">0</span>/18
+                            </small>
+                            @enderror
                     </div>
 
                     <div class="col-md-4">
                         <label>RFC</label>
-                        <input type="text" name="RFC" class="form-control contador"
+                        <input type="text" name="RFC" class="form-control contador @error('RFC') is-invalid @enderror"
                                placeholder="GARC9001019A1" maxlength="13"
                                oninput="this.value=this.value.toUpperCase()"
                                value="{{ old('RFC', $fila->RFC ?? '') }}" required>
-                        <small class="text-muted">
-                            12–13 caracteres · Ej: <code>GARC9001019A1</code> · <span class="chars">0</span>/13
-                        </small>
+                        @error('RFC')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @else
+                            <small class="text-muted">
+                                12–13 caracteres · Ej: <code>GARC9001019A1</code> · <span class="chars">0</span>/13
+                            </small>
+                            @enderror
                     </div>
 
                     <div class="col-md-4">
                         <label>Clave de Elector</label>
-                        <input type="text" name="Clave_Elector" class="form-control contador"
+                        <input type="text" name="Clave_Elector" class="form-control contador @error('Clave_Elector') is-invalid @enderror"
                                placeholder="GARC900101HDFLNS09" maxlength="18"
                                oninput="this.value=this.value.toUpperCase()"
                                value="{{ old('Clave_Elector', $fila->Clave_Elector ?? '') }}" required>
-                        <small class="text-muted">
-                            18 caracteres exactos · Ej: <code>GARC900101HDFLNS09</code> · <span class="chars">0</span>/18
-                        </small>
+                        @error('Clave_Elector')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @else
+                            <small class="text-muted">
+                                18 caracteres exactos · Ej: <code>GARC900101HDFLNS09</code> · <span class="chars">0</span>/18
+                            </small>
+                            @enderror
                     </div>
                 </div>
 
@@ -180,7 +200,7 @@
                     </div>
                 </div>
 
-                {{-- Botones (alineados como en Usuarios) --}}
+                {{-- Botones --}}
                 <div class="text-end">
                     <a href="{{ route('Ejidatarios.index') }}" class="btn btn-secondary">
                         Cancelar
@@ -197,6 +217,7 @@
     {{-- Scripts --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         $(document).ready(function() {
@@ -211,13 +232,22 @@
             // Contadores de caracteres
             document.querySelectorAll('.contador').forEach(input => {
                 const info = input.parentElement.querySelector('.chars');
-                const max = input.getAttribute('maxlength');
                 const update = () => { if (info) info.textContent = input.value.length; };
                 input.addEventListener('input', update);
                 update();
             });
 
-// Validación de decga de nacImineTo
+            // Alerta SweetAlert si hay errores de validación de Laravel
+            @if ($errors->any())
+            Swal.fire({
+                icon: 'error',
+                title: '¡Atención!',
+                text: '{{ $errors->first() }}',
+                confirmButtonColor: '#198754'
+            });
+            @endif
+
+            // Validación de fecha de nacimiento
             $('#formEjidatario').on('submit', function(e) {
                 const fechaVal = $('#fecha_nacimiento').val();
 
@@ -227,19 +257,14 @@
                     const anioMinimo = hoy.getFullYear() - 110;
                     const minFecha = new Date();
                     minFecha.setFullYear(anioMinimo);
+
                     if (fechaNac > hoy) {
-                        alert("Error: La fecha de nacimiento no puede ser una fecha futura.");
+                        Swal.fire('Error', 'La fecha de nacimiento no puede ser una fecha futura.', 'error');
                         e.preventDefault();
                         return false;
                     }
                     if (fechaNac < minFecha) {
-                        alert("Error: La fecha de nacimiento es demasiado antigua (el límite son 110 años).");
-                        e.preventDefault();
-                        return false;
-                    }
-                    const anioIngresado = fechaNac.getFullYear();
-                    if (anioIngresado < 1900) {
-                        alert("Error: Por favor ingrese un año válido de 4 dígitos (mayor a 1900).");
+                        Swal.fire('Error', 'La fecha de nacimiento es demasiado antigua.', 'error');
                         e.preventDefault();
                         return false;
                     }

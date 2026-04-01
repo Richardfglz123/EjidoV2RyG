@@ -38,4 +38,8 @@ class Parcela extends Model
     {
         return $this->hasOne(InfAdmin::class, 'Id_Parcela', 'Id_Parcela');
     }
+    public function usoSuelo()
+    {
+        return $this->belongsTo(TipoUsoSuelo::class, 'Id_Uso', 'Id_Uso');
+    }
 }

@@ -10,21 +10,22 @@ class PerfilController extends Controller
 {
     public function index()
     {
-        // Realizamos un join para traer la información del ejidatario y su parcela
         $usuario = DB::table('Usuario')
             ->leftJoin('Ejidatario', 'Usuario.Id_Usuario', '=', 'Ejidatario.Id_Usuario')
-            ->leftJoin('Parcela', 'Ejidatario.Id_Ejidatario', '=', 'Parcela.Id_Ejidatario')
             ->where('Usuario.Id_Usuario', session('usuario.id'))
-            ->select(
-                'Usuario.*',
-                'Ejidatario.Num_Ejidatario',
-                'Parcela.No_Parcela'
-            )
+            ->select('Usuario.*', 'Ejidatario.Id_Ejidatario', 'Ejidatario.Num_Ejidatario')
             ->first();
 
         abort_if(!$usuario, 404);
 
-        return view('cpanel.perfil.indexperfil', compact('usuario'));
+        $parcelas = [];
+        if ($usuario->Id_Ejidatario) {
+            $parcelas = DB::table('Parcela')
+                ->where('Id_Ejidatario', $usuario->Id_Ejidatario)
+                ->get(); // Traemos todas con ->get()
+        }
+
+        return view('cpanel.perfil.indexperfil', compact('usuario', 'parcelas'));
     }
 
     public function update(Request $request)

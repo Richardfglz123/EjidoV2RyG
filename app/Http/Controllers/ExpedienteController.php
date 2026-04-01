@@ -13,15 +13,33 @@ class ExpedienteController extends Controller
 {
     public function index()
     {
-        $usuarios = Usuario::whereNull('fecha_eliminado')
-            ->with('documentos')
-            ->orderBy('Apellido_Paterno', 'asc')
-            ->get();
+        $permisos = session('usuario.permisos', []);
+        $usuarioId = session('usuario.id');
+
+        // Si tiene permiso puede ver todos los usuarios
+        if (in_array('expedientes_ver', $permisos)) {
+
+            $usuarios = Usuario::whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->orderBy('Apellido_Paterno', 'asc')
+                ->get();
+
+        } else {
+
+            // Si NO tiene permiso solo ve su propio expediente
+            $usuarios = Usuario::where('Id_Usuario', $usuarioId)
+                ->whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->get();
+        }
 
         $total_usuarios = $usuarios->count();
         $total_con_expediente = DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
 
-        return view('cpanel.Expedientes.expediente', compact('usuarios', 'total_usuarios', 'total_con_expediente'));
+        return view(
+            'cpanel.Expedientes.expediente',
+            compact('usuarios', 'total_usuarios', 'total_con_expediente')
+        );
     }
 
     public function store(Request $request)

@@ -36,7 +36,8 @@ class ConfiguracionController extends Controller
         ]);
     }
 
-    public function obtenerPermisosRol($id) {
+    public function obtenerPermisosRol($id)
+    {
         $rol = DB::table('Roles')->where('Id_Rol', $id)->first();
         if (!$rol) return response()->json(['permisos' => []]);
 
@@ -73,7 +74,7 @@ class ConfiguracionController extends Controller
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_Usuario', $request->Id_Usuario)
-            ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol', 'Roles.Id_Rol')
+            ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol')
             ->first();
 
         if (!$usuarioTarget) {
@@ -91,12 +92,9 @@ class ConfiguracionController extends Controller
         }
 
         $nuevoRolNombre = DB::table('Roles')->where('Id_Rol', $request->Id_Rol)->value('Tipo_Rol');
+
         if (($jerarquia[$nuevoRolNombre] ?? 0) >= $miNivel && $miRolNombre !== 'Administrador') {
             return back()->withErrors("No puedes asignar el rango de {$nuevoRolNombre} porque es igual o superior al tuyo.");
-        }
-
-        if ($request->Id_Rol == 2 && $miRolNombre === 'Administrador') {
-            return back()->withErrors("No se pueden editar los permisos del Rol Administrador para evitar bloqueos del sistema.");
         }
 
         if ($request->Id_Usuario == session('usuario.id')) {
@@ -108,35 +106,20 @@ class ConfiguracionController extends Controller
         }
 
         $permisosPermitidos = [
-            // Usuarios
             'usuarios_ver','usuarios_crear','usuarios_eliminar',
-            // Ejidatarios
             'ejidatarios_ver','ejidatarios_crear','ejidatarios_eliminar',
-            // Actividades
             'actividades_ver','actividades_crear','actividades_eliminar',
-            // Gestión
             'gestion_ver','gestion_crear','gestion_eliminar',
-            // Asambleas
             'asambleas_ver','asambleas_crear','asambleas_eliminar',
-            // Asistencia
             'asistencia_ver','asistencia_crear','asistencia_eliminar',
-            // Expedientes (Solo ver/crear según tu regla)
             'expedientes_ver','expedientes_crear',
-            // Parcelas
             'parcelas_ver','parcelas_crear','parcelas_eliminar',
-            // Finanzas (Utilidades)
             'utilidades_ver','utilidades_crear','utilidades_eliminar',
-            // Gastos
             'gastos_ver','gastos_crear','gastos_eliminar',
-            // Inventario
             'inventario_ver','inventario_crear','inventario_eliminar',
-            // Apoyos
             'apoyos_ver','apoyos_crear','apoyos_eliminar',
-            // Históricos
             'historicos_ver','historicos_crear','historicos_eliminar',
-            // Respaldo (Solo ver/crear)
             'respaldo_ver','respaldo_crear',
-            // Configuración (Solo ver/crear)
             'configuracion_ver','configuracion_crear'
         ];
 
@@ -148,6 +131,8 @@ class ConfiguracionController extends Controller
 
         DB::beginTransaction();
         try {
+
+            // ACTUALIZAR ROL DEL USUARIO
             DB::table('Relacion_Ejidatario')
                 ->where('Id_Usuario', $request->Id_Usuario)
                 ->update([
@@ -155,21 +140,33 @@ class ConfiguracionController extends Controller
                     'Fecha_Modificado' => now()
                 ]);
 
+            /*
+            IMPORTANTE
+            No permitir modificar permisos del rol Administrador
+            pero sí permitir asignarlo a usuarios
+            */
+
             if ($request->Id_Rol != 2) {
+
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
                     ->update([
                         'Permisos'         => json_encode($permisosRecibidos),
                         'Fecha_Modificado' => now()
                     ]);
+
             }
 
             DB::commit();
+
             return back()->with('success', 'Permisos y rol actualizados correctamente.');
 
         } catch (\Throwable $e) {
+
             DB::rollBack();
+
             return back()->withErrors('Error al guardar: ' . $e->getMessage());
+
         }
     }
 }

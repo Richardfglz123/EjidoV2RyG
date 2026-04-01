@@ -3,7 +3,10 @@
 @section('content')
 
     @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     @endif
 
     <div class="card perfil-card">
@@ -49,10 +52,16 @@
                                 <i class="fas fa-map-marked-alt fa-2x text-muted me-3"></i>
                             </div>
                             <div>
-                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Nº Parcela</small>
-                                <p class="mb-0 fw-bold text-secondary">
-                                    {{ $usuario->No_Parcela ?? 'Sin parcela asignada' }}
-                                </p>
+                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">Parcelas Asignadas</small>
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    @forelse($parcelas as $parcela)
+                                        <span class="badge border text-secondary fw-bold" style="background-color: #e9ecef;">
+                                            #{{ $parcela->No_Parcela }}
+                                        </span>
+                                    @empty
+                                        <p class="mb-0 fw-bold text-secondary">Sin parcelas</p>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -66,29 +75,35 @@
                 {{-- Campos que si se pueden modificar --}}
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Usuario</label>
-                        <input type="text" name="Usuario" class="form-control"
-                               value="{{ $usuario->Usuario }}" required>
+                        <label class="form-label fw-bold">Usuario</label>
+                        <input type="text" name="Usuario" class="form-control @error('Usuario') is-invalid @enderror"
+                               value="{{ old('Usuario', $usuario->Usuario) }}" required>
+                        @error('Usuario')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Correo electronico</label>
-                        <input type="email" name="Correo" class="form-control"
-                               value="{{ $usuario->Correo }}" required>
+                        <label class="form-label fw-bold">Correo electrónico</label>
+                        <input type="email" name="Correo" class="form-control @error('Correo') is-invalid @enderror"
+                               value="{{ old('Correo', $usuario->Correo) }}" required>
+                        @error('Correo')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="col-md-12 mb-3">
-                    <label class="form-label">Teléfono</label>
+                    <label class="form-label fw-bold">Teléfono</label>
                     <input type="text"
                            name="Telefono"
                            class="form-control @error('Telefono') is-invalid @enderror"
                            value="{{ old('Telefono', $usuario->Telefono) }}"
                            required
                            maxlength="10"
-                           pattern="\d{10}"
                            title="El teléfono debe tener 10 dígitos numéricos"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <small class="text-muted">Debe contener 10 dígitos numéricos.</small>
 
                     @error('Telefono')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -96,21 +111,29 @@
                 </div>
 
                 {{-- Contraseñas --}}
-                <div class="row border-top pt-3 mt-3">
+                <div class="row border-top pt-3 mt-4">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Nueva contraseña (opcional)</label>
-                        <input type="password" name="Contraseña" class="form-control">
+                        <label class="form-label fw-bold">Cambiar contraseña (opcional)</label>
+                        <input type="password" name="Contraseña" class="form-control @error('Contraseña') is-invalid @enderror">
+                        @error('Contraseña')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Confirmar contraseña (opcional)</label>
+                        <label class="form-label fw-bold">Confirmar contraseña (opcional)</label>
                         <input type="password" name="Contraseña_confirmation" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Requisitos: Mínimo 8 caracteres, incluir una mayúscula y un número.
+                        </small>
                     </div>
                 </div>
 
                 <div class="text-end mt-4">
                     <button type="submit" class="btn btn-ejidal">
-                        <i class="fas fa-save me-1"></i> Guardar
+                        <i class="fas fa-save me-1"></i> Guardar Cambios
                     </button>
                 </div>
             </form>

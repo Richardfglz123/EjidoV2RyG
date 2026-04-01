@@ -40,9 +40,9 @@
              style="background-color:#e9f5ed; color:#1a4d2e;">
             <i class="fas fa-info-circle me-3 fa-lg"></i>
             <div>
-                <div><strong>Nota:</strong> Escritura activa automáticamente Lectura.</div>
-                <div><strong>Nota:</strong> Eliminar (solo Usuarios) activa Escritura y Lectura.</div>
-                <div><strong>Nota:</strong> Los cambios afectan a todos los usuarios con el mismo rol.</div>
+                <div><strong>Nota:</strong> Escritura activa automáticamente Lectura</div>
+                <div><strong>Nota:</strong> Eliminar activa Escritura y Lectura</div>
+                <div><strong>Nota:</strong> Los cambios afectan a todos los usuarios con el mismo rol</div>
             </div>
         </div>
 
@@ -106,7 +106,7 @@
                                 ['key'=>'ejidatarios','label'=>'Ejidatarios','icon'=>'fas fa-person-digging'],
                                 ['key'=>'actividades','label'=>'Actividades','icon'=>'fas fa-clipboard-check'],
                                 ['key'=>'gestion','label'=>'Gestión','icon'=>'fas fa-tasks'],
-                                ['key'=>'asambleas','label'=>'Asambleas','icon'=>'fas fa-gavel'],
+
                                 ['key'=>'asistencia','label'=>'Pase de Lista','icon'=>'fas fa-list-check'],
                                 ['key'=>'expedientes','label'=>'Expedientes','icon'=>'fas fa-folder-open'],
                                 ['key'=>'parcelas','label'=>'Parcelas','icon'=>'fas fa-map-marked-alt'],

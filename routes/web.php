@@ -118,20 +118,34 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::get('/reparto/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
     Route::post('/reparto/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
 
-    // --- MÓDULO: ACTIVIDADES ---
+// --- MÓDULO: ACTIVIDADES ---
     Route::prefix('admon/actividades')->group(function () {
+
+        // 1. Rutas Estáticas (Deben ir PRIMERO)
+        Route::middleware(['permiso:actividades_ver'])->group(function () {
+            Route::get('/', [ActividadesController::class, 'index'])->name('actividades.index');
+            Route::get('/reportes/pdf', [ActividadesController::class, 'reportePDF'])->name('actividades.reporte.pdf');
+            Route::get('/reportes/excel', [ActividadesController::class, 'reporteExcel'])->name('actividades.reporte.excel');
+        });
+
         Route::middleware(['permiso:actividades_crear'])->group(function () {
+            // Esta ruta DEBE ir antes de las que tienen {actividade}
             Route::get('/create', [ActividadesController::class, 'create'])->name('actividades.create');
             Route::post('/', [ActividadesController::class, 'store'])->name('actividades.store');
+        });
+
+        // 2. Rutas con Parámetros Dinámicos (Deben ir AL FINAL)
+        Route::middleware(['permiso:actividades_editar'])->group(function () {
             Route::get('/{actividade}/edit', [ActividadesController::class, 'edit'])->name('actividades.edit');
-            Route::put('/{actividade}', [ActividadesController::class, 'update'])->name('actividades.update');
+            Route::match(['put', 'patch'], '/{actividade}', [ActividadesController::class, 'update'])->name('actividades.update');
+        });
+
+        Route::middleware(['permiso:actividades_eliminar'])->group(function () {
             Route::delete('/{actividade}', [ActividadesController::class, 'destroy'])->name('actividades.destroy');
         });
 
         Route::middleware(['permiso:actividades_ver'])->group(function () {
-            Route::get('/reportes/pdf', [ActividadesController::class, 'reportePDF'])->name('actividades.reporte.pdf');
-            Route::get('/reportes/excel', [ActividadesController::class, 'reporteExcel'])->name('actividades.reporte.excel');
-            Route::get('/', [ActividadesController::class, 'index'])->name('actividades.index');
+            // El "show" siempre al final de todo
             Route::get('/{actividade}', [ActividadesController::class, 'show'])->name('actividades.show');
         });
     });
@@ -247,8 +261,9 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: EXPEDIENTES ---
-    Route::middleware(['permiso:expedientes_ver'])->prefix('admon/expedientes')->group(function () {
+// --- MÓDULO: EXPEDIENTES ---
+    Route::prefix('admon/expedientes')->group(function () {
+
         Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
         Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
 
@@ -259,8 +274,8 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
             Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');
         });
-    });
 
+    });
     // --- MÓDULO: FAENAS ---
     Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
         Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');
@@ -301,6 +316,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::get('/reparto2/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
     Route::get('/reparto2/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
     Route::delete('/reparto2/perdonar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.perdonar');
+    Route::delete('/descuento/eliminar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('descuento.eliminar');
 
     // Dashboards y otros de Reparto
     Route::get('/repartos/dashboard', [RepartoController::class, 'menu'])->name('menu');
