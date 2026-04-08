@@ -20,6 +20,7 @@ use App\Http\Controllers\ProgramaController;
 use App\Http\Controllers\Reparto2Controller;
 use App\Http\Controllers\RepartoController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\SocialController;
 // Modulos Ezequiel
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\ArticuloController;
@@ -27,7 +28,7 @@ use App\Http\Controllers\EntradaController;
 use App\Http\Controllers\SalidaController;
 use App\Http\Controllers\ParcelaController;
 
-// --- RUTAS PÚBLICAS Y LOGIN ---
+//  RUTAS PÚBLICAS Y LOGIN
 Route::get('/login', function () {
     return view('cpanel.login.sesion');
 })->name('login.form');
@@ -367,6 +368,11 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::get('/reparto/segundo/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
         Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
     });
+
+    // Rutas para vinculación social
+    Route::get('/social/redirect/{provider}', [SocialController::class, 'redirectToProvider'])->name('social.redirect');
+    Route::get('/social/callback/{provider}', [SocialController::class, 'handleProviderCallback']);
+    Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
 
     Route::get('/debug-auth', function () {
         return response()->json(session()->all());

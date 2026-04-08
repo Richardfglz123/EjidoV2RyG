@@ -116,20 +116,6 @@
                         </li>
                     @endif
 
-                    {{-- GESTIÓN--}}
-                    @if(in_array('faenas_ver', session('usuario.permisos', [])) || in_array('programas_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#gestionMenu">
-                                <i class="fas fa-tasks"></i> GESTIÓN <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="gestionMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('faenas.index') }}"><i class="fas fa-briefcase"></i> Gestión de Faenas</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.index') }}"><i class="fas fa-project-diagram"></i> Gestión de Programas</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
 
                     {{-- ASAMBLEAS
                     @if(in_array('asambleas_ver', session('usuario.permisos', [])))
@@ -146,6 +132,7 @@
                         </li>
                     @endif
                     --}}
+
                     {{-- EXPEDIENTES --}}
                     @if(
                         in_array('expedientes_ver', session('usuario.permisos', [])) ||
@@ -239,22 +226,6 @@
                         </li>
                     @endif
 
-                    {{-- APOYOS --}}
-                    @if(in_array('programas_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#apoyosMenu">
-                                <i class="fas fa-hands-helping"></i> Apoyos Sociales <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="apoyosMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.index') }}"><i class="fas fa-list"></i> Ver Apoyos</a></li>
-                                    @if(in_array('programas_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('programas.create') }}"><i class="fas fa-plus-circle"></i> Nuevo Apoyo</a></li>
-                                    @endif
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
 
                     {{-- HISTÓRICOS --}}
                     @if(in_array('historicos_ver', session('usuario.permisos', [])))
