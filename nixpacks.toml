@@ -4,8 +4,7 @@ nixPkgs = ["php82", "php82Packages.composer", "mysql80", "pkg-config", "libmysql
 [phases.install]
 dependsOn = ["setup"]
 cmds = [
-    "composer install --no-dev --optimize-autoloader",
-    "docker-php-ext-install pdo_mysql"
+    "composer install --no-dev --optimize-autoloader"
 ]
 
 [phases.build]
