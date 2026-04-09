@@ -1,10 +1,14 @@
 [phases.setup]
-nixPkgs = ["php82", "php82Packages.composer", "mysql80"]
+nixPkgs = ["php84", "php84Packages.composer", "mysql80"]
 
 [phases.install]
 dependsOn = ["setup"]
-cmds = ["composer install --ignore-platform-reqs --no-interaction"]
+# Este comando instala el driver directamente en el sistema de Railway
+cmds = [
+    "apt-get update && apt-get install -y php8.4-mysql || true",
+    "composer install --ignore-platform-reqs --no-interaction"
+]
 
 [variables]
-PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,mbstring,gd,xml,zip"
-NIXPACKS_PHP_FALLBACK_BINARY = "php82"
+PHP_EXTENSION_INSTALLER = "pdo_mysql"
+NIXPACKS_PHP_FALLBACK_BINARY = "php84"
