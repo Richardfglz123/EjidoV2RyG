@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["php83", "php83Packages.composer", "mysql80", "pkg-config", "libmysqlclient"]
+nixPkgs = ["php82", "php82Packages.composer", "mysql80", "pkg-config", "libmysqlclient"]
 
 [phases.install]
 dependsOn = ["setup"]
@@ -13,5 +13,5 @@ dependsOn = ["install"]
 cmds = ["npm install && npm run build"]
 
 [variables]
-PHP_EXTENSION_INSTALLER = "pdo_mysql"
-NIXPACKS_PHP_FALLBACK_BINARY = "php83"
+PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,mbstring,gd,xml,zip"
+NIXPACKS_PHP_FALLBACK_BINARY = "php82"
