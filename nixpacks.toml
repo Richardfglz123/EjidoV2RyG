@@ -1,15 +1,9 @@
 [phases.setup]
-nixPkgs = ["php82", "php82Packages.composer", "mysql80", "pkg-config", "libmysqlclient"]
+nixPkgs = ["php82", "php82Packages.composer", "mysql80"]
 
 [phases.install]
 dependsOn = ["setup"]
-cmds = [
-    "composer install --no-dev --optimize-autoloader"
-]
-
-[phases.build]
-dependsOn = ["install"]
-cmds = ["npm install && npm run build"]
+cmds = ["composer install --ignore-platform-reqs --no-interaction"]
 
 [variables]
 PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,mbstring,gd,xml,zip"
