@@ -1,11 +1,17 @@
 [phases.setup]
-nixPkgs = ["php83", "php83Packages.composer", "mysql80"]
+nixPkgs = ["php83", "php83Packages.composer", "mysql80", "pkg-config", "libmysqlclient"]
 
-[phases.build]
+[phases.install]
+dependsOn = ["setup"]
 cmds = [
     "composer install --no-dev --optimize-autoloader",
-    "npm install && npm run build"
+    "docker-php-ext-install pdo_mysql"
 ]
 
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm install && npm run build"]
+
 [variables]
-PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,gd,mbstring,xml,zip"
+PHP_EXTENSION_INSTALLER = "pdo_mysql"
+NIXPACKS_PHP_FALLBACK_BINARY = "php83"
