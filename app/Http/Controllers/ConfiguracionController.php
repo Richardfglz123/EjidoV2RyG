@@ -27,18 +27,12 @@ class ConfiguracionController extends Controller
         $datos = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_Usuario', $id)
-            ->select('Relacion_Ejidatario.Id_Rol', 'Roles.Permisos', 'Roles.Tipo_Rol')
+            ->select('Relacion_Ejidatario.Id_Rol', 'Roles.Permisos')
             ->first();
-
-        // Si es Administrador, devolvemos un array con permisos totales para la interfaz
-        $permisos = json_decode($datos->Permisos ?? '[]', true);
-        if (($datos->Tipo_Rol ?? '') === 'Administrador' && empty($permisos)) {
-            $permisos = ['usuarios_ver', 'ejidatarios_ver', 'actividades_ver', 'configuracion_ver']; // etc
-        }
 
         return response()->json([
             'Id_Rol'   => $datos->Id_Rol ?? null,
-            'permisos' => $permisos
+            'permisos' => json_decode($datos->Permisos ?? '[]', true)
         ]);
     }
 
@@ -55,13 +49,8 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        // LLAVE MAESTRA: Si soy Admin, salto la validación de in_array para no bloquearme a mí mismo
-        $esAdmin = (session('usuario.rol_nombre') === 'Administrador' || session('usuario.id_rol') == 1);
-
-        if (!$esAdmin) {
-            if (!in_array('configuracion_crear', session('usuario.permisos', []))) {
-                abort(403, 'No tienes permisos para modificar configuraciones');
-            }
+        if (!in_array('configuracion_crear', session('usuario.permisos', []))) {
+            abort(403, 'No tienes permisos para modificar configuraciones');
         }
 
         $request->validate([
@@ -70,7 +59,6 @@ class ConfiguracionController extends Controller
             'permisos'   => 'array'
         ]);
 
-        // Jerarquía basada en los nombres exactos de tu tabla Roles
         $jerarquia = [
             'Administrador'         => 10,
             'Secretaria'            => 8,
@@ -83,65 +71,85 @@ class ConfiguracionController extends Controller
         $miRolNombre = session('usuario.rol_nombre');
         $miNivel = $jerarquia[$miRolNombre] ?? 0;
 
-        // Usuario al que queremos modificar
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_Usuario', $request->Id_Usuario)
             ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol')
             ->first();
 
-        if (!$usuarioTarget) {
-            return back()->withErrors("El usuario destino no tiene un rol asignado.");
+        $nivelTarget = $usuarioTarget ? ($jerarquia[$usuarioTarget->Tipo_Rol] ?? 0) : 0;
+        $nombreRolTarget = $usuarioTarget ? $usuarioTarget->Tipo_Rol : 'Sin Rol';
+
+        if ($usuarioTarget && $usuarioTarget->Tipo_Rol === 'Administrador' && $request->Id_Usuario != session('usuario.id')) {
+            return back()->withErrors("No está permitido que un Administrador modifique a otro Administrador.");
         }
 
-        $nivelTarget = $jerarquia[$usuarioTarget->Tipo_Rol] ?? 0;
-
-        // 1. Un Admin no puede tocar a otro Admin (a menos que sea él mismo, pero abajo lo bloqueamos)
-        if ($usuarioTarget->Tipo_Rol === 'Administrador' && $request->Id_Usuario != session('usuario.id')) {
-            return back()->withErrors("Seguridad: Un Administrador no puede modificar a otro.");
-        }
-
-        // 2. No puedes modificar a alguien de mayor o igual rango que tú
         if ($miNivel <= $nivelTarget && $request->Id_Usuario != session('usuario.id')) {
-            return back()->withErrors("Rango insuficiente para modificar a un {$usuarioTarget->Tipo_Rol}.");
+            return back()->withErrors("No tienes rango suficiente para modificar a un {$nombreRolTarget}.");
         }
 
-        // 3. No puedes modificarte a ti mismo (para no quitarte el acceso por error)
+        $nuevoRol = DB::table('Roles')->where('Id_Rol', $request->Id_Rol)->first();
+        $nivelNuevoRol = $jerarquia[$nuevoRol->Tipo_Rol] ?? 0;
+
+        if ($nivelNuevoRol >= $miNivel && $miRolNombre !== 'Administrador') {
+            return back()->withErrors("No puedes asignar el rango de {$nuevoRol->Tipo_Rol} porque es igual o superior al tuyo.");
+        }
+
         if ($request->Id_Usuario == session('usuario.id')) {
-            return back()->withErrors('No puedes modificar tus propios permisos por seguridad.');
+            return back()->withErrors('No puedes modificar tus propios permisos directamente.');
         }
 
         if (!$request->has('confirmacion_global')) {
-            return back()->withErrors('Debes marcar la casilla de confirmación.');
+            return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol.');
         }
+
+        $permisosPermitidos = [
+            'usuarios_ver','usuarios_crear','usuarios_eliminar',
+            'ejidatarios_ver','ejidatarios_crear','ejidatarios_eliminar',
+            'actividades_ver','actividades_crear','actividades_eliminar',
+            'gestion_ver','gestion_crear','gestion_eliminar',
+            'asambleas_ver','asambleas_crear','asambleas_eliminar',
+            'asistencia_ver','asistencia_crear','asistencia_eliminar',
+            'expedientes_ver','expedientes_crear',
+            'parcelas_ver','parcelas_crear','parcelas_eliminar',
+            'utilidades_ver','utilidades_crear','utilidades_eliminar',
+            'gastos_ver','gastos_crear','gastos_eliminar',
+            'inventario_ver','inventario_crear','inventario_eliminar',
+            'apoyos_ver','apoyos_crear','apoyos_eliminar',
+            'historicos_ver','historicos_crear','historicos_eliminar',
+            'respaldo_ver','respaldo_crear',
+            'configuracion_ver','configuracion_crear'
+        ];
 
         $permisosRecibidos = $request->permisos ?? [];
 
+        if (array_diff($permisosRecibidos, $permisosPermitidos)) {
+            return back()->withErrors('Se detectaron permisos inválidos.');
+        }
+
         DB::beginTransaction();
         try {
-            // ACTUALIZAR EL ROL DEL USUARIO
-            DB::table('Relacion_Ejidatario')
-                ->where('Id_Usuario', $request->Id_Usuario)
-                ->update([
-                    'Id_Rol' => $request->Id_Rol
-                ]);
+            DB::table('Relacion_Ejidatario')->updateOrInsert(
+                ['Id_Usuario' => $request->Id_Usuario],
+                [
+                    'Id_Rol'           => $request->Id_Rol,
+                    'Fecha_Modificado' => now()
+                ]
+            );
 
-            // ACTUALIZAR LOS PERMISOS DEL ROL (Si el rol no es Administrador)
-            // Según tu BD, Administrador es Id_Rol = 1
             if ($request->Id_Rol != 1) {
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
                     ->update([
-                        'Permisos' => json_encode($permisosRecibidos)
+                        'Permisos'         => json_encode($permisosRecibidos)
                     ]);
             }
 
             DB::commit();
-            return back()->with('success', 'Configuración actualizada correctamente.');
-
+            return back()->with('success', 'Permisos y rol actualizados correctamente.');
         } catch (\Throwable $e) {
             DB::rollBack();
-            return back()->withErrors('Error: ' . $e->getMessage());
+            return back()->withErrors('Error al guardar: ' . $e->getMessage());
         }
     }
 }

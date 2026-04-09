@@ -1,5 +1,11 @@
-[variables]
-    PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,mbstring,gd,xml,zip"
-
 [phases.setup]
-    nixPkgs = ["...", "php84", "php84Packages.composer", "mysql80"]
+nixPkgs = ["php83", "php83Packages.composer", "mysql80"]
+
+[phases.build]
+cmds = [
+    "composer install --no-dev --optimize-autoloader",
+    "npm install && npm run build"
+]
+
+[variables]
+PHP_EXTENSION_INSTALLER = "pdo_mysql,mysqli,gd,mbstring,xml,zip"
