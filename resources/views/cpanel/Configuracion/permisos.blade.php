@@ -231,13 +231,6 @@
                 }
             });
 
-            $('#selectUsuario').on('select2:open', function () {
-                let select = $(this);
-                if (!select.data('loaded')) {
-                    select.data('loaded', true);
-                    select.trigger('query', { term: '' });
-                }
-            });
 
             function pintarInterfaz(listaPermisos) {
                 $permisos.prop('checked', false);
