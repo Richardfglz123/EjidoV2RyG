@@ -213,7 +213,7 @@
                 width: '100%',
                 placeholder: 'Escribe el nombre del usuario...',
                 allowClear: true,
-                minimumInputLength: 0,
+                minimumInputLength: 1,
                 ajax: {
                     url: "{{ route('configuracion.usuarios.buscar_ajax') }}",
                     dataType: 'json',
