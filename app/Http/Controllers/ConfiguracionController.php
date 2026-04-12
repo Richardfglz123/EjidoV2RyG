@@ -19,20 +19,30 @@ class ConfiguracionController extends Controller
             ->when($request->q, function ($query) use ($request) {
                 $query->where('Usuario', 'LIKE', '%' . $request->q . '%');
             })
-            ->select('Id_Usuario as id', 'Usuario as text')
+            ->select(
+                'Id_Usuario as id',
+                DB::raw("CONCAT(Nombres, ' ', Apellido_Paterno) as text")
+            )
             ->limit(50)
             ->get();
     }
+
     public function obtenerPermisosUsuario($id)
     {
         $datos = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
+            ->join('Usuario', 'Relacion_Ejidatario.Id_Usuario', '=', 'Usuario.Id_Usuario')
             ->where('Relacion_Ejidatario.Id_Usuario', $id)
-            ->select('Relacion_Ejidatario.Id_Rol', 'Roles.Permisos')
+            ->select(
+                'Relacion_Ejidatario.Id_Rol',
+                'Roles.Permisos',
+                DB::raw("CONCAT(Usuario.Nombres, ' ', Usuario.Apellido_Paterno) as nombre")
+            )
             ->first();
 
         return response()->json([
             'Id_Rol'   => $datos->Id_Rol ?? null,
+            'nombre'   => $datos->nombre ?? '',
             'permisos' => json_decode($datos->Permisos ?? '[]', true)
         ]);
     }
@@ -142,7 +152,7 @@ class ConfiguracionController extends Controller
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
                     ->update([
-                        'Permisos'         => json_encode($permisosRecibidos)
+                        'Permisos' => json_encode($permisosRecibidos)
                     ]);
             }
 
