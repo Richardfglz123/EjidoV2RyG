@@ -16,7 +16,6 @@ class ConfiguracionController extends Controller
     public function buscarUsuariosAjax(Request $request)
     {
         return DB::table('Usuario')
-            ->where('Usuario', 'LIKE', '%' . $request->q . '%')
             ->select('Id_Usuario as id', 'Usuario as text')
             ->limit(10)
             ->get();
