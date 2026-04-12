@@ -249,22 +249,23 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
     // --- MÓDULO: Config ---
-    Route::middleware(['permiso:configuracion_ver'])->group(function () {
-        Route::prefix('configuracion')->group(function () {
+    Route::prefix('configuracion')->group(function () {
+
+        //  ESTA FUERA DE PERMISOS
+        Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])
+            ->name('configuracion.usuarios.buscar_ajax');
+
+        Route::middleware(['permiso:configuracion_ver'])->group(function () {
 
             Route::get('/permisos', [ConfiguracionController::class, 'permisos'])->name('configuracion.permisos');
             Route::get('/permisos/buscar/{id}', [ConfiguracionController::class, 'obtenerPermisosUsuario']);
-
-            // 👇 MOVER AQUÍ
-            Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])
-                ->name('configuracion.usuarios.buscar_ajax');
-
             Route::get('/permisos/rol/{id}', [ConfiguracionController::class, 'obtenerPermisosRol']);
 
             Route::middleware(['permiso:configuracion_crear'])->group(function () {
                 Route::post('/permisos/guardar', [ConfiguracionController::class, 'guardarPermisos'])
                     ->name('configuracion.permisos.guardar');
             });
+
         });
     });
 
