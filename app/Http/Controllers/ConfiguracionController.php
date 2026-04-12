@@ -16,11 +16,13 @@ class ConfiguracionController extends Controller
     public function buscarUsuariosAjax(Request $request)
     {
         return DB::table('Usuario')
+            ->when($request->q, function ($query) use ($request) {
+                $query->where('Usuario', 'LIKE', '%' . $request->q . '%');
+            })
             ->select('Id_Usuario as id', 'Usuario as text')
-            ->limit(10)
+            ->limit(50)
             ->get();
     }
-
     public function obtenerPermisosUsuario($id)
     {
         $datos = DB::table('Relacion_Ejidatario')

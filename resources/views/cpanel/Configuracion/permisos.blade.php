@@ -213,13 +213,29 @@
                 width: '100%',
                 placeholder: 'Escribe el nombre del usuario...',
                 allowClear: true,
-                minimumInputLength: 2,
+                minimumInputLength: 0,
                 ajax: {
                     url: "{{ route('configuracion.usuarios.buscar_ajax') }}",
                     dataType: 'json',
                     delay: 250,
-                    data: params => ({ q: params.term }),
-                    processResults: data => ({ results: data }),
+                    data: function (params) {
+                        return {
+                            q: params.term || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    }
+                }
+            });
+
+            $('#selectUsuario').on('select2:open', function () {
+                let select = $(this);
+                if (!select.data('loaded')) {
+                    select.data('loaded', true);
+                    select.trigger('query', { term: '' });
                 }
             });
 
