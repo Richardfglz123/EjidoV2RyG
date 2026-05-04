@@ -21,6 +21,10 @@ use App\Http\Controllers\Reparto2Controller;
 use App\Http\Controllers\RepartoController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\SocialController;
+use App\Http\Controllers\EventoController;
+use App\Http\Controllers\MultaController;
+use App\Http\Controllers\PaseListaController;
+
 // Modulos Ezequiel
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\ArticuloController;
@@ -375,6 +379,30 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::get('/reparto/segundo/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
         Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
     });
+
+
+// --- RUTAS PARA EVENTOS ---
+// Esto crea automáticamente rutas para index, create, store, edit, update, destroy
+    Route::resource('eventos', EventoController::class);
+
+// --- RUTAS PARA MULTAS ---
+    Route::resource('multas', MultaController::class);
+
+// --- RUTAS PARA PASE DE LISTA ---
+// Como el pase de lista suele ser un proceso específico, definimos las rutas manualmente
+    Route::prefix('asistencia')->group(function () {
+        // Vista principal para tomar lista
+        Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
+
+        // Ruta para procesar el registro (el método que definimos en el controlador)
+        Route::post('/registrar', [PaseListaController::class, 'registrarAsistencia'])->name('asistencia.registrar');
+
+        // Reporte de asistencias por sesión
+        Route::get('/reporte/{id_sesion}', [PaseListaController::class, 'show'])->name('asistencia.reporte');
+    });
+
+
+
 
     // Rutas para vinculación social
     Route::get('/social/redirect/{provider}', [SocialController::class, 'redirectToProvider'])->name('social.redirect');

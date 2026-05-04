@@ -213,24 +213,15 @@
                 width: '100%',
                 placeholder: 'Escribe el nombre del usuario...',
                 allowClear: true,
-                minimumInputLength: 1,
+                minimumInputLength: 2,
                 ajax: {
                     url: "{{ route('configuracion.usuarios.buscar_ajax') }}",
                     dataType: 'json',
                     delay: 250,
-                    data: function (params) {
-                        return {
-                            q: params.term || ''
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data
-                        };
-                    }
+                    data: params => ({ q: params.term }),
+                    processResults: data => ({ results: data }),
                 }
             });
-
 
             function pintarInterfaz(listaPermisos) {
                 $permisos.prop('checked', false);
@@ -250,14 +241,12 @@
                 }
 
                 asignados = asignados.map(p => String(p).trim());
-
                 $permisos.each(function () {
                     const valorCheck = $(this).val();
                     if (asignados.includes(valorCheck)) {
                         $(this).prop('checked', true);
                     }
                 });
-
                 $('.permiso-crear:checked').each(function () {
                     $(this).closest('tr').find('.permiso-ver').prop('checked', true);
                 });
@@ -270,11 +259,8 @@
                 const marcados = $('.permiso:checked').length;
                 $checkTodos.prop('checked', total === marcados && total > 0);
             }
-
-            // 🔥 AQUÍ ESTÁ EL FIX IMPORTANTE
             $('#selectUsuario').on('change', function () {
                 const userId = $(this).val();
-
                 if (!userId) {
                     pintarInterfaz([]);
                     $selectRol.val("");
@@ -288,15 +274,7 @@
                     type: 'GET',
                     cache: false,
                     success: function (data) {
-
                         $selectRol.val(data.Id_Rol);
-
-                        // 🔥 SOLUCIÓN: mostrar nombre en Select2
-                        if (data.nombre) {
-                            let option = new Option(data.nombre, userId, true, true);
-                            $('#selectUsuario').append(option).trigger('change');
-                        }
-
                         pintarInterfaz(data.permisos);
                     },
                     error: err => console.error(err),
@@ -306,7 +284,6 @@
 
             $selectRol.on('change', function () {
                 const rolId = $(this).val();
-
                 if (!rolId) {
                     pintarInterfaz([]);
                     return;

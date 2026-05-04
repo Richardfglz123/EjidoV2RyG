@@ -80,22 +80,34 @@
                     </div>
                 </div>
 
+                {{-- Sección de Contraseñas con Ver/Ocultar --}}
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label>Contraseña</label>
-                        <input type="password" name="Contraseña"
-                               class="form-control @error('Contraseña') is-invalid @enderror"
-                               required>
-                        @error('Contraseña')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="input-group">
+                            <input type="password" name="Contraseña" id="pass1"
+                                   class="form-control @error('Contraseña') is-invalid @enderror"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('pass1', 'icon1')">
+                                <i class="fas fa-eye" id="icon1"></i>
+                            </button>
+                        </div>
+                        @error('Contraseña')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         <small class="text-muted">Mínimo 8 caracteres, 1 mayúscula y 1 número.</small>
                     </div>
 
                     <div class="col-md-6">
                         <label>Confirmar contraseña</label>
-                        <input type="password" name="Contraseña_confirmation"
-                               class="form-control" required>
+                        <div class="input-group">
+                            <input type="password" name="Contraseña_confirmation" id="pass2"
+                                   class="form-control" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('pass2', 'icon2')">
+                                <i class="fas fa-eye" id="icon2"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
                 <div class="text-end">
                     <a href="{{ route('Usuarios.index') }}" class="btn btn-secondary">
                         Cancelar
@@ -110,6 +122,20 @@
     </div>
 
     <script>
+        // Función para Ver/Ocultar Contraseña
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        // Lógica de Sugerencias de Email
         const emailInput = document.getElementById('emailInput');
         const suggestionsContainer = document.getElementById('emailSuggestions');
         const domains = ['gmail.com', 'outlook.com', 'icloud.com', 'yahoo.com', 'hotmail.com'];
@@ -142,16 +168,19 @@
                 suggestionsContainer.style.display = 'none';
             }
         });
+
         window.selectEmail = function(fullEmail) {
             emailInput.value = fullEmail;
             suggestionsContainer.style.display = 'none';
             emailInput.focus();
         };
+
         document.addEventListener('click', function(e) {
             if (e.target !== emailInput && e.target !== suggestionsContainer) {
                 suggestionsContainer.style.display = 'none';
             }
         });
+
         emailInput.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 suggestionsContainer.style.display = 'none';

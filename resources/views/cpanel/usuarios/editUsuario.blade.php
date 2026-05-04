@@ -12,6 +12,12 @@
             @csrf
             @method('PUT')
 
+            @php
+                // Definimos la lógica de permisos una sola vez para reutilizarla
+                $rolNombre = session('usuario.rol_nombre') ?? session('usuario.rol');
+                $esAdmin = ($rolNombre === 'Administrador');
+            @endphp
+
             <div class="card-body">
                 {{-- Fila de Nombres --}}
                 <div class="row mb-3">
@@ -33,24 +39,33 @@
                 </div>
 
                 <div class="row mb-3">
+                    {{-- Campo Usuario: Ahora condicionado al Administrador --}}
                     <div class="col-md-4">
                         <label>Usuario</label>
-                        <input type="text" class="form-control" value="{{ $fila->Usuario }}" disabled>
-                        <small class="text-muted">El usuario no se puede modificar.</small>
+                        <input type="text"
+                               name="Usuario"
+                               class="form-control @error('Usuario') is-invalid @enderror"
+                               value="{{ old('Usuario', $fila->Usuario) }}"
+                                {{ !$esAdmin ? 'readonly' : '' }}>
+
+                        @error('Usuario')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+
+                        @if(!$esAdmin)
+                            <small class="text-muted"><i class="fas fa-lock me-1"></i> El nombre de usuario está bloqueado.</small>
+                        @else
+                            <small class="text-success"><i class="fas fa-unlock me-1"></i> Puedes modificar el nombre de usuario.</small>
+                        @endif
                     </div>
 
                     <div class="col-md-4">
                         <label>Correo electrónico</label>
-                        @php
-                            $rolNombre = session('usuario.rol_nombre') ?? session('usuario.rol');
-                            $esAdmin = ($rolNombre === 'Administrador');
-                        @endphp
-
                         <input type="email"
                                name="Correo"
                                class="form-control @error('Correo') is-invalid @enderror"
                                value="{{ old('Correo', $fila->Correo) }}"
-                                {{ !$esAdmin ? 'disabled' : '' }}>
+                                {{ !$esAdmin ? 'readonly' : '' }}>
 
                         @error('Correo')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -59,7 +74,7 @@
                         @if(!$esAdmin)
                             <small class="text-muted"><i class="fas fa-lock me-1"></i> Solo el administrador puede modificar el correo.</small>
                         @else
-                            <small class="text-success"><i class="fas fa-unlock me-1"></i> Tienes permiso de Administrador para editar el correo.</small>
+                            <small class="text-success"><i class="fas fa-unlock me-1"></i> Tienes permiso para editar el correo.</small>
                         @endif
                     </div>
 
@@ -70,16 +85,28 @@
                     </div>
                 </div>
 
+                {{-- Sección de Contraseñas con botón de ver/ocultar --}}
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label>Nueva contraseña (opcional)</label>
-                        <input type="password" name="Contraseña" class="form-control @error('Contraseña') is-invalid @enderror">
-                        @error('Contraseña')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="input-group">
+                            <input type="password" name="Contraseña" id="pass1" class="form-control @error('Contraseña') is-invalid @enderror">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('pass1', 'icon1')">
+                                <i class="fas fa-eye" id="icon1"></i>
+                            </button>
+                        </div>
+                        @error('Contraseña')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         <small class="text-muted">Mínimo 8 caracteres, 1 mayúscula y 1 número</small>
                     </div>
+
                     <div class="col-md-6">
                         <label>Confirmar contraseña</label>
-                        <input type="password" name="Contraseña_confirmation" class="form-control">
+                        <div class="input-group">
+                            <input type="password" name="Contraseña_confirmation" id="pass2" class="form-control">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('pass2', 'icon2')">
+                                <i class="fas fa-eye" id="icon2"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -92,4 +119,22 @@
             </div>
         </form>
     </div>
+
+    <script>
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+
 @endsection

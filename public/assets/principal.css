@@ -6,19 +6,17 @@
     --color-dark: #1a3a0a;
 }
 
-/* ========================= */
-/* === FIX LAYOUT GENERAL === */
-/* ========================= */
+
 html, body {
     height: 100%;
 }
 
 body {
-    display: flex;
-    flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
 }
-
-/* Contenedor principal que empuja el footer */
 .layout-wrapper {
     flex: 1;
     padding-top: 56px; /* altura del navbar fixed-top */
@@ -26,9 +24,6 @@ body {
     flex-direction: column;
 }
 
-/* ========================= */
-/* Estilos para el botón de logout */
-/* ========================= */
 #logout-form button {
     cursor: pointer;
 }
@@ -37,19 +32,16 @@ body {
     background-color: #f8f9fa;
 }
 
-/* Estilos para el dropdown */
 .dropdown-item.text-danger:hover {
     background-color: #dc3545;
     color: white !important;
 }
 
-/* Mostrar información del usuario */
 .user-info {
     font-size: 0.9rem;
     color: #6c757d;
 }
 
-/* === BASE GENERAL === */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f5f5f5;
@@ -57,7 +49,6 @@ body {
     padding: 0;
 }
 
-/* === NAVBAR === */
 .navbar-ejidal {
     background: url("https://www.lamudi.com.mx/journal/wp-content/uploads/2021/08/shutterstock_1773455270-1.jpg");
     background-size: cover;
@@ -72,7 +63,6 @@ body {
     font-weight: 500;
 }
 
-/* === SIDEBAR === */
 .sidebar {
     background-color: var(--color-dark);
     color: white;
@@ -117,7 +107,6 @@ body {
     opacity: 0.6;
 }
 
-/* === TARJETAS Y CONTENIDO === */
 .card-ejidal, .card {
     background-color: #fff;
     border: none;
@@ -147,18 +136,7 @@ body {
     color: white;
 }
 
-/* === SECCIÓN HERO === */
-.hero-section {
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-    url('https://lh6.googleusercontent.com/proxy/yC68ihMDse9_FBiX7HW902PcrqxXVVbZ-FXPBbAwkAembZpvaKNeEgpUdECF2gL4_0jfsZ1l_eJiqioQpqITFw');
-    background-size: cover;
-    background-position: center;
-    color: white;
-    padding: 100px 0;
-    margin-bottom: 30px;
-}
 
-/* === TABLAS Y CRUD === */
 .crud-actions {
     margin-bottom: 20px;
 }
@@ -171,21 +149,19 @@ body {
     margin-right: 5px;
 }
 
-/* === FOOTER (STICKY REAL) === */
 .footer {
     background-color: #f8f9fa;
     border-top: 1px solid #dee2e6;
     padding: 12px 20px;
     font-size: 14px;
     color: #6c757d;
-    margin-top: auto; /* CLAVE: evita que se mueva */
+    margin-top: auto;
 }
 
 .footer span {
     white-space: nowrap;
 }
 
-/* Evita brincos en pantallas pequeñas */
 @media (max-width: 576px) {
     .footer {
         text-align: center;

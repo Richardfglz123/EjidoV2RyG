@@ -75,13 +75,15 @@
                                 </a>
                             @endif
 
-                            @if($puedeEliminar && $miId != $fila->Id_Usuario)
-                                <form action="{{ route('Ejidatarios.destroy', $fila->Id_Usuario) }}"
+                            {{-- Cambio 1: Si es Admin, el botón SIEMPRE aparece. Si no es Admin, aplicamos la restricción de seguridad --}}
+                            @if($puedeEliminar && ($esAdmin || $miId != $fila->Id_Usuario))
+                                {{-- Cambio 2: Enviamos Id_Ejidatario, que es lo que espera tu controlador en la base de datos --}}
+                                <form action="{{ route('Ejidatarios.destroy', $fila->Id_Ejidatario) }}"
                                       method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('¿Eliminar ejidatario?')" title="Eliminar">
+                                            onclick="return confirm('¿Eliminar registro de ejidatario?')" title="Eliminar">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>

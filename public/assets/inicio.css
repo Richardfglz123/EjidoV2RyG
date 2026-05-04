@@ -1,0 +1,97 @@
+/* Cards */
+.card-stats {
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.03) !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s ease;
+}
+
+.card-stats:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Hero */
+.hero-section {
+    background: linear-gradient(135deg, #1a1d20 0%, #198754 100%);
+    color: white;
+    padding: 3.5rem 2.5rem;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(25, 135, 84, 0.15);
+    margin-bottom: 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::after {
+    content: '\f1bb';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: -30px;
+    bottom: -40px;
+    font-size: 14rem;
+    opacity: 0.08;
+    transform: rotate(-15deg);
+}
+
+/* Iconos */
+.icon-shape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Variantes de color */
+.icon-green { background: #198754; }
+.icon-blue { background: #3b82f6; }
+.icon-yellow { background: #f59e0b; }
+
+/* Gradientes cards */
+.bg-green-soft { background: linear-gradient(to right, #ffffff, #f0fdf4); }
+.bg-blue-soft { background: linear-gradient(to right, #ffffff, #eff6ff); }
+.bg-yellow-soft { background: linear-gradient(to right, #ffffff, #fffbeb); }
+
+/* Tabla */
+.table thead th {
+    background-color: #f8fafc;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #64748b;
+    padding: 1rem;
+    border: none;
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+/* Eventos */
+.event-date-box {
+    text-align: center;
+    min-width: 50px;
+    padding: 8px;
+    border-radius: 12px;
+    background: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+/* Extras */
+.fw-extrabold { font-weight: 800; }
+
+/* Botón reporte */
+.btn-report {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+}

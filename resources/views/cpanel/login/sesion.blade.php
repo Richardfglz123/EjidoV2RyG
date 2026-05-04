@@ -8,11 +8,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
+        :root {
+            --primary-green: #198754;
+            --dark-green: #146c43;
+            --text-main: #2d3436;
+        }
+
         html, body {
             height: 100%;
             margin: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at top right, #e8f5e9, #f4f7f6);
         }
 
         body {
@@ -21,29 +27,19 @@
         }
 
         .navbar-ejidal {
-            background-color: #212529 !important;
-            padding: 0.8rem 1rem;
-            width: 100%;
-            border-bottom: 3px solid #198754;
+            background-color: #1a1d20 !important;
+            padding: 0.7rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-bottom: 4px solid var(--primary-green);
         }
 
         .navbar-brand {
             display: flex;
             align-items: center;
-            font-weight: 700;
+            font-weight: 800;
             color: #fff !important;
-            margin: 0;
-            white-space: nowrap;
-        }
-
-        @media (max-width: 768px) {
-            .navbar-brand {
-                white-space: normal;
-                font-size: 0.95rem;
-                text-align: center;
-                justify-content: center;
-                width: 100%;
-            }
+            text-transform: uppercase;
+            font-size: 1rem;
         }
 
         .main-content {
@@ -51,132 +47,151 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem;
+            padding: 1.5rem 1rem; /* Reducido para subir el contenido */
         }
 
         .login-card {
             width: 100%;
             max-width: 420px;
             background: #ffffff;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 2rem 2.2rem; /* Más compacto */
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
         h2 {
-            color: #333;
-            font-weight: 700;
+            color: var(--text-main);
+            font-weight: 800;
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
         }
 
         .form-label {
             font-weight: 600;
-            color: #444;
-            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
         }
 
+        /* Contenedor relativo para el input y el ojo */
         .input-group-password {
             position: relative;
+            display: block;
         }
 
         .input-group-password input {
             width: 100%;
             padding: 0.75rem 1rem;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            padding-right: 45px;
+            border: 2px solid #edf2f7;
+            border-radius: 12px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            outline: none;
+            padding-right: 45px; /* Espacio para el icono */
         }
 
+        .input-group-password input:focus {
+            border-color: var(--primary-green);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
+        }
+
+        /* Ajuste preciso del botón del ojo */
         .toggle-password {
             position: absolute;
             right: 15px;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
-            color: #6c757d;
-            z-index: 10;
+            color: #a0aec0;
+            transition: color 0.2s;
+            z-index: 5;
+            padding: 5px;
         }
+
+        .toggle-password:hover { color: var(--primary-green); }
 
         .btn-ejidal {
             width: 100%;
             padding: 0.8rem;
-            background-color: #198754;
+            background: var(--primary-green);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 1rem;
             transition: all 0.3s ease;
             margin-top: 1rem;
         }
 
         .btn-ejidal:hover {
-            background-color: #157347;
-            transform: translateY(-1px);
+            background: var(--dark-green);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(25, 135, 84, 0.2);
         }
 
         .divider {
             display: flex;
             align-items: center;
-            text-align: center;
-            margin: 1.5rem 0;
-            color: #888;
-            font-size: 0.75rem;
+            margin: 1.2rem 0; /* Espacio reducido */
+            color: #b2bec3;
+            font-size: 0.65rem;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
-        .divider:not(:empty)::before { margin-right: .5em; }
-        .divider:not(:empty)::after { margin-left: .5em; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #ebf0f5; }
+        .divider:not(:empty)::before { margin-right: 1rem; }
+        .divider:not(:empty)::after { margin-left: 1rem; }
 
         .social-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
             padding: 0.7rem;
-            border-radius: 8px;
-            border: 1px solid #ddd;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
             background: #fff;
-            color: #333;
+            color: #4a5568;
             text-decoration: none;
             font-weight: 600;
             margin-bottom: 10px;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            font-size: 0.9rem;
         }
-        .social-btn:hover { background: #f9f9f9; border-color: #ccc; color: #000; }
-        .btn-apple { background: #000; color: #fff; border: none; }
-        .btn-apple:hover { background: #333; color: #fff; }
-
+        .btn-apple { background: #1a1d20; color: #fff; border: none; }
+        .btn-apple:hover { background: #000; color: #fff; transform: translateY(-1px); }
 
         .footer-ejidal {
-            background: #fff;
+            background: rgba(255, 255, 255, 0.8);
             padding: 1rem 0;
-            border-top: 1px solid #dee2e6;
-            color: #6c757d;
-            font-size: 0.85rem;
+            border-top: 1px solid #eef2f7;
+            color: #94a3b8;
+            font-size: 0.8rem;
         }
 
         .error-list {
             background-color: #fff5f5;
-            border-left: 4px solid #dc3545;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 1.5rem;
+            border-left: 4px solid #ff7675;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
             list-style: none;
-            font-size: 0.85rem;
-            color: #dc3545;
+            font-size: 0.8rem;
+            color: #d63031;
         }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark navbar-ejidal">
-    <div class="container-fluid px-lg-5"> <a class="navbar-brand" href="{{ route('login') }}">
-            <i class="fas fa-tractor me-3"></i>
-            <span>SISTEMA EJIDAL SAN RAFAEL IXTAPALUCAN</span>
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('inicio') }}">
+            <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
+            <span class="fw-bold">Sistema Ejidal San Rafael Ixtapalucan</span>
         </a>
     </div>
 </nav>
@@ -185,8 +200,8 @@
     <div class="login-card">
 
         @if (session('success'))
-            <div class="alert alert-success text-center mb-4" role="alert">
-                <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <div class="alert alert-success border-0 shadow-sm text-center mb-3 py-2" role="alert" style="border-radius: 10px; font-size: 0.9rem;">
+                <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
             </div>
         @endif
 
@@ -196,9 +211,9 @@
             <h2>Iniciar Sesión</h2>
 
             @if ($errors->any())
-                <ul class="error-list">
+                <ul class="error-list shadow-sm">
                     @foreach ($errors->all() as $error)
-                        <li><i class="fas fa-times-circle me-2"></i>{{ $error }}</li>
+                        <li><i class="fas fa-exclamation-circle me-2"></i>{{ $error }}</li>
                     @endforeach
                 </ul>
             @endif
@@ -208,11 +223,11 @@
                 <div class="mb-3">
                     <label class="form-label">Usuario o Correo</label>
                     <div class="input-group-password">
-                        <input type="text" name="username" value="{{ old('username') }}" placeholder="Ingresa tu usuario" required autofocus>
+                        <input type="text" name="username" value="{{ old('username') }}" placeholder="Nombre de usuario" required autofocus>
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-2">
                     <label class="form-label">Contraseña</label>
                     <div class="input-group-password">
                         <input type="password" id="password" name="password" placeholder="••••••••" required>
@@ -220,35 +235,67 @@
                     </div>
                 </div>
 
+                <div class="text-end mb-3">
+                    <a href="{{ route('password.forgot') }}" class="text-decoration-none small" style="color: var(--primary-green); font-weight: 600; font-size: 0.75rem;">¿Olvidaste tu contraseña?</a>
+                </div>
+
                 <button type="submit" class="btn-ejidal">Acceder</button>
             </form>
-
-            <div class="text-center mt-3">
-                <a href="{{ route('password.forgot') }}" class="text-decoration-none small text-muted">¿Olvidaste tu contraseña?</a>
-            </div>
 
             <div class="divider">Continuar con</div>
 
             <div class="social-auth">
-                <a href="#" class="social-btn">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" alt="Google">
-                    Google
-                </a>
-                <a href="#" class="social-btn btn-apple">
+                <a href="#" class="social-btn btn-apple shadow-sm">
                     <i class="fab fa-apple fa-lg"></i>
-                    Apple ID
+                    <span>Apple ID</span>
+                </a>
+                <a href="#" class="social-btn shadow-sm">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" alt="Google">
+                    <span>Google</span>
                 </a>
             </div>
         @endif
     </div>
 </div>
 
-<footer class="footer-ejidal">
-    <div class="container-fluid px-lg-5 d-flex justify-content-between">
-        <span>Sistema de Gestión Ejidal &copy; 2026</span>
-        <span class="d-none d-sm-inline">Versión 1.4.1</span>
+
+<footer class="footer bg-dark text-light py-4 border-top border-primary">
+    <div class="container">
+        <div class="row align-items-center">
+
+            <div class="col-md-4 text-center text-md-start">
+                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2"> <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+                <small class="text-secondary">v1.4.1</small>
+            </div>
+
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <p class="mb-2 small text-secondary">Síguenos en:</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4 text-center text-md-end">
+                <div style="font-size: 0.7rem;" class="text-secondary">
+                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
+                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
+                </div>
+            </div>
+
+        </div>
     </div>
 </footer>
+
 
 <script>
     const btnToggle = document.querySelector('#btnToggle');

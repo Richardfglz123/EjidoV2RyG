@@ -153,35 +153,22 @@ class EjidatariosController extends Controller
             abort(403, 'No tienes permiso para eliminar.');
         }
 
-        // Buscar ejidatario real
-        $fila = DB::table('Ejidatario')
-            ->where('Id_Ejidatario', $id)
-            ->first();
+        $fila = DB::table('Ejidatario')->where('Id_Ejidatario', $id)->first();
 
         if (!$fila) {
             return back()->withErrors('Ejidatario no encontrado.');
         }
 
-        // evitar eliminar tu propio registro
-        if ($miId == $fila->Id_Usuario) {
-            return back()->withErrors('No puedes eliminar tu propio registro de usuario/ejidatario.');
+        // Permitir eliminar solo si no soy yo O si soy administrador
+        if (!$esAdmin && $miId == $fila->Id_Usuario) {
+            return back()->withErrors('No puedes eliminar tu propio registro.');
         }
 
         try {
-
-            DB::transaction(function () use ($fila) {
-                DB::table('Ejidatario')
-                    ->where('Id_Ejidatario', $fila->Id_Ejidatario)
-                    ->delete();
-
-            });
-
-            return back()->with('success', 'Registro de Ejidatario eliminado correctamente.');
-
+            DB::table('Ejidatario')->where('Id_Ejidatario', $id)->delete();
+            return back()->with('success', 'Registro eliminado correctamente.');
         } catch (\Exception $e) {
-
             return back()->withErrors('Error al eliminar: ' . $e->getMessage());
-
         }
     }
 

@@ -11,12 +11,14 @@ class CatalogoMulta extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'Año',
-        'Tipo',
-        'Costo',
+        'anio',        // Antes Año
+        'tipo_multa',  // Antes Tipo_Multa
+        'costo',       // Antes Costo
         'Id_Creo',
         'Fecha_Creo',
         'Id_Modificado',
-        'Fecha_Modificado'
+        'Fecha_Modificado',
+        'Id_Elimino',
+        'Fecha_Eliminado'
     ];
 }

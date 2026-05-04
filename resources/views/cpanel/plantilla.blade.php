@@ -16,15 +16,25 @@
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{{ route('inicio') }}">
-            <i class="fas fa-tractor me-2"></i> Sistema Ejidal San Rafael Ixatapluacan
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 d-flex align-items-center gap-2" href="{{ route('inicio') }}">
+            <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
+            <span class="d-none d-sm-inline">Sistema Ejidal San Rafael Ixtapalucan</span>
         </a>
 
         <ul class="navbar-nav ms-auto">
             <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center py-0" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 30px;">
+                <a class="nav-link dropdown-toggle d-flex align-items-center py-0" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 40px;">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="fas fa-user-circle fs-4"></i>
+
+                        {{-- Lógica para mostrar la foto de perfil en el Header --}}
+                        <div class="rounded-circle overflow-hidden shadow-sm border border-light" style="width: 32px; height: 32px; background-color: #6c757d;">
+                            @if(session('usuario.foto'))
+                                <img src="{{ asset('storage/' . session('usuario.foto')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+                            @else
+                                <img src="https://ui-avatars.com/api/?name={{ urlencode(session('usuario.nombre_completo')) }}&background=6c757d&color=fff&size=32" alt="Avatar">
+                            @endif
+                        </div>
+
                         <div class="d-flex align-items-center gap-2 text-start">
                             <span class="fw-semibold">{{ session('usuario.nombre_completo') }}</span>
                             <span class="px-2 rounded-pill fw-semibold text-white" style="font-size: 0.6rem; line-height: 1.4; background: linear-gradient(135deg, #0d6efd, #198754); white-space: nowrap;">
@@ -61,7 +71,7 @@
 
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ route('inicio') }}">
-                            <i class="fas fa-home"></i> Inicio
+                            <i class="fas fa-home"></i>
                         </a>
                     </li>
 
@@ -242,6 +252,66 @@
                         </li>
                     @endif
 
+                    <!-- Módulo de Pase de Lista -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white {{ request()->is('admon/asistencia*') ? 'active' : '' }}" data-bs-toggle="collapse" href="#paseListaMenu">
+                            <i class="fas fa-list-check"></i> Pase de lista
+                            <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse {{ request()->is('admon/asistencia*') ? 'show' : '' }}" id="paseListaMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('asistencia.index') }}">
+                                        <i class="fas fa-plus-circle"></i> Registrar Asistencia
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Módulo de Eventos -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white {{ request()->is('admon/eventos*') ? 'active' : '' }}" data-bs-toggle="collapse" href="#eventosMenu">
+                            <i class="fas fa-calendar-day"></i> Eventos
+                            <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse {{ request()->is('admon/eventos*') ? 'show' : '' }}" id="eventosMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('eventos.create') }}">
+                                        <i class="fas fa-plus-circle"></i> Nuevo Evento
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('eventos.index') }}">
+                                        <i class="fas fa-list"></i> Ver todos los Eventos
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Módulo de Multa -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white {{ request()->is('admon/multas*') ? 'active' : '' }}" data-bs-toggle="collapse" href="#multasMenu">
+                            <i class="fas fa-file-invoice-dollar"></i> Multas
+                            <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse {{ request()->is('admon/multas*') ? 'show' : '' }}" id="multasMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('multas.create') }}">
+                                        <i class="fas fa-plus-circle"></i> Nueva Multa
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" href="{{ route('multas.index') }}">
+                                        <i class="fas fa-list"></i> Listado de Multas
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     {{-- RESPALDO --}}
                     @if(in_array('respaldo_ver', session('usuario.permisos', [])))
                         <li class="nav-item mt-3 border-top border-secondary pt-2">
@@ -273,15 +343,39 @@
     </div>
 </div>
 
-<footer class="footer">
-    <div class="container-fluid">
+<footer class="footer bg-dark text-light py-4 border-top border-primary">
+    <div class="container">
         <div class="row align-items-center">
-            <div class="col-md-6 text-start text-center text-md-start">
-                <span>Sistema de Gestión Ejidal &copy; 2026</span>
+
+            <div class="col-md-4 text-center text-md-start">
+                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2"> <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+                <small class="text-secondary">v1.4.1</small>
             </div>
-            <div class="col-md-6 text-end text-center text-md-end">
-                <span>Versión 2.0</span>
+
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <p class="mb-2 small text-secondary">Síguenos en:</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
             </div>
+
+            <div class="col-md-4 text-center text-md-end">
+                <div style="font-size: 0.7rem;" class="text-secondary">
+                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
+                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </footer>
