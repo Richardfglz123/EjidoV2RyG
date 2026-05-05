@@ -89,7 +89,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::prefix('admon/Ejidatarios')->group(function () {
         Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
         Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
-
+        Route::get('/api/cp/{cp}', [EjidatariosController::class, 'buscarCP'])->name('api.cp');
         Route::middleware(['permiso:ejidatarios_crear'])->group(function () {
             Route::get('/create', [EjidatariosController::class, 'create'])->name('Ejidatarios.create');
             Route::post('/', [EjidatariosController::class, 'store'])->name('Ejidatarios.store');
@@ -97,7 +97,6 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::put('/{Ejidatario}', [EjidatariosController::class, 'update'])->name('Ejidatarios.update');
             Route::delete('/{Ejidatario}', [EjidatariosController::class, 'destroy'])->name('Ejidatarios.destroy');
         });
-
         Route::middleware(['permiso:ejidatarios_ver'])->group(function () {
             Route::get('/', [EjidatariosController::class, 'index'])->name('Ejidatarios.index');
             Route::get('/{Ejidatario}', [EjidatariosController::class, 'show'])->name('Ejidatarios.show');

@@ -33,6 +33,9 @@ class EjidatariosController extends Controller
                 'u.Apellido_Paterno',
                 'es.Estatus as NombreEstatus'
             )
+            // Ordenamos por Num_Ejidatario de forma ascendente (1, 2, 3...)
+            // El "+ 0" es opcional pero recomendado para que el orden sea numérico exacto
+            ->orderByRaw('e.Num_Ejidatario + 0 ASC')
             ->get();
 
         return view('cpanel/ejidatarios/indexEjidatario', [
@@ -176,5 +179,16 @@ class EjidatariosController extends Controller
     {
         $monto = DB::table('Reparto')->where('id_ejidatario', $id)->value('monto') ?? 0;
         return response()->json(['saldo_disponible' => $monto]);
+    }
+
+    public function buscarCP($cp)
+    {
+        // Buscamos en la tabla de sepomex
+        $resultados = DB::table('sepomex')
+            ->where('codigo_postal', $cp)
+            ->select('colonia', 'municipio', 'estado')
+            ->get();
+
+        return response()->json($resultados);
     }
 }

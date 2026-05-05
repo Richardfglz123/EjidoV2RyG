@@ -9,56 +9,51 @@
     <link rel="stylesheet" href="{{ asset('assets/principal.css') }}">
 </head>
 <body>
-
 <header class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
     <div class="container-fluid d-flex align-items-center justify-content-between">
 
         <div class="d-flex align-items-center gap-2">
-            <button class="navbar-toggler d-md-none border-0 p-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false">
-                <span class="navbar-toggler-icon" style="width: 24px; height: 24px;"></span>
-            </button>
-
             <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
-                <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
+                <img src="/snRafael.png" alt="Logo" height="35">
                 <span class="fw-bold d-none d-lg-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
-                <span class="fw-bold d-inline d-lg-none" style="font-size: 0.9rem;">S.E. San Rafael</span>
             </a>
         </div>
 
         <div class="dropdown">
-            <a class="dropdown-toggle d-flex align-items-center text-decoration-none"
-               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-               style="width: auto; height: 45px; padding: 0;">
-
+            <a class="dropdown-toggle d-flex align-items-center text-decoration-none" href="#" role="button" data-bs-toggle="dropdown">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width: 35px; height: 35px; min-width: 35px; max-width: 35px; min-height: 35px; max-height: 35px; overflow: hidden; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; position: relative;">
+                    <div style="width: 35px; height: 35px; overflow: hidden; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0;">
                         @if(session('usuario.foto'))
-                            <img src="{{ asset('storage/' . session('usuario.foto')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="{{ asset('storage/' . session('usuario.foto')) }}?v={{ time() }}" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode(session('usuario.nombre_completo')) }}&background=6c757d&color=fff&size=35" alt="Avatar">
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode(session('usuario.nombre_completo', 'U')) }}&background=6c757d&color=fff" style="width: 100%; height: 100%; object-fit: cover;">
                         @endif
                     </div>
-
-                    <div class="d-none d-md-flex flex-column text-start" style="line-height: 1;">
+                    <div class="d-none d-md-flex flex-column text-start">
                         <span class="fw-semibold text-white" style="font-size: 0.85rem;">{{ session('usuario.nombre_completo') }}</span>
-                        <span class="px-2 rounded-pill fw-bold text-white text-center" style="font-size: 0.55rem; background: linear-gradient(135deg, #0d6efd, #198754); width: fit-content; margin-top: 2px;">
-                            {{ session('usuario.rol', 'SIN ROL') }}
+                        <span class="px-2 rounded-pill fw-bold text-white" style="font-size: 0.55rem; background: linear-gradient(135deg, #0d6efd, #198754);">
+                            {{ session('usuario.rol', 'Usuario') }}
                         </span>
                     </div>
                 </div>
             </a>
 
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; width: 220px; overflow: hidden;">
-                <li class="px-3 py-3 border-bottom bg-light">
-                    <small class="text-muted d-block" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Usuario</small>
-                    <strong class="text-dark d-block" style="font-size: 0.95rem;">{{ session('usuario.nombre_completo') }}</strong>
-                    <span class="badge bg-success mt-1" style="font-size: 0.65rem;">{{ session('usuario.rol') }}</span>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; min-width: 180px;">
+                <li>
+                    <a class="dropdown-item py-2" href="{{ route('perfil.index') }}">
+                        <i class="fas fa-user-circle me-2 text-muted"></i> Mi Perfil
+                    </a>
                 </li>
-                <li><a class="dropdown-item py-2" href="{{ route('perfil.index') }}"><i class="fas fa-user-circle me-2 text-muted"></i> Mi Perfil</a></li>
-                @if(in_array('configuracion_ver', session('usuario.permisos', [])))
-                    <li><a class="dropdown-item py-2" href="{{ route('configuracion.permisos') }}"><i class="fas fa-cog me-2 text-muted"></i> Configuración</a></li>
+
+                @if(session('usuario.rol') === 'Administrador' || in_array('configuracion_ver', (array)session('usuario.permisos', [])))
+                    <li>
+                        <a class="dropdown-item py-2" href="{{ route('configuracion.permisos') }}">
+                            <i class="fas fa-cog me-2 text-muted"></i> Configuración
+                        </a>
+                    </li>
                 @endif
-                <li><hr class="dropdown-divider m-0"></li>
+
+                <li><hr class="dropdown-divider"></li>
                 <li>
                     <form method="POST" action="{{ route('logout') }}" class="m-0">
                         @csrf

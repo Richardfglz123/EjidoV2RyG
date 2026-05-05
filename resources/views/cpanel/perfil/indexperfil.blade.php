@@ -19,12 +19,10 @@
                 @csrf
                 @method('PUT')
 
-                {{-- Sección de Foto con Anti-Caché --}}
                 <div class="text-center mb-5">
                     <div class="position-relative d-inline-block">
                         <div class="profile-img-container shadow-sm border border-3 border-white rounded-circle overflow-hidden" style="width: 150px; height: 150px; background-color: #e9ecef;">
                             @if(isset($usuario->foto) && $usuario->foto)
-                                {{-- El "?v=time" obliga al navegador a recargar la imagen real --}}
                                 <img id="previewImg" src="{{ asset('storage/'.$usuario->foto) }}?v={{ time() }}" alt="Foto de perfil" style="width: 100%; height: 100%; object-fit: cover;">
                             @else
                                 <img id="previewImg" src="https://ui-avatars.com/api/?name={{ urlencode($usuario->Nombres.' '.$usuario->Apellido_Paterno) }}&background=6c757d&color=fff&size=150" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
@@ -33,34 +31,33 @@
                         <label for="fotoInput" class="btn btn-sm btn-dark position-absolute bottom-0 end-0 rounded-circle shadow" title="Cambiar foto">
                             <i class="fas fa-camera"></i>
                         </label>
-                        <input type="file" name="foto" id="fotoInput" class="d-none" accept="image/*">
+                        <input type="file" name="foto" id="fotoInput" class="d-none" accept=".jpg,.jpeg,.heic">
                     </div>
-                    <div class="mt-2 text-muted small">Haz clic en la cámara para subir una foto nueva</div>
+                    <div class="mt-2 text-muted small">Formatos: <strong>JPG o JPEG</strong> (Compatible con iPhone)</div>
                     @error('foto') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                 </div>
 
-                {{-- Información NO modificable --}}
                 <div class="mb-4 p-4 rounded-4 border-0 shadow-sm" style="background-color: #f8f9fa;">
                     <div class="row g-4 align-items-center">
-                        <div class="col-md-4 border-end-md">
+                        <div class="col-md-4 border-end">
                             <div class="d-flex align-items-center">
                                 <div class="icon-box me-3 text-muted">
                                     <i class="fas fa-id-card fa-2x"></i>
                                 </div>
                                 <div>
-                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Nombre Completo</small>
+                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Nombre Completo</small>
                                     <span class="fw-semibold text-dark">{{ $usuario->Nombres }} {{ $usuario->Apellido_Paterno }} {{ $usuario->Apellido_Materno }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-md-4 border-end-md">
+                        <div class="col-md-4 border-end">
                             <div class="d-flex align-items-center ps-md-3">
                                 <div class="icon-box me-3 text-muted">
                                     <i class="fas fa-user-tag fa-2x"></i>
                                 </div>
                                 <div>
-                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Nº Ejidatario</small>
+                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Nº Ejidatario</small>
                                     <span class="badge bg-white text-secondary border px-3 py-2">{{ $usuario->Num_Ejidatario ?? 'No asignado' }}</span>
                                 </div>
                             </div>
@@ -72,12 +69,10 @@
                                     <i class="fas fa-map-marked-alt fa-2x"></i>
                                 </div>
                                 <div>
-                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Parcelas Asignadas</small>
+                                    <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Parcelas</small>
                                     <div class="d-flex flex-wrap gap-1 mt-1">
                                         @forelse($parcelas as $parcela)
-                                            <span class="badge rounded-pill border text-secondary fw-bold" style="background-color: #ffffff;">
-                                                #{{ $parcela->No_Parcela }}
-                                            </span>
+                                            <span class="badge rounded-pill border text-secondary fw-bold" style="background-color: #ffffff;">#{{ $parcela->No_Parcela }}</span>
                                         @empty
                                             <span class="text-muted small italic">Sin parcelas</span>
                                         @endforelse
@@ -88,7 +83,6 @@
                     </div>
                 </div>
 
-                {{-- Campos Editables --}}
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-muted text-uppercase">Usuario</label>
@@ -115,10 +109,9 @@
                     </div>
                 </div>
 
-                {{-- Seguridad --}}
                 <div class="row border-top pt-4 mt-4">
                     <div class="col-12 mb-3">
-                        <h6 class="fw-bold text-dark"><i class="fas fa-lock me-2"></i>Seguridad de la cuenta</h6>
+                        <h6 class="fw-bold text-dark"><i class="fas fa-lock me-2"></i>Seguridad</h6>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold small text-muted text-uppercase">Nueva contraseña</label>
@@ -136,22 +129,19 @@
                     </div>
                 </div>
 
-                {{-- Cuentas Vinculadas --}}
                 <div class="row border-top pt-4 mt-4">
                     <div class="col-12 mb-3">
                         <h6 class="fw-bold text-dark"><i class="fas fa-link me-2"></i>Cuentas vinculadas</h6>
                     </div>
-                    {{-- Apple ID --}}
                     <div class="col-md-6 mb-3">
                         <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm">
                             <div class="d-flex align-items-center">
-                                <i class="fab fa-apple fa-2x me-3" style="color: #000000;"></i>
+                                <i class="fab fa-apple fa-2x me-3"></i>
                                 <div><span class="d-block fw-bold small">Apple ID</span><span class="text-muted small">No conectado</span></div>
                             </div>
                             <a href="#" class="btn btn-sm btn-outline-dark fw-bold">Vincular</a>
                         </div>
                     </div>
-                    {{-- Google --}}
                     <div class="col-md-6 mb-3">
                         <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm">
                             <div class="d-flex align-items-center">
@@ -182,11 +172,14 @@
         }
 
         document.getElementById('fotoInput').addEventListener('change', function(e) {
-            const reader = new FileReader();
-            reader.onload = function() {
-                document.getElementById('previewImg').src = reader.result;
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function() {
+                    document.getElementById('previewImg').src = reader.result;
+                }
+                reader.readAsDataURL(file);
             }
-            if(e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
         });
     </script>
 @endsection

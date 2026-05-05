@@ -16,6 +16,31 @@
         $puedeEliminar = $esAdmin || in_array('usuarios_eliminar', $misPermisos);
     @endphp
 
+    <style>
+        /* Estilos Verdes Uniformes para coincidir con el resto del sistema */
+        .text-ejidal { color: #198754 !important; font-weight: 700; }
+        .card-ejidal { border-color: #198754 !important; }
+        .card-header-ejidal { background-color: #198754 !important; color: white !important; font-weight: 600; }
+
+        /* Botón Verde Personalizado */
+        .btn-ejidal {
+            background-color: #198754 !important;
+            border-color: #198754 !important;
+            color: white !important;
+        }
+        .btn-ejidal:hover {
+            background-color: #157347 !important;
+            border-color: #157347 !important;
+            color: white !important;
+        }
+
+        /* Ajuste para el buscador al hacer foco */
+        #inputBusquedaEjidatario:focus {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 .25rem rgba(25, 135, 84, 0.25) !important;
+        }
+    </style>
+
     <div class="card card-ejidal shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>
@@ -65,7 +90,12 @@
                             <span class="text-muted">{{ $fila->Colonia }}, {{ $fila->Municipio }}</span>
                         </td>
                         <td>{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }}</td>
-                        <td><span class="badge bg-primary">{{ $fila->NombreEstatus }}</span></td>
+                        {{-- CAMBIO: Badge de estatus ahora es verde (success) en lugar de azul (primary) --}}
+                        <td>
+                            <span class="badge {{ $fila->NombreEstatus == 'Activo' ? 'bg-success' : 'bg-info' }}">
+                                {{ $fila->NombreEstatus }}
+                            </span>
+                        </td>
 
                         <td class="text-center">
                             @if($puedeEditar)
@@ -75,9 +105,7 @@
                                 </a>
                             @endif
 
-                            {{-- Cambio 1: Si es Admin, el botón SIEMPRE aparece. Si no es Admin, aplicamos la restricción de seguridad --}}
                             @if($puedeEliminar && ($esAdmin || $miId != $fila->Id_Usuario))
-                                {{-- Cambio 2: Enviamos Id_Ejidatario, que es lo que espera tu controlador en la base de datos --}}
                                 <form action="{{ route('Ejidatarios.destroy', $fila->Id_Ejidatario) }}"
                                       method="POST" class="d-inline">
                                     @csrf
@@ -96,10 +124,11 @@
         </div>
 
         <div class="card-footer bg-white border-top-0 p-3">
-            <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-primary shadow-sm" target="_blank">
+            {{-- CAMBIO: Botón PDF ahora usa btn-ejidal (Verde) en lugar de btn-primary (Azul) --}}
+            <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-ejidal shadow-sm" target="_blank">
                 <i class="fas fa-file-pdf me-1"></i> Generar PDF
             </a>
-            <a href="{{ route('reportes.ejidatarios.excel') }}" class="btn btn-success shadow-sm ms-2">
+            <a href="{{ route('reportes.ejidatarios.excel') }}" class="btn btn-success shadow-sm ms-2" style="background-color: #157347;">
                 <i class="fas fa-file-excel me-1"></i> Descargar Excel
             </a>
         </div>

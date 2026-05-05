@@ -4,13 +4,11 @@
 @section('content')
 
     @php
-        // Detectamos la sesión activa (normal o tras 2FA)
         $sesionActual = session('usuario', session('2fa_user', []));
         $misPermisos = $sesionActual['permisos'] ?? [];
         $miId = $sesionActual['id'] ?? null;
         $miRol = strtolower(trim($sesionActual['rol'] ?? ''));
 
-        // Lógica de Superusuario: El administrador siempre tiene acceso
         $esAdmin = ($miRol === 'administrador' || ($sesionActual['id_rol'] ?? null) == 2);
 
         $puedeCrear = $esAdmin || in_array('usuarios_crear', $misPermisos);
@@ -18,8 +16,32 @@
         $puedeEliminar = $esAdmin || in_array('usuarios_eliminar', $misPermisos);
     @endphp
 
+    <style>
+        /* Título en Negro sin negritas resaltadas */
+        .text-header-main { color: #000000 !important; font-weight: normal !important; }
+
+        /* Estilos de la miniatura de foto */
+        .avatar-sm {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+        }
+
+        /* Paginador: Forzar visibilidad del número */
+        .pagination .page-item.active .page-link {
+            background-color: #198754 !important;
+            border-color: #198754 !important;
+            color: #ffffff !important; /* Número blanco en fondo verde */
+        }
+        .pagination .page-link {
+            color: #198754 !important; /* Números verdes en fondo blanco */
+        }
+    </style>
+
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2 text-ejidal">
+        <h1 class="h2 text-header-main">
             <i class="fas fa-users me-2"></i> Listado de Usuarios
         </h1>
 
@@ -31,19 +53,19 @@
     </div>
 
     {{-- Buscador --}}
-    <div class="card card-ejidal mb-4 shadow-sm">
+    <div class="card card-ejidal mb-4">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-search me-2"></i> Búsqueda de Usuarios
         </div>
         <div class="card-body">
             <form method="GET" action="{{ route('Usuarios.index') }}" class="row g-3">
                 <div class="col-md-5">
-                    <label class="form-label small fw-bold">Nombre</label>
-                    <input type="text" name="nombre" class="form-control" placeholder="Buscar por nombre..." value="{{ request('nombre') }}">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" name="nombre" class="form-control" placeholder="Nombre..." value="{{ request('nombre') }}">
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label small fw-bold">Apellido</label>
-                    <input type="text" name="apellido" class="form-control" placeholder="Buscar por apellido..." value="{{ request('apellido') }}">
+                    <label class="form-label">Apellido</label>
+                    <input type="text" name="apellido" class="form-control" placeholder="Apellido..." value="{{ request('apellido') }}">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-ejidal w-100">
@@ -54,18 +76,8 @@
         </div>
     </div>
 
-    @if(request()->filled('nombre') || request()->filled('apellido'))
-        <div class="alert alert-info py-2 shadow-sm d-flex justify-content-between align-items-center">
-            <span>
-                <i class="fas fa-info-circle me-2"></i>
-                Resultados encontrados: <strong>{{ $data->total() }}</strong>
-            </span>
-            <a href="{{ route('Usuarios.index') }}" class="btn btn-sm btn-outline-secondary">Limpiar filtros</a>
-        </div>
-    @endif
-
     <div class="card card-ejidal shadow-sm">
-        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
+        <div class="card-header card-header-ejidal">
             <span><i class="fas fa-list me-2"></i> Usuarios Registrados</span>
         </div>
 
@@ -73,40 +85,58 @@
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-light">
                 <tr>
-                    <th class="ps-3">Nombres</th>
-                    <th>Apellido Paterno</th>
-                    <th>Apellido Materno</th>
-                    {{-- Solo el admin ve la cabecera del Rol --}}
+                    <th class="ps-3 text-center" style="width: 70px;">Foto</th>
+                    <th>Datos Personales</th>
                     <th>Usuario @if($esAdmin) / Rol @endif</th>
-                    <th>Correo</th>
-                    <th>Teléfono</th>
+                    <th>Contacto</th>
                     <th class="text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
                 @forelse($data as $fila)
                     <tr>
-                        <td class="ps-3">{{ $fila->Nombres }}</td>
-                        <td>{{ $fila->Apellido_Paterno }}</td>
-                        <td>{{ $fila->Apellido_Materno }}</td>
+                        <td class="ps-3 text-center">
+                            @php $fotoUsuario = $fila->foto ?? null; @endphp
+                            @if($fotoUsuario)
+                                <img src="{{ asset('storage/' . $fotoUsuario) }}" class="avatar-sm" alt="Foto">
+                            @else
+                                <div class="avatar-sm d-flex align-items-center justify-content-center bg-light mx-auto border">
+                                    <i class="fas fa-user text-muted"></i>
+                                </div>
+                            @endif
+                        </td>
+
                         <td>
-                            <div class="fw-bold text-dark mb-1">{{ $fila->Usuario }}</div>
+                            <div class="text-dark">{{ $fila->Nombres }}</div>
+                            <div class="small text-muted">{{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}</div>
+                        </td>
+
+                        <td>
+                            <div class="text-dark mb-1">{{ $fila->Usuario }}</div>
                             @if($esAdmin)
                                 @php
                                     $rolFila = strtolower(trim($fila->rol ?? ''));
-                                    $badgeClass = str_contains($rolFila, 'admin') ? 'bg-danger' : (str_contains($rolFila, 'ejidatario') ? 'bg-success' : 'bg-secondary');
+                                    $badgeClass = match(true) {
+                                        str_contains($rolFila, 'admin') => 'bg-danger',
+                                        str_contains($rolFila, 'secret') => 'bg-warning text-dark',
+                                        default => 'bg-success',
+                                    };
                                 @endphp
-                                <span class="badge {{ $badgeClass }} shadow-sm" style="font-size: 0.65rem;">
-                                    <i class="fas fa-shield-alt me-1"></i> {{ strtoupper($fila->rol ?? 'SIN ROL') }}
+                                <span class="badge {{ $badgeClass }}">
+                                    {{ strtoupper($fila->rol ?? 'USUARIO') }}
                                 </span>
                             @endif
                         </td>
-                        <td>{{ $fila->Correo }}</td>
-                        <td>{{ $fila->Telefono }}</td>
+
+                        <td>
+                            <div class="small"><i class="fas fa-envelope me-1 text-muted"></i> {{ $fila->Correo }}</div>
+                            <div class="small"><i class="fas fa-phone me-1 text-muted"></i> {{ $fila->Telefono }}</div>
+                        </td>
+
                         <td class="text-center">
-                            <div class="btn-group shadow-sm">
+                            <div class="btn-group">
                                 @if($puedeEditar)
-                                    <a href="{{ url('/admon/Usuarios/'.$fila->Id_Usuario.'/edit') }}" class="btn btn-warning btn-sm" title="Editar">
+                                    <a href="{{ url('/admon/Usuarios/'.$fila->Id_Usuario.'/edit') }}" class="btn btn-warning btn-sm">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 @endif
@@ -115,7 +145,7 @@
                                     <form action="{{ url('/admon/Usuarios/'.$fila->Id_Usuario) }}" method="post" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">
+                                        <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar usuario?')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -124,29 +154,22 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
-                            No hay registros disponibles.
-                        </td>
-                    </tr>
+                    <tr><td colspan="5" class="text-center py-5">No hay registros.</td></tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
 
-        {{-- PIE DE CARD: Reportes y Paginación (Aquí estaban los botones verdes) --}}
         <div class="card-footer bg-light border-top d-flex justify-content-between align-items-center">
             <div>
                 <a href="{{ route('reportes.usuarios.pdf') }}" class="btn btn-outline-danger btn-sm me-2" target="_blank">
-                    <i class="fas fa-file-pdf me-1"></i> Generar PDF
+                    <i class="fas fa-file-pdf me-1"></i> PDF
                 </a>
                 <a href="{{ route('reportes.usuarios.excel') }}" class="btn btn-outline-success btn-sm">
-                    <i class="fas fa-file-excel me-1"></i> Generar Excel
+                    <i class="fas fa-file-excel me-1"></i> Excel
                 </a>
             </div>
 
-            {{-- PAGINACIÓN: Esto hace que salgan el resto de los usuarios --}}
             <div class="pagination-sm">
                 {{ $data->links('pagination::bootstrap-4') }}
             </div>
