@@ -24,6 +24,7 @@ use App\Http\Controllers\SocialController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\MultaController;
 use App\Http\Controllers\PaseListaController;
+use App\Http\Controllers\CategoriaEventoController;
 
 // Modulos Ezequiel
 use App\Http\Controllers\GastoController;
@@ -382,29 +383,31 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
 
 
 // --- RUTAS PARA EVENTOS ---
-// Esto crea automáticamente rutas para index, create, store, edit, update, destroy
     Route::resource('eventos', EventoController::class);
+    Route::resource('categorias', CategoriaEventoController::class);
 
 // --- RUTAS PARA MULTAS ---
     Route::resource('multas', MultaController::class);
 
-// --- RUTAS PARA PASE DE LISTA ---
-// Como el pase de lista suele ser un proceso específico, definimos las rutas manualmente
+// --- RUTAS UNIFICADAS PARA PASE DE LISTA ---
     Route::prefix('asistencia')->group(function () {
-        // Vista principal para tomar lista
+
+        // Vista principal: Muestra el formulario de inicio Y la tabla de historial
         Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
 
-        // Ruta para procesar el registro (el método que definimos en el controlador)
+        // Procesa el inicio de la sesión
         Route::post('/registrar', [PaseListaController::class, 'registrarAsistencia'])->name('asistencia.registrar');
 
-        // Reporte de asistencias por sesión
-        Route::get('/reporte/{id_sesion}', [PaseListaController::class, 'show'])->name('asistencia.reporte');
+        // Ruta para el marcado mediante QR
+        Route::post('/marcar', [PaseListaController::class, 'marcarAsistencia'])->name('asistencia.marcar');
+
+        // Rutas de Exportación
+        Route::get('/exportar-excel/{id}', [PaseListaController::class, 'exportarExcel'])->name('asistencia.excel');
+        Route::get('/exportar-pdf/{id}', [PaseListaController::class, 'exportarPdf'])->name('asistencia.pdf');
+
     });
 
-
-
-
-    // Rutas para vinculación social
+    // Rutas para google y apple
     Route::get('/social/redirect/{provider}', [SocialController::class, 'redirectToProvider'])->name('social.redirect');
     Route::get('/social/callback/{provider}', [SocialController::class, 'handleProviderCallback']);
     Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');

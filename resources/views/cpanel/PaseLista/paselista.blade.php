@@ -1,60 +1,109 @@
 @extends('cpanel/plantilla')
-@section('title','Multas')
+@section('title','Pase de Lista')
 @section('content')
 
-    <main class="px-md-4 py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-ejidal">
+            <i class="fas fa-list-check me-2"></i> Gestión de Asistencias
+        </h1>
+    </div>
 
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-4 border-bottom">
-            <h1 class="h2 text-ejidal">
-                <i class="fas fa-list-check me-2"></i> Pase de Lista
-            </h1>
-
-            <div class="btn-toolbar mb-2 mb-md-0">
-                <div class="btn-group me-2">
-                    <button type="button" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
-                    </button>
-                </div>
-            </div>
+    <div class="card card-ejidal shadow-sm mb-4">
+        <div class="card-header card-header-ejidal">
+            <i class="fas fa-calendar-alt me-2"></i> Selección de Evento para Pase de Lista
         </div>
 
-        <!-- FORMULARIO CENTRADO -->
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-10 col-lg-8"> <!-- Este div es el que controla que no se pegue a los lados -->
+        <form action="{{ route('asistencia.registrar') }}" method="POST">
+            @csrf
+            <div class="card-body p-4">
+                <div class="row align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Selecciona el evento actual:</label>
+                        <select name="id_referencia" class="form-select @error('id_referencia') is-invalid @enderror" required>
+                            <option value="">-- Seleccionar --</option>
+                            @foreach($eventos as $item)
+                                <option value="{{ $item->Id_Evento }}" {{ old('id_referencia') == $item->Id_Evento ? 'selected' : '' }}>
+                                    {{ $item->Nombre_Evento }}
+                                </option>
+                            @endforeach
+                        </select>
 
-                    <div class="card card-ejidal shadow-sm">
-                        <div class="card-header card-header-ejidal">
-                            <i class="fas fa-calendar-check me-2"></i> Selecciona un evento para iniciar el pase de lista
-                        </div>
+                        @error('id_referencia')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
-                        <div class="card-body p-4">
-                            <div class="mb-4">
-                                <label for="evento" class="form-label fw-bold text-dark">Selecciona el evento para el pase de lista</label>
-                                <select id="evento" name="evento" class="form-select">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="1">Evento 1</option>
-                                    <option value="2">Evento 2</option>
-                                </select>
-                            </div>
-
-                            <div class="d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-secondary px-4">
-                                    <i class="fas fa-times me-1"></i> Cancelar
-                                </button>
-                                <button type="submit" class="btn btn-ejidal px-4">
-                                    <i class="fas fa-play me-1"></i> Iniciar pase de lista
-                                </button>
-                            </div>
-                        </div>
+                        <input type="hidden" name="tipo" value="Evento">
+                        <input type="hidden" name="fecha" value="{{ date('Y-m-d') }}">
                     </div>
-
+                    <div class="col-md-4 text-end">
+                        <button type="submit" class="btn btn-ejidal px-5 w-100 mt-3 mt-md-0 shadow-sm">
+                            <i class="fas fa-camera me-2"></i> Comenzar pase de lista
+                        </button>
+                    </div>
                 </div>
             </div>
+        </form>
+    </div>
+
+    {{-- SECCIÓN: HISTORIAL DE SESIONES --}}
+    <div class="card card-ejidal shadow-sm">
+        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-history me-2"></i> Historial de Pases Realizados</span>
+            <span class="badge bg-white text-ejidal">{{ count($sesiones) }} Sesiones</span>
         </div>
-    </main>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                    <tr>
+                        <th class="ps-4 border-0">Fecha</th>
+                        <th class="border-0">Evento</th>
+                        <th class="text-center border-0">Asistieron</th>
+                        <th class="text-center border-0">Ausentes</th>
+                        <th class="text-center border-0">Reportes</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($sesiones as $s)
+                        @php
+                            $asistieron = $s->asistencias_count;
+                            $ausentes = $totalEjidatarios - $asistieron;
+                        @endphp
+                        <tr>
+                            <td class="ps-4 text-muted">
+                                {{ \Carbon\Carbon::parse($s->Fecha)->format('d/m/Y') }}
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ $s->evento->Nombre_Evento ?? 'Evento #'.$s->Id_Referencia }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-success px-3">{{ $asistieron }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-danger px-3">{{ $ausentes }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a href="{{ route('asistencia.excel', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </a>
+                                    <a href="{{ route('asistencia.pdf', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                No hay registros de pases de lista anteriores.
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
 @endsection

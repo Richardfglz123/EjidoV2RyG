@@ -10,56 +10,65 @@
 </head>
 <body>
 
-<header class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark navbar-ejidal">
-    <div class="container-fluid">
-        <button class="navbar-toggler d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+<header class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
 
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 d-flex align-items-center gap-2" href="{{ route('inicio') }}">
-            <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
-            <span class="d-none d-sm-inline">Sistema Ejidal San Rafael Ixtapalucan</span>
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button class="navbar-toggler d-md-none border-0 p-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false">
+                <span class="navbar-toggler-icon" style="width: 24px; height: 24px;"></span>
+            </button>
 
-        <ul class="navbar-nav ms-auto">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center py-0" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 40px;">
-                    <div class="d-flex align-items-center gap-2">
+            <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
+                <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
+                <span class="fw-bold d-none d-lg-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
+                <span class="fw-bold d-inline d-lg-none" style="font-size: 0.9rem;">S.E. San Rafael</span>
+            </a>
+        </div>
 
-                        {{-- Lógica para mostrar la foto de perfil en el Header --}}
-                        <div class="rounded-circle overflow-hidden shadow-sm border border-light" style="width: 32px; height: 32px; background-color: #6c757d;">
-                            @if(session('usuario.foto'))
-                                <img src="{{ asset('storage/' . session('usuario.foto')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
-                            @else
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode(session('usuario.nombre_completo')) }}&background=6c757d&color=fff&size=32" alt="Avatar">
-                            @endif
-                        </div>
+        <div class="dropdown">
+            <a class="dropdown-toggle d-flex align-items-center text-decoration-none"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+               style="width: auto; height: 45px; padding: 0;">
 
-                        <div class="d-flex align-items-center gap-2 text-start">
-                            <span class="fw-semibold">{{ session('usuario.nombre_completo') }}</span>
-                            <span class="px-2 rounded-pill fw-semibold text-white" style="font-size: 0.6rem; line-height: 1.4; background: linear-gradient(135deg, #0d6efd, #198754); white-space: nowrap;">
-                                {{ session('usuario.rol', 'SIN ROL') }}
-                            </span>
-                        </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width: 35px; height: 35px; min-width: 35px; max-width: 35px; min-height: 35px; max-height: 35px; overflow: hidden; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; position: relative;">
+                        @if(session('usuario.foto'))
+                            <img src="{{ asset('storage/' . session('usuario.foto')) }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+                        @else
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode(session('usuario.nombre_completo')) }}&background=6c757d&color=fff&size=35" alt="Avatar">
+                        @endif
                     </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li><a class="dropdown-item" href="{{ route('perfil.index') }}"><i class="fas fa-user me-2"></i> Perfil</a></li>
-                    @if(in_array('configuracion_ver', session('usuario.permisos', [])))
-                        <li><a class="dropdown-item" href="{{ route('configuracion.permisos') }}"><i class="fas fa-cog me-2"></i> Configuración</a></li>
-                    @endif
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="dropdown-item text-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i> Cerrar sesión
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </li>
-        </ul>
+
+                    <div class="d-none d-md-flex flex-column text-start" style="line-height: 1;">
+                        <span class="fw-semibold text-white" style="font-size: 0.85rem;">{{ session('usuario.nombre_completo') }}</span>
+                        <span class="px-2 rounded-pill fw-bold text-white text-center" style="font-size: 0.55rem; background: linear-gradient(135deg, #0d6efd, #198754); width: fit-content; margin-top: 2px;">
+                            {{ session('usuario.rol', 'SIN ROL') }}
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; width: 220px; overflow: hidden;">
+                <li class="px-3 py-3 border-bottom bg-light">
+                    <small class="text-muted d-block" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Usuario</small>
+                    <strong class="text-dark d-block" style="font-size: 0.95rem;">{{ session('usuario.nombre_completo') }}</strong>
+                    <span class="badge bg-success mt-1" style="font-size: 0.65rem;">{{ session('usuario.rol') }}</span>
+                </li>
+                <li><a class="dropdown-item py-2" href="{{ route('perfil.index') }}"><i class="fas fa-user-circle me-2 text-muted"></i> Mi Perfil</a></li>
+                @if(in_array('configuracion_ver', session('usuario.permisos', [])))
+                    <li><a class="dropdown-item py-2" href="{{ route('configuracion.permisos') }}"><i class="fas fa-cog me-2 text-muted"></i> Configuración</a></li>
+                @endif
+                <li><hr class="dropdown-divider m-0"></li>
+                <li>
+                    <form method="POST" action="{{ route('logout') }}" class="m-0">
+                        @csrf
+                        <button type="submit" class="dropdown-item py-2 text-danger fw-bold">
+                            <i class="fas fa-sign-out-alt me-2"></i> Cerrar sesión
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
     </div>
 </header>
 

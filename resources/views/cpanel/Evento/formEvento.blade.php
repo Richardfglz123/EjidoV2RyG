@@ -4,94 +4,57 @@
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2 text-ejidal">
-            <i class="fas fa-list-check me-2"></i> Eventos
+            <i class="fas fa-calendar-plus me-2"></i> Registro de Evento
         </h1>
-
-        <!-- Botones exportar -->
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-success">
-                    <i class="fas fa-file-excel me-1"></i> Excel
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger">
-                    <i class="fas fa-file-pdf me-1"></i> PDF
-                </button>
-            </div>
-        </div>
     </div>
 
-    <div class="card card-ejidal">
+    <div class="card card-ejidal shadow-sm">
         <div class="card-header card-header-ejidal">
-            <i class="fas fa-calendar-check me-2"></i> Nuevo Evento
+            <i class="fas fa-calendar-check me-2"></i> Datos del Nuevo Evento
         </div>
 
         <form action="{{ route('eventos.store') }}" method="POST">
             @csrf
-
-            <div class="card-body">
-
-                {{-- Nombre y Categoría --}}
-                <div class="row mb-3">
+            <div class="card-body p-4">
+                <div class="row mb-4">
                     <div class="col-md-6">
-                        <label>Nombre del Evento</label>
-                        <input type="text" name="nombreEvento"
-                               class="form-control @error('nombreEvento') is-invalid @enderror"
-                               value="{{ old('nombreEvento') }}" required>
-
-                        @error('nombreEvento')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <label class="form-label fw-bold text-ejidal">Nombre del Evento</label>
+                        <input type="text" name="Nombre_Evento" class="form-control @error('Nombre_Evento') is-invalid @enderror"
+                               value="{{ old('Nombre_Evento') }}" required>
+                        @error('Nombre_Evento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-md-6">
-                        <label>Categoría del evento</label>
-                        <select name="categoria"
-                                class="form-select @error('categoria') is-invalid @enderror" required>
-
-                            <option value="">Seleccionar...</option>
-                            <option value="asambleaEl">1ra Asamblea elección</option>
-                            <option value="asambleaex">Asamblea extraordinaria</option>
-                            <option value="asambleadic">Asamblea Diciembre</option>
-                            <option value="asambleaen">Asamblea Enero</option>
-                            <option value="asambleamar">Asamblea marzo</option>
-                            <option value="asambleajun">Asamblea Junio</option>
-                            <option value="asambleasep">Asamblea Septiembre</option>
-                            <option value="asambleaor">Asamblea ordinaria</option>
-                            <option value="faenasan">Faena saneamiento</option>
-                            <option value="faenaap">Faena aprovechamiento</option>
-                            <option value="otro">Otro</option>
-
-                        </select>
-
-                        @error('categoria')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <label class="form-label fw-bold text-ejidal">Categoría del evento</label>
+                        <div class="input-group">
+                            <select name="Id_Categoria_Evento" class="form-select @error('Id_Categoria_Evento') is-invalid @enderror" required>
+                                <option value="">Seleccionar...</option>
+                                @foreach($categorias as $cat)
+                                    <option value="{{ $cat->Id_Categoria_Evento }}" {{ old('Id_Categoria_Evento') == $cat->Id_Categoria_Evento ? 'selected' : '' }}>
+                                        {{ $cat->Nombre_Categoria }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <a href="{{ route('categorias.index') }}" class="btn btn-outline-success" title="Gestionar Categorías">
+                                <i class="fas fa-cog"></i>
+                            </a>
+                        </div>
+                        @error('Id_Categoria_Evento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
 
-                {{-- Observaciones --}}
-                <div class="mb-3">
-                    <label>Observaciones</label>
-                    <textarea name="observaciones"
-                              class="form-control @error('observaciones') is-invalid @enderror"
-                              rows="3">{{ old('observaciones') }}</textarea>
-
-                    @error('observaciones')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-ejidal">Observaciones</label>
+                    <textarea name="Observaciones" class="form-control @error('Observaciones') is-invalid @enderror" rows="3">{{ old('Observaciones') }}</textarea>
+                    @error('Observaciones') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
-                {{-- Botones --}}
-                <div class="text-end">
-                    <a href="{{ route('eventos.index') }}" class="btn btn-secondary">
-                        Cancelar
-                    </a>
-
-                    <button type="submit" class="btn btn-ejidal">
-                        <i class="fas fa-calendar-plus me-1"></i> Registrar Evento
+                <div class="text-end border-top pt-3">
+                    <a href="{{ route('eventos.index') }}" class="btn btn-secondary px-4 me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-ejidal px-5 shadow-sm">
+                        <i class="fas fa-save me-2"></i> Registrar Evento
                     </button>
                 </div>
-
             </div>
         </form>
     </div>

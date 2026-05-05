@@ -13,23 +13,19 @@ class EventoController extends Controller
         $nombre = $request->get('nombreEvento');
         $categoria = $request->get('categoria');
 
-        // 2. Realizamos la consulta.
-        // Usamos 'data' para que coincida exactamente con tu vista Blade.
         $data = Evento::when($nombre, function ($query, $nombre) {
             return $query->where('Nombre_Evento', 'LIKE', "%$nombre%");
         })
             ->when($categoria, function ($query, $categoria) {
                 return $query->where('Id_Categoria_Evento', $categoria);
             })
-            ->paginate(10); // Importante para que el método ->total() funcione
+            ->paginate(10);
 
-        // 3. Retornamos la vista enviando la variable $data
         return view('cpanel.Evento.indexEvento', compact('data'));
     }
     public function create()
     {
         $categorias = Categoria_Evento::all();
-        // Debe apuntar a la vista del FORMULARIO, no a la del LISTADO
         return view('cpanel.Evento.crearEvento', compact('categorias'));
     }
 
@@ -38,16 +34,52 @@ class EventoController extends Controller
         $request->validate([
             'Nombre_Evento' => 'required|string|max:100',
             'Id_Categoria_Evento' => 'required|exists:Categoria_Evento,Id_Categoria_Evento',
+            'Observaciones' => 'nullable|string',
         ]);
 
         Evento::create([
-            'Nombre_Evento' => $request->Nombre_Evento,
+            'Nombre_Evento'       => $request->Nombre_Evento,
             'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
-            'Observaciones' => $request->Observaciones,
-            'Id_Creo' => auth()->user()->username ?? 'lou',
-            'Fecha_Creo' => now(),
+            'Observaciones'       => $request->Observaciones,
+            'Id_Creo'             => auth()->user()->username ?? 'admin',
+            'Fecha_Creo'          => now(),
         ]);
 
-        return redirect()->route('eventos.index')->with('success', 'Evento guardado');
+        return redirect()->route('eventos.index')->with('success', 'Evento guardado correctamente');
+    }
+    public function edit($id)
+    {
+        $evento = Evento::findOrFail($id);
+
+        $categorias = Categoria_Evento::all();
+
+        return view('cpanel.Evento.editEvento', compact('evento', 'categorias'));
+    }
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'Nombre_Evento'       => 'required|string|max:100',
+            'Id_Categoria_Evento' => 'required',
+            'Observaciones'       => 'nullable|string',
+        ]);
+
+        $evento = Evento::findOrFail($id);
+        $evento->update([
+            'Nombre_Evento'       => $request->Nombre_Evento,
+            'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
+            'Observaciones'       => $request->Observaciones,
+            'Id_Modificado'       => auth()->user()->username ?? 'admin',
+            'Fecha_Modificado'    => now(),
+        ]);
+
+        return redirect()->route('eventos.index')->with('success', 'Evento actualizado correctamente.');
+    }
+
+    public function destroy($id)
+    {
+        $evento = Evento::findOrFail($id);
+        $evento->delete();
+
+        return redirect()->route('eventos.index')->with('success', 'Evento eliminado con éxito.');
     }
 }

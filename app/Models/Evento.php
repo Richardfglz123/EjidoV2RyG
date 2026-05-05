@@ -22,7 +22,6 @@ class Evento extends Model
         'Fecha_Eliminado'
     ];
 
-    // Relación inversa con Categoría
     public function categoria()
     {
         return $this->belongsTo(Categoria_Evento::class, 'Id_Categoria_Evento', 'Id_Categoria_Evento');

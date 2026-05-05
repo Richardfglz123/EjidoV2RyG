@@ -1,8 +1,7 @@
 @extends('cpanel/plantilla')
-@section('title','Multas')
+@section('title','Gestión de Multas')
 @section('content')
 
-    {{-- ENCABEZADO --}}
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2 text-ejidal">
             <i class="fas fa-money-bill-wave me-2"></i> Gestión de Multas
@@ -13,56 +12,38 @@
         </a>
     </div>
 
-    {{-- FILTROS --}}
     <div class="card card-ejidal mb-4 shadow-sm">
         <div class="card-header card-header-ejidal">
-            <i class="fas fa-search me-2"></i> Búsqueda y Filtros
+            <i class="fas fa-search me-2"></i> Búsqueda por Año
         </div>
 
         <div class="card-body">
             <form method="GET" action="{{ route('multas.index') }}" class="row g-3">
-
-                <div class="col-md-6">
-                    <label class="form-label small fw-bold">Año</label>
+                <div class="col-md-9">
                     <input type="text" name="anio" class="form-control"
-                           placeholder="Buscar por año..."
+                           placeholder="Escribe el año (Ej. 2026)..."
                            value="{{ request('anio') }}">
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label small fw-bold">Tipo</label>
-                    <select name="tipo" class="form-select">
-                        <option value="">Todos</option>
-                        <option value="asamblea" {{ request('tipo')=='asamblea' ? 'selected' : '' }}>Asamblea</option>
-                        <option value="faena" {{ request('tipo')=='faena' ? 'selected' : '' }}>Faena</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-3">
                     <button type="submit" class="btn btn-ejidal w-100">
                         <i class="fas fa-filter me-1"></i> Filtrar
                     </button>
                 </div>
-
             </form>
         </div>
     </div>
 
-    {{-- RESULTADOS --}}
-    @if(request()->filled('anio') || request()->filled('tipo'))
-        <div class="alert alert-info py-2 shadow-sm d-flex justify-content-between align-items-center">
-            <span>
-                <i class="fas fa-info-circle me-2"></i>
-                Resultados encontrados: <strong>{{ $data->total() }}</strong>
-            </span>
-            <a href="{{ route('multas.index') }}" class="btn btn-sm btn-outline-secondary">Limpiar filtros</a>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    {{-- TABLA --}}
     <div class="card card-ejidal shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-list me-2"></i> Multas Registradas</span>
+            <span><i class="fas fa-list me-2"></i> Listado de Multas por Año</span>
         </div>
 
         <div class="card-body table-responsive p-0">
@@ -77,73 +58,65 @@
                 </thead>
 
                 <tbody>
-                @forelse($data as $fila)
+                @forelse($data as $anio => $registros)
                     <tr>
-                        <td class="ps-3">{{ $fila->anio }}</td>
+                        <td class="ps-3 fw-bold text-dark">{{ $anio }}</td>
+
                         <td>
-                            <span class="badge bg-success">
-                                ${{ number_format($fila->costo_asamblea,2) }}
-                            </span>
+                            @php $asamblea = $registros->where('Tipo', 'Asamblea')->first(); @endphp
+                            @if($asamblea)
+                                <span class="badge bg-success">
+                                    ${{ number_format($asamblea->Costo, 2) }}
+                                </span>
+                            @else
+                                <span class="badge bg-light text-muted border">No asignado</span>
+                            @endif
                         </td>
+
                         <td>
-                            <span class="badge bg-warning text-dark">
-                                ${{ number_format($fila->costo_falta,2) }}
-                            </span>
+                            @php $faena = $registros->where('Tipo', 'Faena')->first(); @endphp
+                            @if($faena)
+                                <span class="badge bg-warning text-dark">
+                                    ${{ number_format($faena->Costo, 2) }}
+                                </span>
+                            @else
+                                <span class="badge bg-light text-muted border">No asignado</span>
+                            @endif
                         </td>
 
                         <td class="text-center">
                             <div class="btn-group shadow-sm">
+                                @php $idEdit = $registros->first()->Id_MultaC; @endphp
 
-                                <a href="{{ url('/admon/Multas/'.$fila->id.'/edit') }}"
-                                   class="btn btn-warning btn-sm">
+                                <a href="{{ route('multas.edit', $idEdit) }}"
+                                   class="btn btn-warning btn-sm" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
 
-                                <form action="{{ url('/admon/Multas/'.$fila->id) }}"
+                                <form action="{{ route('multas.destroy', $idEdit) }}"
                                       method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-
-                                    <button class="btn btn-danger btn-sm"
-                                            onclick="return confirm('¿Eliminar registro?')">
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('¿Seguro de eliminar la configuración del año {{ $anio }}?')"
+                                            title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
-
                             </div>
                         </td>
                     </tr>
-
                 @empty
                     <tr>
                         <td colspan="4" class="text-center text-muted py-5">
-                            <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
-                            No hay registros de multas.
+                            <i class="fas fa-folder-open fa-3x mb-3 d-block text-secondary"></i>
+                            No se encontraron registros de multas.
                         </td>
                     </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-
-        {{-- FOOTER --}}
-        <div class="card-footer bg-light border-top d-flex justify-content-between align-items-center">
-
-    {{--  <div>
-          <a href="{{ route('reportes.multas.pdf') }}" class="btn btn-outline-danger btn-sm me-2" target="_blank">
-              <i class="fas fa-file-pdf me-1"></i> PDF
-          </a>
-
-          <a href="{{ route('reportes.multas.excel') }}" class="btn btn-outline-success btn-sm">
-              <i class="fas fa-file-excel me-1"></i> Excel
-          </a>
-      </div> --}}
-
-      <div class="pagination-sm">
-          {{ $data->links('pagination::bootstrap-4') }}
-      </div>
-
-  </div>
-</div>
+    </div>
 
 @endsection
