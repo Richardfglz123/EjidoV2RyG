@@ -4,114 +4,136 @@
 
     @php
         $sesionActual = session('usuario', session('2fa_user', []));
-        $misPermisos = $sesionActual['permisos'] ?? [];
-        $miId = $sesionActual['id'] ?? null;
         $miRol = strtolower(trim($sesionActual['rol'] ?? ''));
-
-        // Lógica de Superusuario
         $esAdmin = ($miRol === 'administrador' || ($sesionActual['id_rol'] ?? null) == 2);
-
-        $puedeCrear = $esAdmin || in_array('usuarios_crear', $misPermisos);
-        $puedeEditar = $esAdmin || in_array('usuarios_editar', $misPermisos);
-        $puedeEliminar = $esAdmin || in_array('usuarios_eliminar', $misPermisos);
     @endphp
 
     <style>
-        /* Estilos Verdes Uniformes para coincidir con el resto del sistema */
         .text-ejidal { color: #198754 !important; font-weight: 700; }
-        .card-ejidal { border-color: #198754 !important; }
+        .card-ejidal { border-color: #198754 !important; border-radius: 8px; }
         .card-header-ejidal { background-color: #198754 !important; color: white !important; font-weight: 600; }
 
-        /* Botón Verde Personalizado */
-        .btn-ejidal {
-            background-color: #198754 !important;
-            border-color: #198754 !important;
-            color: white !important;
-        }
-        .btn-ejidal:hover {
-            background-color: #157347 !important;
-            border-color: #157347 !important;
-            color: white !important;
+        .fila-ejidatario, .card, .table, tr, td {
+            transition: none !important;
+            transform: none !important;
         }
 
-        /* Ajuste para el buscador al hacer foco */
-        #inputBusquedaEjidatario:focus {
-            border-color: #198754 !important;
-            box-shadow: 0 0 0 .25rem rgba(25, 135, 84, 0.25) !important;
+        .fila-ejidatario:hover {
+            background-color: rgba(25, 135, 84, 0.05) !important;
+            transform: none !important;
         }
+
+        .qr-raw-text {
+            display: block;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #d63384;
+            white-space: normal !important;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .btn-ver-qr {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .pagination { margin: 0; font-size: 13px; }
+        .page-link { color: #198754; }
+        .page-item.active .page-link { background-color: #198754; border-color: #198754; }
     </style>
 
     <div class="card card-ejidal shadow-sm">
-        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span>
-                <i class="fas fa-list me-2"></i> Ejidatarios Registrados
-            </span>
-
-            <div class="d-flex align-items-center gap-2">
-                {{-- BUSCADOR DINÁMICO --}}
-                <div class="input-group input-group-sm" style="width: 300px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input type="text" id="inputBusquedaEjidatario" class="form-control border-start-0"
-                           placeholder="Buscar..." onkeyup="filtrarEjidatarios()">
-                </div>
-
-                @if($puedeCrear)
-                    <a href="{{ route('Ejidatarios.create') }}" class="btn btn-sm btn-light text-dark fw-bold shadow-sm">
-                        <i class="fas fa-plus me-1 text-success"></i> Nuevo Ejidatario
-                    </a>
-                @endif
-            </div>
+        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-users me-2"></i> Lista de Ejidatarios</span>
+            <a href="{{ route('Ejidatarios.create') }}" class="btn btn-sm btn-light fw-bold text-success shadow-sm">
+                <i class="fas fa-plus-circle me-1"></i> Nuevo Ejidatario
+            </a>
         </div>
 
         <div class="card-body table-responsive p-0">
-            <table class="table table-striped align-middle mb-0" id="tablaEjidatarios">
+            <table class="table table-striped align-middle mb-0">
                 <thead class="bg-light">
                 <tr>
-                    <th class="ps-3">#</th>
-                    <th>Datos</th>
-                    <th>Dirección</th>
-                    <th>Ejidatario</th>
-                    <th>Estatus</th>
+                    <th class="ps-3" style="width: 60px;">#</th>
+                    <th>Nombre Completo</th>
+                    <th>CURP / RFC</th>
+                    <th class="text-center">Código QR</th>
+                    <th class="text-center">Estatus</th>
                     <th class="text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($data as $fila)
+                    @php
+                        // Limpieza de caracteres \N y saltos de línea para que se vea limpio
+                        $nombreCompleto = $fila->Nombres . ' ' . $fila->Apellido_Paterno . ' ' . $fila->Apellido_Materno;
+                        $nombreLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $nombreCompleto);
+                        $nombreLimpio = preg_replace('/\s+/', ' ', trim($nombreLimpio));
+
+                        $payloadLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->qr_payload ?? '');
+                    @endphp
                     <tr class="fila-ejidatario">
-                        <td class="ps-3 fw-bold">{{ $fila->Num_Ejidatario }}</td>
+                        <td class="ps-3 fw-bold text-muted">{{ $fila->Num_Ejidatario }}</td>
                         <td>
-                            <span class="d-block small"><strong>CURP:</strong> {{ $fila->CURP }}</span>
-                            <span class="d-block small"><strong>RFC:</strong> {{ $fila->RFC }}</span>
+                            <div class="fw-bold text-uppercase">{{ $nombreLimpio }}</div>
+                            <small class="text-muted">ID: {{ $fila->Id_Usuario }}</small>
                         </td>
-                        <td class="small">
-                            {{ $fila->Calle }} #{{ $fila->Num_Exterior }}<br>
-                            <span class="text-muted">{{ $fila->Colonia }}, {{ $fila->Municipio }}</span>
-                        </td>
-                        <td>{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }}</td>
-                        {{-- CAMBIO: Badge de estatus ahora es verde (success) en lugar de azul (primary) --}}
                         <td>
+                            <small class="d-block"><strong>Curp:</strong> {{ $fila->CURP ?? 'N/A' }}</small>
+                            <small class="d-block"><strong>RFC:</strong> {{ $fila->RFC ?? 'N/A' }}</small>
+                        </td>
+
+                        <td class="text-center">
+                            @if(!empty($fila->qr_payload))
+                                <button type="button" class="btn btn-sm btn-outline-dark btn-ver-qr" data-bs-toggle="modal" data-bs-target="#modalQR{{ $fila->Id_Ejidatario }}">
+                                    <i class="fas fa-qrcode"></i> VER QR
+                                </button>
+
+                                <div class="modal fade" id="modalQR{{ $fila->Id_Ejidatario }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0 pb-0">
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-center pt-0">
+                                                <h6 class="fw-bold mb-3">QR DE ASISTENCIA</h6>
+                                                <div class="p-2 border bg-white shadow-sm d-inline-block mb-3">
+                                                    {!! QrCode::size(180)->generate($fila->qr_payload) !!}
+                                                </div>
+                                                <p class="small fw-bold text-uppercase mb-1">{{ $nombreLimpio }}</p>
+                                                <hr>
+                                                <p class="text-start mb-1" style="font-size: 10px; font-weight: bold;">Nombre:</p>
+                                                <div class="qr-raw-text">{{ $payloadLimpio }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <span class="text-muted small italic">Sin QR</span>
+                            @endif
+                        </td>
+
+                        <td class="text-center">
                             <span class="badge {{ $fila->NombreEstatus == 'Activo' ? 'bg-success' : 'bg-info' }}">
                                 {{ $fila->NombreEstatus }}
                             </span>
                         </td>
 
                         <td class="text-center">
-                            @if($puedeEditar)
-                                <a href="{{ route('Ejidatarios.edit', $fila->Id_Ejidatario) }}"
-                                   class="btn btn-sm btn-outline-success me-1" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            @endif
+                            <a href="{{ route('Ejidatarios.edit', $fila->Id_Ejidatario) }}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-edit"></i>
+                            </a>
 
-                            @if($puedeEliminar && ($esAdmin || $miId != $fila->Id_Usuario))
-                                <form action="{{ route('Ejidatarios.destroy', $fila->Id_Ejidatario) }}"
-                                      method="POST" class="d-inline">
+                            @if($esAdmin)
+                                <form action="{{ route('Ejidatarios.destroy', $fila->Id_Ejidatario) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('¿Eliminar registro de ejidatario?')" title="Eliminar">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar ejidatario?')">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
@@ -123,25 +145,15 @@
             </table>
         </div>
 
-        <div class="card-footer bg-white border-top-0 p-3">
-            {{-- CAMBIO: Botón PDF ahora usa btn-ejidal (Verde) en lugar de btn-primary (Azul) --}}
-            <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-ejidal shadow-sm" target="_blank">
-                <i class="fas fa-file-pdf me-1"></i> Generar PDF
-            </a>
-            <a href="{{ route('reportes.ejidatarios.excel') }}" class="btn btn-success shadow-sm ms-2" style="background-color: #157347;">
-                <i class="fas fa-file-excel me-1"></i> Descargar Excel
-            </a>
+        <div class="card-footer bg-white border-top-0 p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-sm btn-ejidal shadow-sm" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Generar PDF
+                </a>
+            </div>
+            <div>
+                {{ $data->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
-
-    <script>
-        function filtrarEjidatarios() {
-            const filter = document.getElementById("inputBusquedaEjidatario").value.toUpperCase();
-            const filas = document.getElementsByClassName("fila-ejidatario");
-            for (let i = 0; i < filas.length; i++) {
-                const texto = filas[i].textContent || filas[i].innerText;
-                filas[i].style.display = texto.toUpperCase().includes(filter) ? "" : "none";
-            }
-        }
-    </script>
 @endsection

@@ -66,8 +66,10 @@
                     <tbody>
                     @forelse($sesiones as $s)
                         @php
-                            $asistieron = $s->asistencias_count;
-                            $ausentes = $totalEjidatarios - $asistieron;
+                            // Usamos el conteo que viene del withCount('asistencias') del controlador
+                            $asistieron = $s->asistencias_count ?? 0;
+                            // Calculamos ausentes restando del total de ejidatarios
+                            $ausentes = max(0, $totalEjidatarios - $asistieron);
                         @endphp
                         <tr>
                             <td class="ps-4 text-muted">

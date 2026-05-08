@@ -11,24 +11,24 @@ class Sesion extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'Tipo',         // 'Evento' o 'Actividad'
-        'Id_Referencia', // El ID del Evento o de la Actividad
+        'Tipo',
+        'Id_Referencia',
         'Fecha'
     ];
 
-    // Relación con los registros de asistencia
     public function pasesLista()
     {
         return $this->hasMany(PaseLista::class, 'Id_Sesion', 'Id_Sesion');
     }
-    public function asistencias() {
+// En app/Models/Sesion.php
+
+    public function asistencias()
+    {
         return $this->hasMany(PaseLista::class, 'Id_Sesion', 'Id_Sesion');
     }
-    // Relación con el Evento
     public function evento()
     {
-        // El segundo parámetro es la llave foránea en la tabla Sesion
-        // El tercer parámetro es la llave primaria en la tabla Evento
         return $this->belongsTo(Evento::class, 'Id_Referencia', 'Id_Evento');
     }
+
 }

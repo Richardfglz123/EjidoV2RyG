@@ -11,7 +11,7 @@ class Ejidatario extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'Num_Ejidatario', 'Calle', 'Num_Exterior', 'Num_Interior', 'Colonia',
+        'Num_Ejidatario','qr_payload', 'Calle', 'Num_Exterior', 'Num_Interior', 'Colonia',
         'Municipio', 'Estado', 'Codigo_Postal', 'Fecha_Nacimiento', 'CURP',
         'RFC', 'Clave_Elector', 'Fecha_Ingreso', 'Id_Estatus', 'Id_Usuario'
     ];

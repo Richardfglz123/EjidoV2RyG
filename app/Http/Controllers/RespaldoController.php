@@ -37,8 +37,12 @@ class RespaldoController extends Controller
 
     public function store()
     {
-        $filename = "respaldo_" . date('Y-m-d_H-i-s') . ".sql";
+        if (session_id()) {
+            session_write_close();
+        }
+        set_time_limit(300);
 
+        $filename = "respaldo_" . date('Y-m-d_H-i-s') . ".sql";
         $backupDirectory = Storage::disk($this->disk)->path('backups');
 
         if (!file_exists($backupDirectory)) {
@@ -46,43 +50,46 @@ class RespaldoController extends Controller
         }
 
         $fullPath = $backupDirectory . DIRECTORY_SEPARATOR . $filename;
-
         $dbHost = config('database.connections.mysql.host') == 'localhost' ? '127.0.0.1' : config('database.connections.mysql.host');
         $dbUser = config('database.connections.mysql.username');
         $dbPass = config('database.connections.mysql.password');
         $dbName = config('database.connections.mysql.database');
 
         $mysqldump = match (true) {
+            file_exists('/usr/bin/mysqldump')          => '/usr/bin/mysqldump',
             file_exists('/opt/homebrew/bin/mysqldump') => '/opt/homebrew/bin/mysqldump',
             file_exists('/usr/local/bin/mysqldump')    => '/usr/local/bin/mysqldump',
             default                                    => 'mysqldump',
         };
 
         $passArg = !empty($dbPass) ? "--password=" . escapeshellarg($dbPass) : "";
+        $errorLog = storage_path('logs/backup_error.log');
+
         $command = sprintf(
-            '%s --host=%s --user=%s %s %s > %s 2>&1',
+            '%s --no-defaults --host=%s --user=%s %s %s > %s 2> %s',
             $mysqldump,
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
             $passArg,
             escapeshellarg($dbName),
-            escapeshellarg($fullPath)
+            escapeshellarg($fullPath),
+            escapeshellarg($errorLog)
         );
 
         $output = [];
         $resultCode = null;
         exec($command, $output, $resultCode);
 
-        // 5. Verificación ¿Existe el archivo y pesa más de 0 bytes?
-        if ($resultCode === 0 && Storage::disk($this->disk)->exists('backups/' . $filename) && Storage::disk($this->disk)->size('backups/' . $filename) > 0) {
-            return back()->with('success', 'Respaldo generado: ' . $filename);
+        if ($resultCode === 0 && file_exists($fullPath) && filesize($fullPath) > 0) {
+            return back()->with('success', 'Respaldo generado con éxito: ' . $filename);
         } else {
-            $errorDetail = implode(' ', $output);
-            // Si el archivo se creo pero está vacío o hubo error se borra
-            if (Storage::disk($this->disk)->exists('backups/' . $filename)) {
-                Storage::disk($this->disk)->delete('backups/' . $filename);
+            $errorDetail = file_exists($errorLog) ? file_get_contents($errorLog) : 'Error desconocido en la ejecución.';
+
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
             }
-            return back()->withErrors(['error' => 'Error al generar: ' . ($errorDetail ?: 'El archivo quedó vacío o no se creó.')]);
+
+            return back()->withErrors(['error' => 'Error de MySQL: ' . $errorDetail]);
         }
     }
 

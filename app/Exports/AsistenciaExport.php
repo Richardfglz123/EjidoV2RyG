@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Ejidatario;
-use App\Models\PaseLista;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -21,35 +21,43 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
 
     public function collection()
     {
-        return Ejidatario::all();
+        return Ejidatario::with('usuario')->get();
     }
 
     public function headings(): array
     {
         return [
             ['Reporte Detallado de Asistencia'],
-            ['ID', 'Nombre Completo', 'Estatus']
+            ['Núm. Ejidatario', 'Nombre Completo', 'Estatus']
         ];
     }
 
     public function map($ejidatario): array
     {
-        $asistio = PaseLista::where('Id_Sesion', $this->id_sesion)
+        $asistio = DB::table('asistencia_sesion')
+            ->where('Id_Sesion', $this->id_sesion)
             ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
             ->exists();
 
+        $nombres = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Nombres ?? '');
+        $apeP = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Apellido_Paterno ?? '');
+        $apeM = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Apellido_Materno ?? '');
+
+        $nombreCompleto = trim("$nombres $apeP $apeM");
+
         return [
-            $ejidatario->Id_Ejidatario,
-            $ejidatario->Nombre . ' ' . $ejidatario->Apellido_Paterno . ' ' . $ejidatario->Apellido_Materno,
+            $ejidatario->Num_Ejidatario,
+            strtoupper($nombreCompleto),
             $asistio ? 'ASISTIÓ' : 'FALTA'
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
+        $sheet->mergeCells('A1:C1');
         return [
-            1    => ['font' => ['bold' => true, 'size' => 14]],
-            2    => ['font' => ['bold' => true]],
+            1 => ['font' => ['bold' => true, 'size' => 14], 'alignment' => ['horizontal' => 'center']],
+            2 => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'E9ECEF']]],
         ];
     }
 }

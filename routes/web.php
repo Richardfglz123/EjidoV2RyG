@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Ejidatario;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ActividadesController;
 use App\Http\Controllers\UsuariosController;
@@ -111,6 +112,8 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::post('/faenas/aplicar', [DescuentoController::class, 'store'])->name('faenas.aplicar');
     Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
+
+
 
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
     Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
@@ -410,7 +413,11 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::get('/social/redirect/{provider}', [SocialController::class, 'redirectToProvider'])->name('social.redirect');
     Route::get('/social/callback/{provider}', [SocialController::class, 'handleProviderCallback']);
     Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
-
+    // qr
+    Route::get('/test-qr', function () {
+        $ejidatarios = Ejidatario::with('usuario')->get();
+        return view('test_qr', compact('ejidatarios'));
+    });
     Route::get('/debug-auth', function () {
         return response()->json(session()->all());
     });

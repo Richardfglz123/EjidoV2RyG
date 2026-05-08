@@ -30,7 +30,7 @@
                         <label>Apellido Paterno</label>
                         <input type="text" name="Apellido_Paterno"
                                class="form-control @error('Apellido_Paterno') is-invalid @enderror"
-                               value="{{ old('Apellido_Paterno') }}" required>
+                               value="{{ old('Apellido_Paterno') }}">
                         @error('Apellido_Paterno')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -38,10 +38,11 @@
                         <label>Apellido Materno</label>
                         <input type="text" name="Apellido_Materno"
                                class="form-control @error('Apellido_Materno') is-invalid @enderror"
-                               value="{{ old('Apellido_Materno') }}" required>
+                               value="{{ old('Apellido_Materno') }}">
                         @error('Apellido_Materno')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
+
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Usuario</label>
@@ -60,7 +61,7 @@
                                placeholder="ejemplo@correo.com"
                                autocomplete="off">
 
-                        <div id="emailSuggestions" class="list-group" style="position: absolute; z-index: 1000; width: 92%; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div id="emailSuggestions" class="list-group" style="position: absolute; z-index: 1050; width: 92%; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                         </div>
 
                         @error('Correo')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -80,7 +81,6 @@
                     </div>
                 </div>
 
-                {{-- Sección de Contraseñas con Ver/Ocultar --}}
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label>Contraseña</label>
@@ -122,20 +122,20 @@
     </div>
 
     <script>
-        // Función para Ver/Ocultar Contraseña
         function togglePassword(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
             if (input.type === "password") {
                 input.type = "text";
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             } else {
                 input.type = "password";
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
         }
 
-        // Lógica de Sugerencias de Email
         const emailInput = document.getElementById('emailInput');
         const suggestionsContainer = document.getElementById('emailSuggestions');
         const domains = ['gmail.com', 'outlook.com', 'icloud.com', 'yahoo.com', 'hotmail.com'];
@@ -176,13 +176,7 @@
         };
 
         document.addEventListener('click', function(e) {
-            if (e.target !== emailInput && e.target !== suggestionsContainer) {
-                suggestionsContainer.style.display = 'none';
-            }
-        });
-
-        emailInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
+            if (e.target !== emailInput && !suggestionsContainer.contains(e.target)) {
                 suggestionsContainer.style.display = 'none';
             }
         });

@@ -18,7 +18,7 @@
 <body>
 <div class="header">
     <h2 class="title">Control de Asistencia Ejidal</h2>
-    <p>Evento: <strong>{{ $sesion->evento->Nombre_Evento }}</strong> | Fecha: {{ $sesion->Fecha }}</p>
+    <p>Evento: <strong>{{ $sesion->evento->Nombre_Evento ?? 'Evento' }}</strong> | Fecha: {{ \Carbon\Carbon::parse($sesion->Fecha)->format('d/m/Y') }}</p>
 </div>
 
 <div class="summary">
@@ -28,21 +28,26 @@
     Ausentes: <span class="text-danger">{{ count($noAsistieron) }}</span>
 </div>
 
-<div class="section-title">LISTA DE ASISTENCIA (PRESENTES)</div>
+<div class="section-title">LISTA DE ASISTENCIA</div>
 <table>
     <thead>
     <tr>
-        <th width="15%">ID</th>
+        <th width="15%">Num. Ejid.</th>
         <th>Nombre del Ejidatario</th>
         <th width="20%">Estado</th>
     </tr>
     </thead>
     <tbody>
     @foreach($asistieron as $e)
+        @php
+            $nom = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Nombres ?? 'N/A');
+            $apeP = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Paterno ?? '');
+            $apeM = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Materno ?? '');
+        @endphp
         <tr>
-            <td>{{ $e->Id_Ejidatario }}</td>
-            <td>{{ $e->Nombre }} {{ $e->Apellido_Paterno }} {{ $e->Apellido_Materno }}</td>
-            <td class="text-success">PRESENTE</td>
+            <td>{{ $e->Num_Ejidatario }}</td>
+            <td style="text-transform: uppercase;">{{ $nom }} {{ $apeP }} {{ $apeM }}</td>
+            <td class="text-success">ASISTI</td>
         </tr>
     @endforeach
     </tbody>
@@ -52,16 +57,21 @@
 <table>
     <thead>
     <tr>
-        <th width="15%">ID</th>
+        <th width="15%">Num. Ejid.</th>
         <th>Nombre del Ejidatario</th>
         <th width="20%">Estado</th>
     </tr>
     </thead>
     <tbody>
     @foreach($noAsistieron as $e)
+        @php
+            $nom = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Nombres ?? 'N/A');
+            $apeP = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Paterno ?? '');
+            $apeM = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Materno ?? '');
+        @endphp
         <tr>
-            <td>{{ $e->Id_Ejidatario }}</td>
-            <td>{{ $e->Nombre }} {{ $e->Apellido_Paterno }} {{ $e->Apellido_Materno }}</td>
+            <td>{{ $e->Num_Ejidatario }}</td>
+            <td style="text-transform: uppercase;">{{ $nom }} {{ $apeP }} {{ $apeM }}</td>
             <td class="text-danger">FALTA</td>
         </tr>
     @endforeach

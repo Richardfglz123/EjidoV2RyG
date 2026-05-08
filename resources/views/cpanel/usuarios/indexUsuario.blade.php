@@ -33,10 +33,16 @@
         .pagination .page-item.active .page-link {
             background-color: #198754 !important;
             border-color: #198754 !important;
-            color: #ffffff !important; /* Número blanco en fondo verde */
+            color: #ffffff !important;
         }
         .pagination .page-link {
-            color: #198754 !important; /* Números verdes en fondo blanco */
+            color: #198754 !important;
+        }
+
+        /* Bloqueo de movimientos fantasma */
+        .table tr, .table td {
+            transition: none !important;
+            transform: none !important;
         }
     </style>
 
@@ -94,6 +100,17 @@
                 </thead>
                 <tbody>
                 @forelse($data as $fila)
+                    @php
+                        // LIMPIEZA DE CARACTERES \N EN NOMBRES Y APELLIDOS
+                        $nombresLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Nombres);
+                        $apellidoPLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Apellido_Paterno);
+                        $apellidoMLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Apellido_Materno);
+
+                        // Eliminar espacios dobles
+                        $nombresLimpio = preg_replace('/\s+/', ' ', trim($nombresLimpio));
+                        $apellidoPLimpio = preg_replace('/\s+/', ' ', trim($apellidoPLimpio));
+                        $apellidoMLimpio = preg_replace('/\s+/', ' ', trim($apellidoMLimpio));
+                    @endphp
                     <tr>
                         <td class="ps-3 text-center">
                             @php $fotoUsuario = $fila->foto ?? null; @endphp
@@ -107,8 +124,8 @@
                         </td>
 
                         <td>
-                            <div class="text-dark">{{ $fila->Nombres }}</div>
-                            <div class="small text-muted">{{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}</div>
+                            <div class="text-dark fw-bold">{{ $nombresLimpio }}</div>
+                            <div class="small text-muted text-uppercase">{{ $apellidoPLimpio }} {{ $apellidoMLimpio }}</div>
                         </td>
 
                         <td>

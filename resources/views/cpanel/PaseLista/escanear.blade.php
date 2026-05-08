@@ -3,20 +3,34 @@
 @section('content')
 
     <style>
+        .table tr, .table td, .card {
+            transition: none !important;
+            transform: none !important;
+        }
+
         #reader video {
             transform: scaleX(1) !important;
             -webkit-transform: scaleX(1) !important;
             object-fit: cover;
+            border-radius: 10px;
         }
 
-        .no-mirror {
-            transform: scaleX(1) !important;
+        .text-ejidal { color: #198754 !important; font-weight: 700; }
+        .card-header-ejidal { background-color: #198754 !important; color: white !important; font-weight: 600; }
+        .card-ejidal { border-color: #198754 !important; }
+
+        .new-row {
+            animation: highlight 1.5s ease-out;
+        }
+        @keyframes highlight {
+            0% { background-color: #d1e7dd; }
+            100% { background-color: transparent; }
         }
     </style>
 
     <main class="px-md-4 py-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-4 border-bottom">
-            <h1 class="h2 text-ejidal">
+            <h1 class="h2 text-ejidal text-uppercase">
                 <i class="fas fa-qrcode me-2"></i> Pase de Lista: {{ $evento->Nombre_Evento }}
             </h1>
             <a href="{{ route('asistencia.index') }}" class="btn btn-secondary shadow-sm">
@@ -31,8 +45,8 @@
                         <i class="fas fa-camera me-2"></i> Escáner Activo
                     </div>
                     <div class="card-body bg-light text-center">
-                        <div id="reader" style="width: 100%; border-radius: 10px; overflow: hidden;"></div>
-                        <div id="status-scan" class="mt-3 fw-bold text-muted">
+                        <div id="reader" style="width: 100%; overflow: hidden; border: 2px solid #dee2e6; border-radius: 10px;"></div>
+                        <div id="status-scan" class="mt-3 p-2 rounded bg-white shadow-sm fw-bold text-muted">
                             <i class="fas fa-sync fa-spin me-2"></i> Esperando código QR...
                         </div>
                     </div>
@@ -46,22 +60,34 @@
                         <span id="contador" class="badge bg-white text-ejidal shadow-sm">0 presentes</span>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive" style="max-height: 450px;">
+                        <div class="table-responsive" style="max-height: 500px;">
                             <table class="table table-hover align-middle mb-0" id="tablaAsistencia">
                                 <thead class="table-dark">
                                 <tr>
-                                    <th class="ps-3">ID</th>
+                                    <th class="ps-3">Num_Ejid</th>
                                     <th>Nombre Completo</th>
-                                    <th>Hora de Entrada</th>
+                                    <th>Hora</th>
                                     <th class="text-center">Estado</th>
                                 </tr>
                                 </thead>
                                 <tbody id="listaCuerpo">
-                                <tr id="vacio">
-                                    <td colspan="4" class="text-center py-5 text-muted">
-                                        No hay escaneos registrados aún.
-                                    </td>
-                                </tr>
+                                @forelse($presentes as $p)
+                                    @php
+                                        $nombreLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $p->Nombres . ' ' . $p->Apellido_Paterno);
+                                    @endphp
+                                    <tr id="row-{{ $p->Num_Ejidatario }}">
+                                        <td class="ps-3 fw-bold text-muted">#{{ $p->Num_Ejidatario }}</td>
+                                        <td class="fw-bold text-dark text-uppercase">{{ $nombreLimpio }}</td>
+                                        <td class="small">{{ \Carbon\Carbon::parse($p->Hora)->format('H:i:s') }}</td>
+                                        <td class="text-center"><span class="badge bg-success"><i class="fas fa-check"></i> Asisti</span></td>
+                                    </tr>
+                                @empty
+                                    <tr id="vacio">
+                                        <td colspan="4" class="text-center py-5 text-muted">
+                                            No hay escaneos registrados aún.
+                                        </td>
+                                    </tr>
+                                @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -72,6 +98,8 @@
     </main>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         const html5QrCode = new Html5Qrcode("reader");
         let scanning = true;
@@ -81,7 +109,7 @@
             scanning = false;
 
             const statusLabel = document.getElementById('status-scan');
-            statusLabel.innerHTML = `<span class="text-ejidal">Procesando ID: ${decodedText}...</span>`;
+            statusLabel.innerHTML = `<span class="text-ejidal"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>`;
 
             fetch("{{ route('asistencia.marcar') }}", {
                 method: 'POST',
@@ -90,17 +118,17 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({
-                    id_ejidatario: decodedText,
+                    qr_data: decodedText,
                     id_sesion: "{{ $sesion->Id_Sesion }}"
                 })
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success') {
+                    if (data.success) {
                         actualizarTabla(decodedText, data.nombre);
-                        statusLabel.innerHTML = `<span class="text-success"><i class="fas fa-check-circle"></i> ${data.nombre} registrado</span>`;
+                        statusLabel.innerHTML = `<span class="text-success"><i class="fas fa-check-circle"></i> ${data.nombre}</span>`;
                     } else {
-                        statusLabel.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle"></i> Error: No encontrado</span>`;
+                        statusLabel.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
                     }
                 })
                 .catch(() => {
@@ -110,48 +138,40 @@
                     setTimeout(() => {
                         scanning = true;
                         statusLabel.innerHTML = `<i class="fas fa-sync fa-spin me-2"></i> Esperando código QR...`;
-                    }, 3000);
+                    }, 2000);
                 });
         }
 
-        function actualizarTabla(id, nombre) {
+        function actualizarTabla(payload, nombre) {
             const body = document.getElementById('listaCuerpo');
             const vacio = document.getElementById('vacio');
+            const idParaFila = payload.split(/[\n\\]/)[0].trim();
+
             if (vacio) vacio.remove();
+            if (document.getElementById(`row-${idParaFila}`)) return;
 
-            if (document.getElementById(`row-${id}`)) return;
+            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const nombreLimpio = nombre.replace(/\\n/gi, ' ').replace(/\n/g, ' ');
 
-            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const row = `
-            <tr id="row-${id}" class="table-success border-start border-success border-4">
-                <td class="ps-3">#${id}</td>
-                <td class="fw-bold text-dark">${nombre}</td>
-                <td>${hora}</td>
-                <td class="text-center"><span class="badge bg-success">PRESENTE</span></td>
+            <tr id="row-${idParaFila}" class="new-row border-start border-success border-4">
+                <td class="ps-3 fw-bold text-muted">#${idParaFila}</td>
+                <td class="fw-bold text-dark text-uppercase">${nombreLimpio}</td>
+                <td class="small">${hora}</td>
+                <td class="text-center"><span class="badge bg-success"><i class="fas fa-check"></i> EN LISTA</span></td>
             </tr>`;
-            body.insertAdjacentHTML('afterbegin', row);
 
-            const count = document.querySelectorAll('#listaCuerpo tr').length;
-            document.getElementById('contador').innerText = `${count} presentes`;
+            body.insertAdjacentHTML('afterbegin', row);
+            actualizarContador();
         }
 
-        html5QrCode.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: 250,
-                disableFlip: true
-            },
-            onScanSuccess
-        ).then(() => {
-            const videoElement = document.querySelector('#reader video');
-            if (videoElement) {
-                videoElement.style.transform = "scaleX(1)";
-                videoElement.style.webkitTransform = "scaleX(1)";
-            }
-        }).catch(err => {
-            console.error("Error al iniciar cámara: ", err);
-        });
-    </script>
+        function actualizarContador() {
+            const filas = document.querySelectorAll('#listaCuerpo tr:not(#vacio)').length;
+            document.getElementById('contador').innerText = `${filas} presentes`;
+        }
 
+        const config = { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, disableFlip: true };
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+        window.onload = actualizarContador;
+    </script>
 @endsection
