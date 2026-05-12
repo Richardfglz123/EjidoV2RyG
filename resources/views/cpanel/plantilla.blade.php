@@ -10,18 +10,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
-        /* Ajustes para que el menú funcione en móvil */
         @media (max-width: 991.98px) {
             #sidebarMenu {
                 position: fixed;
-                top: 65px; /* Altura del header */
+                top: 65px;
                 left: 0;
                 width: 100%;
                 height: calc(100vh - 65px);
                 z-index: 1000;
                 background-color: #212529 !important;
                 overflow-y: auto;
-                display: none; /* Se controla con la clase .show de Bootstrap */
+                display: none;
             }
             #sidebarMenu.show {
                 display: block;
@@ -31,7 +30,6 @@
             }
         }
 
-        /* Asegurar que el botón hamburguesa sea visible */
         .navbar-toggler {
             border: 1px solid rgba(255,255,255,0.2) !important;
         }
@@ -197,11 +195,11 @@
                             </a>
                             <div class="collapse" id="utilidadesMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('menu') }}">Registro Repartos</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.primer') }}">Primer Reparto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.segundo') }}">Segundo Reparto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}">Descuentos Asambleas</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}">Descuentos Faenas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('menu') }}"><i class="fas fa-cash-register me-2"></i> Registro Repartos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.primer') }}"><i class="fas fa-coins me-2"></i> Primer Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.segundo') }}"><i class="fas fa-coins me-2"></i> Segundo Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}"><i class="fas fa-gavel me-2"></i> Descuentos Asambleas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}"><i class="fas fa-tools me-2"></i> Descuentos Faenas</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -215,8 +213,8 @@
                             </a>
                             <div class="collapse" id="gastosMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.create') }}">Nuevo Gasto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.index') }}">Ver Gastos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.create') }}"><i class="fas fa-plus-circle me-2"></i> Nuevo Gasto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.index') }}"><i class="fas fa-eye me-2"></i> Ver Gastos</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -230,9 +228,9 @@
                             </a>
                             <div class="collapse" id="inventarioMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('articulos.index') }}">Artículos</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('entradas.create') }}">Entradas</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('salidas.create') }}">Salidas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('articulos.index') }}"><i class="fas fa-boxes me-2"></i> Artículos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('entradas.create') }}"><i class="fas fa-sign-in-alt me-2"></i> Entradas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('salidas.create') }}"><i class="fas fa-sign-out-alt me-2"></i> Salidas</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -245,7 +243,7 @@
                         </a>
                         <div class="collapse" id="paseListaMenu">
                             <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}">Registrar Asistencia</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}"><i class="fas fa-check-double me-2"></i> Registrar Asistencia</a></li>
                             </ul>
                         </div>
                     </li>
@@ -257,8 +255,8 @@
                         </a>
                         <div class="collapse" id="eventosMenu">
                             <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}">Nuevo Evento</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}">Ver todos</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}"><i class="fas fa-calendar-plus me-2"></i> Nuevo Evento</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}"><i class="fas fa-eye me-2"></i> Ver todos</a></li>
                             </ul>
                         </div>
                     </li>
@@ -270,8 +268,8 @@
                         </a>
                         <div class="collapse" id="multasMenu">
                             <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}">Nueva Multa</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}">Listado</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
                             </ul>
                         </div>
                     </li>
@@ -308,11 +306,38 @@
 </div>
 
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
-    <div class="container text-center">
-        <img src="/snRafael.png" alt="Logo" height="50" class="mb-2">
-        <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
-        <div style="font-size: 0.7rem;" class="text-secondary mt-3">
-            <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+    <div class="container">
+        <div class="row align-items-center">
+
+            <div class="col-md-4 text-center text-md-start">
+                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2"> <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+                <small class="text-secondary">v1.4.1</small>
+            </div>
+
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <p class="mb-2 small text-secondary">Síguenos en:</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4 text-center text-md-end">
+                <div style="font-size: 0.7rem;" class="text-secondary">
+                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
+                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </footer>

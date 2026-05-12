@@ -81,7 +81,7 @@
                         <td class="ps-3 fw-bold text-muted">{{ $fila->Num_Ejidatario }}</td>
                         <td>
                             <div class="fw-bold text-uppercase">{{ $nombreLimpio }}</div>
-                            <small class="text-muted">ID: {{ $fila->Id_Usuario }}</small>
+                            {{-- <small class="text-muted">ID: {{ $fila->Id_Usuario }}</small> --}}
                         </td>
                         <td>
                             <small class="d-block"><strong>Curp:</strong> {{ $fila->CURP ?? 'N/A' }}</small>

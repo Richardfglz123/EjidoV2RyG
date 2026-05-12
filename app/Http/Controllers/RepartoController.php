@@ -16,10 +16,11 @@ class RepartoController extends Controller
     public function menu()
     {
         $data = [
-            'finiquito_saneamiento'     => Utilidad::where('Tipo_Reparto', 'reparto_finiquito')->first(),
-            'primer_reparto'            => Utilidad::where('Tipo_Reparto', 'primer_reparto')->first(),
-            'segundo_reparto'           => Utilidad::where('Tipo_Reparto', 'segundo_reparto')->first(),
-            'finiquito_utilidades'      => Utilidad::where('Tipo_Reparto', 'finiquito_utilidades')->first(),
+            // Nombres exactos como están en la base de datos ahora
+            'finiquito_saneamiento'     => Utilidad::where('Tipo_Reparto', 'REPARTO FINIQUITO')->first(),
+            'primer_reparto'            => Utilidad::where('Tipo_Reparto', 'PRIMER REPARTO')->first(),
+            'segundo_reparto'           => Utilidad::where('Tipo_Reparto', 'SEGUNDO REPARTO')->first(),
+            'finiquito_utilidades'      => Utilidad::where('Tipo_Reparto', 'FINIQUITO UTILIDADES')->first(),
 
             'descuento_saneamiento'     => CatalogoMulta::where('tipo', 'SANEAMIENTO')->first(),
             'descuento_aprovechamiento' => CatalogoMulta::where('tipo', 'APROVECHAMIENTO')->first(),
@@ -27,6 +28,31 @@ class RepartoController extends Controller
         ];
 
         return view('cpanel.monto.menu', $data);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'monto' => 'required|numeric|min:0',
+            'anio' => 'required|numeric',
+            'responsable' => 'required',
+        ]);
+
+        // Buscamos por la llave primaria correcta: Id_Utilidad
+        $utilidad = Utilidad::where('Id_Utilidad', $id)->firstOrFail();
+
+        $utilidad->Monto = $request->monto;
+        $utilidad->Año = $request->anio;
+        // Si el usuario quiere cambiar el nombre (ej. de minúsculas a mayúsculas para que el menu lo vea)
+        if($request->has('nombre_reparto')){
+            $utilidad->Tipo_Reparto = $request->nombre_reparto;
+        }
+
+        $utilidad->Id_Modificado = $request->responsable;
+        $utilidad->Fecha_Modificado = now();
+        $utilidad->save();
+
+        return redirect()->route('menu')->with('success', 'Monto actualizado correctamente.');
     }
 
     public function index(Request $request)
@@ -37,23 +63,6 @@ class RepartoController extends Controller
         $utilidadSeleccionada = $idSeleccionado ? Utilidad::find($idSeleccionado) : null;
 
         return view('cpanel.monto.monto', compact('utilidades', 'utilidadSeleccionada', 'usuarios'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'monto' => 'required|numeric|min:0',
-            'anio' => 'required|numeric',
-        ]);
-
-        $utilidad = Utilidad::findOrFail($id);
-        $utilidad->Monto = $request->monto;
-        $utilidad->Año = $request->anio;
-        $utilidad->Id_Modificado = $request->responsable ?? null;
-        $utilidad->Fecha_Modificado = now();
-        $utilidad->save();
-
-        return redirect()->route('menu')->with('success', 'Monto actualizado correctamente.');
     }
 
     public function mostrarPrimerReparto()
@@ -217,5 +226,20 @@ class RepartoController extends Controller
             return response()->json(['success' => true, 'message' => 'Fecha límite actualizada']);
         }
         return response()->json(['success' => false, 'message' => 'No se encontró el registro'], 404);
+    }
+
+    public function generarTicketPDF($id) {
+        $prestamo = Prestamo::with('ejidatario.usuario')->findOrFail($id);
+
+        // Obtenemos el monto para evitar el error de variable indefinida que mencionaste antes
+        $reparto = Utilidad::find(1);
+        $montoReparto1 = $reparto?->Monto ?? 0;
+
+        $pdf = \PDF::loadView('cpanel.Repartos.primer-reparto-pdf', [
+            'prestamo' => $prestamo,
+            'montoReparto1' => $montoReparto1
+        ]);
+
+        return $pdf->stream('ticket-prestamo-'.$id.'.pdf');
     }
 }

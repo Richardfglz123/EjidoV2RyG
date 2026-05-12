@@ -10,7 +10,6 @@
         </h1>
     </div>
 
-    {{-- Card de Monto Actual --}}
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm border-start border-danger border-4">
@@ -25,7 +24,6 @@
         </div>
     </div>
 
-    {{-- Card de Selección --}}
     <div class="card card-ejidal mb-4">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-search me-2"></i> 1. Seleccione un Tipo de Descuento para editar
@@ -57,10 +55,8 @@
         </div>
     </div>
 
-    {{-- Formulario de Edición --}}
     @if ($descuentoSeleccionado)
         @php
-            // Nombre para el título del formulario
             $tituloForm = $descuentoSeleccionado->Tipo;
             if(stripos($tituloForm, 'asamble') !== false) $tituloForm = 'ASAMBLEAS (GENERAL)';
             if(stripos($tituloForm, 'saneamient') !== false) $tituloForm = 'SANEAMIENTO';

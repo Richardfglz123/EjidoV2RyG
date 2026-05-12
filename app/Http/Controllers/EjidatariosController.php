@@ -24,7 +24,6 @@ class EjidatariosController extends Controller
 
     public function index()
     {
-        // Usamos paginate(10) para que Laravel gestione el límite de 10 por vista
         $ejidatarios = DB::table('Ejidatario as e')
             ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
@@ -36,7 +35,7 @@ class EjidatariosController extends Controller
                 'es.Estatus as NombreEstatus'
             )
             ->orderByRaw('e.Num_Ejidatario + 0 ASC')
-            ->paginate(10); // <--- Cambiado a 10 registros por página
+            ->paginate(10);
 
         return view('cpanel/ejidatarios/indexEjidatario', [
             'data' => $ejidatarios

@@ -15,6 +15,7 @@
         </div>
 
         <div class="card-body p-4">
+            {{-- FORMULARIO 1: ACTUALIZACIÓN DE DATOS DEL PERFIL --}}
             <form method="POST" action="{{ route('perfil.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
@@ -33,41 +34,34 @@
                         </label>
                         <input type="file" name="foto" id="fotoInput" class="d-none" accept=".jpg,.jpeg,.heic">
                     </div>
-                    <div class="mt-2 text-muted small">Formatos: <strong>JPG o JPEG</strong> (Compatible con iPhone)</div>
+                    <div class="mt-2 text-muted small">Formatos: <strong>JPG o JPEG</strong></div>
                     @error('foto') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                 </div>
 
+                {{-- Información General --}}
                 <div class="mb-4 p-4 rounded-4 border-0 shadow-sm" style="background-color: #f8f9fa;">
                     <div class="row g-4 align-items-center">
                         <div class="col-md-4 border-end">
                             <div class="d-flex align-items-center">
-                                <div class="icon-box me-3 text-muted">
-                                    <i class="fas fa-id-card fa-2x"></i>
-                                </div>
+                                <div class="icon-box me-3 text-muted"><i class="fas fa-id-card fa-2x"></i></div>
                                 <div>
                                     <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Nombre Completo</small>
                                     <span class="fw-semibold text-dark">{{ $usuario->Nombres }} {{ $usuario->Apellido_Paterno }} {{ $usuario->Apellido_Materno }}</span>
                                 </div>
                             </div>
                         </div>
-
                         <div class="col-md-4 border-end">
                             <div class="d-flex align-items-center ps-md-3">
-                                <div class="icon-box me-3 text-muted">
-                                    <i class="fas fa-user-tag fa-2x"></i>
-                                </div>
+                                <div class="icon-box me-3 text-muted"><i class="fas fa-user-tag fa-2x"></i></div>
                                 <div>
                                     <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Nº Ejidatario</small>
                                     <span class="badge bg-white text-secondary border px-3 py-2">{{ $usuario->Num_Ejidatario ?? 'No asignado' }}</span>
                                 </div>
                             </div>
                         </div>
-
                         <div class="col-md-4">
                             <div class="d-flex align-items-center ps-md-3">
-                                <div class="icon-box me-3 text-muted">
-                                    <i class="fas fa-map-marked-alt fa-2x"></i>
-                                </div>
+                                <div class="icon-box me-3 text-muted"><i class="fas fa-map-marked-alt fa-2x"></i></div>
                                 <div>
                                     <small class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.7rem;">Parcelas</small>
                                     <div class="d-flex flex-wrap gap-1 mt-1">
@@ -83,6 +77,7 @@
                     </div>
                 </div>
 
+                {{-- Campos Editables --}}
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-muted text-uppercase">Usuario</label>
@@ -91,7 +86,6 @@
                             <input type="text" name="Usuario" class="form-control border-start-0 ps-0 @error('Usuario') is-invalid @enderror" value="{{ old('Usuario', $usuario->Usuario) }}" required>
                         </div>
                     </div>
-
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-muted text-uppercase">Correo electrónico</label>
                         <div class="input-group">
@@ -99,7 +93,6 @@
                             <input type="email" name="Correo" class="form-control border-start-0 ps-0 @error('Correo') is-invalid @enderror" value="{{ old('Correo', $usuario->Correo) }}" required>
                         </div>
                     </div>
-
                     <div class="col-md-12">
                         <label class="form-label fw-bold small text-muted text-uppercase">Teléfono</label>
                         <div class="input-group">
@@ -109,10 +102,9 @@
                     </div>
                 </div>
 
+                {{-- Seguridad --}}
                 <div class="row border-top pt-4 mt-4">
-                    <div class="col-12 mb-3">
-                        <h6 class="fw-bold text-dark"><i class="fas fa-lock me-2"></i>Seguridad</h6>
-                    </div>
+                    <div class="col-12 mb-3"><h6 class="fw-bold text-dark"><i class="fas fa-lock me-2"></i>Seguridad</h6></div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold small text-muted text-uppercase">Nueva contraseña</label>
                         <div class="input-group">
@@ -129,36 +121,63 @@
                     </div>
                 </div>
 
-                <div class="row border-top pt-4 mt-4">
-                    <div class="col-12 mb-3">
-                        <h6 class="fw-bold text-dark"><i class="fas fa-link me-2"></i>Cuentas vinculadas</h6>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm">
-                            <div class="d-flex align-items-center">
-                                <i class="fab fa-apple fa-2x me-3"></i>
-                                <div><span class="d-block fw-bold small">Apple ID</span><span class="text-muted small">No conectado</span></div>
-                            </div>
-                            <a href="#" class="btn btn-sm btn-outline-dark fw-bold">Vincular</a>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm">
-                            <div class="d-flex align-items-center">
-                                <i class="fab fa-google fa-2x me-3" style="color: #DB4437;"></i>
-                                <div><span class="d-block fw-bold small">Google</span><span class="text-muted small">No conectado</span></div>
-                            </div>
-                            <a href="#" class="btn btn-sm btn-outline-dark fw-bold">Vincular</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-end mt-5">
+                <div class="text-end mt-4">
                     <button type="submit" class="btn btn-ejidal px-4 py-2 shadow-sm">
                         <i class="fas fa-save me-2"></i>Actualizar Mi Perfil
                     </button>
                 </div>
-            </form>
+            </form> {{-- FIN DEL FORMULARIO DE PERFIL --}}
+
+            <hr class="my-5">
+
+            {{-- SECCIÓN DE CUENTAS VINCULADAS (FUERA DEL FORM PRINCIPAL) --}}
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <h6 class="fw-bold text-dark"><i class="fas fa-link me-2"></i>Cuentas vinculadas</h6>
+                    <div class="alert alert-info border-0 shadow-sm mt-2" style="background-color: #e3f2fd; border-radius: 12px;">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle me-3 mt-1" style="color: #0288d1; font-size: 1.2rem;"></i>
+                            <div>
+                                <strong class="d-block" style="color: #01579b; font-size: 0.9rem;">¿Para qué sirve vincular mi cuenta?</strong>
+                                <p class="mb-0 small text-secondary" style="line-height: 1.4;">
+                                    Al vincular tu cuenta de Google, podrás entrar al sistema de forma más rápida con un solo clic.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="p-3 border rounded-4 d-flex align-items-center justify-content-between bg-white shadow-sm">
+                        <div class="d-flex align-items-center">
+                            <i class="fab fa-google fa-2x me-3" style="color: #DB4437;"></i>
+                            <div>
+                                <span class="d-block fw-bold small">Google</span>
+                                <span class="text-muted small">
+                                    {{ $usuario->google_id ? 'Cuenta conectada' : 'No conectado' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        @if(!$usuario->google_id)
+                            <a href="{{ route('google.redirect') }}"
+                               class="btn btn-sm btn-outline-dark fw-bold px-3"
+                               style="border-radius: 10px;"
+                               onclick="return confirm('Se te redirigirá a Google para vincular tu cuenta. ¿Deseas continuar?');">
+                                <i class="fas fa-plus me-1"></i> Vincular
+                            </a>
+                        @else
+                            {{-- FORMULARIO INDEPENDIENTE PARA DESVINCULAR --}}
+                            <form action="{{ route('social.unlink', 'google') }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas desvincular tu cuenta de Google? Ya no podrás usar el acceso rápido.');" style="display: inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger fw-bold px-3" style="border-radius: 10px;">
+                                    <i class="fas fa-unlink me-1"></i> Desvincular
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -175,9 +194,7 @@
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function() {
-                    document.getElementById('previewImg').src = reader.result;
-                }
+                reader.onload = function() { document.getElementById('previewImg').src = reader.result; }
                 reader.readAsDataURL(file);
             }
         });

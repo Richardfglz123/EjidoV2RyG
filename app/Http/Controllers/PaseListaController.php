@@ -131,6 +131,25 @@ class PaseListaController extends Controller
         }
     }
 
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            DB::table('asistencia_sesion')->where('Id_Sesion', $id)->delete();
+
+            $sesion = Sesion::findOrFail($id);
+            $sesion->delete();
+
+            DB::commit();
+            return redirect()->back()->with('success', 'El historial de asistencia ha sido eliminado correctamente.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Error al eliminar: ' . $e->getMessage());
+        }
+    }
+
     public function historial()
     {
         $totalEjidatarios = \App\Models\Ejidatario::count();

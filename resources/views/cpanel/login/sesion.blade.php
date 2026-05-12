@@ -47,14 +47,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem 1rem; /* Reducido para subir el contenido */
+            padding: 1.5rem 1rem;
         }
 
         .login-card {
             width: 100%;
             max-width: 420px;
             background: #ffffff;
-            padding: 2rem 2.2rem; /* Más compacto */
+            padding: 2rem 2.2rem;
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.08);
             border: 1px solid rgba(0,0,0,0.05);
@@ -75,7 +75,6 @@
             font-size: 0.85rem;
         }
 
-        /* Contenedor relativo para el input y el ojo */
         .input-group-password {
             position: relative;
             display: block;
@@ -89,7 +88,7 @@
             background: #f8fafc;
             transition: all 0.3s ease;
             outline: none;
-            padding-right: 45px; /* Espacio para el icono */
+            padding-right: 45px;
         }
 
         .input-group-password input:focus {
@@ -98,7 +97,6 @@
             box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
         }
 
-        /* Ajuste preciso del botón del ojo */
         .toggle-password {
             position: absolute;
             right: 15px;
@@ -134,7 +132,7 @@
         .divider {
             display: flex;
             align-items: center;
-            margin: 1.2rem 0; /* Espacio reducido */
+            margin: 1.2rem 0;
             color: #b2bec3;
             font-size: 0.65rem;
             font-weight: 700;
@@ -161,16 +159,6 @@
             margin-bottom: 10px;
             transition: all 0.2s;
             font-size: 0.9rem;
-        }
-        .btn-apple { background: #1a1d20; color: #fff; border: none; }
-        .btn-apple:hover { background: #000; color: #fff; transform: translateY(-1px); }
-
-        .footer-ejidal {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 1rem 0;
-            border-top: 1px solid #eef2f7;
-            color: #94a3b8;
-            font-size: 0.8rem;
         }
 
         .error-list {
@@ -199,9 +187,17 @@
 <div class="main-content">
     <div class="login-card">
 
+        <!-- MENSAJE DE ÉXITO -->
         @if (session('success'))
             <div class="alert alert-success border-0 shadow-sm text-center mb-3 py-2" role="alert" style="border-radius: 10px; font-size: 0.9rem;">
                 <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
+            </div>
+        @endif
+
+        <!-- MENSAJE DE ERROR (Google o Validación) -->
+        @if (session('error'))
+            <div class="alert alert-danger border-0 shadow-sm text-center mb-3 py-2" role="alert" style="border-radius: 10px; font-size: 0.85rem;">
+                <i class="fas fa-exclamation-triangle me-1"></i> {{ session('error') }}
             </div>
         @endif
 
@@ -243,28 +239,22 @@
             </form>
 
             <div class="divider">Continuar con</div>
-
             <div class="social-auth">
-                <a href="#" class="social-btn btn-apple shadow-sm">
-                    <i class="fab fa-apple fa-lg"></i>
-                    <span>Apple ID</span>
-                </a>
-                <a href="#" class="social-btn shadow-sm">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" alt="Google">
-                    <span>Google</span>
+                <a href="{{ route('google.redirect') }}" class="social-btn shadow-sm" style="text-decoration: none; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; background: #fff;">
+                    <i class="fab fa-google me-2" style="color: #DB4437; font-size: 1.2rem;"></i>
+                    <span style="color: #5f6368; font-weight: 600;">Google</span>
                 </a>
             </div>
         @endif
     </div>
 </div>
 
-
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
     <div class="container">
         <div class="row align-items-center">
-
             <div class="col-md-4 text-center text-md-start">
-                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2"> <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2">
+                <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
                 <small class="text-secondary">v1.4.1</small>
             </div>
 
@@ -291,11 +281,9 @@
                     <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
                 </div>
             </div>
-
         </div>
     </div>
 </footer>
-
 
 <script>
     const btnToggle = document.querySelector('#btnToggle');

@@ -8,6 +8,14 @@
         </h1>
     </div>
 
+    {{-- ALERTAS DE ÉXITO --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="card card-ejidal shadow-sm mb-4">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-calendar-alt me-2"></i> Selección de Evento para Pase de Lista
@@ -27,10 +35,7 @@
                                 </option>
                             @endforeach
                         </select>
-
-                        @error('id_referencia')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        @error('id_referencia') <div class="invalid-feedback">{{ $message }}</div> @enderror
 
                         <input type="hidden" name="tipo" value="Evento">
                         <input type="hidden" name="fecha" value="{{ date('Y-m-d') }}">
@@ -60,23 +65,24 @@
                         <th class="border-0">Evento</th>
                         <th class="text-center border-0">Asistieron</th>
                         <th class="text-center border-0">Ausentes</th>
-                        <th class="text-center border-0">Reportes</th>
+                        <th class="text-center border-0">Opciones</th>
+                        <th class="text-center border-0">Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
                     @forelse($sesiones as $s)
                         @php
-                            // Usamos el conteo que viene del withCount('asistencias') del controlador
                             $asistieron = $s->asistencias_count ?? 0;
-                            // Calculamos ausentes restando del total de ejidatarios
                             $ausentes = max(0, $totalEjidatarios - $asistieron);
                         @endphp
                         <tr>
-                            <td class="ps-4 text-muted">
+                            <td class="ps-4 text-muted small">
                                 {{ \Carbon\Carbon::parse($s->Fecha)->format('d/m/Y') }}
                             </td>
                             <td>
-                                <div class="fw-bold">{{ $s->evento->Nombre_Evento ?? 'Evento #'.$s->Id_Referencia }}</div>
+                                <div class="fw-bold text-ejidal">
+                                    {{ $s->evento->Nombre_Evento ?? 'Evento Eliminado (#'.$s->Id_Referencia.')' }}
+                                </div>
                             </td>
                             <td class="text-center">
                                 <span class="badge rounded-pill bg-success px-3">{{ $asistieron }}</span>
@@ -86,18 +92,29 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group">
-                                    <a href="{{ route('asistencia.excel', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-file-excel"></i> Excel
+                                    <a href="{{ route('asistencia.excel', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-success" title="Exportar Excel">
+                                        <i class="fas fa-file-excel"></i>
                                     </a>
-                                    <a href="{{ route('asistencia.pdf', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-file-pdf"></i> PDF
+                                    <a href="{{ route('asistencia.pdf', $s->Id_Sesion) }}" class="btn btn-sm btn-outline-danger" title="Exportar PDF">
+                                        <i class="fas fa-file-pdf"></i>
                                     </a>
                                 </div>
+                            </td>
+                            <td class="text-center">
+                                {{-- BOTÓN PARA ELIMINAR LA SESIÓN DE ASISTENCIA --}}
+                                <form action="{{ route('asistencia.destroy', $s->Id_Sesion) }}" method="POST"
+                                      onsubmit="return confirm('¿Seguro que deseas eliminar este registro de asistencia? No se puede deshacer.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0">
+                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td colspan="6" class="text-center py-5 text-muted">
                                 No hay registros de pases de lista anteriores.
                             </td>
                         </tr>
@@ -107,5 +124,4 @@
             </div>
         </div>
     </div>
-
 @endsection

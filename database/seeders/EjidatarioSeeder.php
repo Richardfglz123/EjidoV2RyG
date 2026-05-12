@@ -422,7 +422,6 @@ class EjidatarioSeeder extends Seeder
             $apPaterno = $fila[1];
             $apMaterno = $fila[2] ?? '';
 
-            // 1. Limpiamos el nombre para que en el sistema no se vea con los \n
             $nombreLimpio = trim(str_replace(["\n", "\r"], ' ', $nombreSucio));
 
             // 2. Creamos el Usuario primero
@@ -430,24 +429,21 @@ class EjidatarioSeeder extends Seeder
                 'Nombres'          => $nombreLimpio,
                 'Apellido_Paterno' => $apPaterno,
                 'Apellido_Materno' => $apMaterno,
-                'Usuario'          => 'ejidatario' . (1000 + $index), // Usuario único temporal
-                'Correo'           => 'user' . (1000 + $index) . '@sistema.com', // Correo temporal
-                'Contraseña'       => Hash::make('secret123'), // Password por defecto
+                'Usuario'          => 'ejidatario' . (1000 + $index),
+                'Correo'           => 'user' . (1000 + $index) . '@sistema.com',
+                'Contraseña'       => Hash::make('secret123'),
                 'Telefono'         => '0000000000',
                 'Fecha_Creo'       => now(),
             ]);
 
-            // 3. Creamos el Ejidatario usando el ID del usuario anterior
-            // El payload es lo que IMPORTA para el QR (con los saltos de línea originales)
             $payloadParaQR = "{$nombreSucio} {$apPaterno} {$apMaterno}";
 
             Ejidatario::create([
                 'Id_Usuario'     => $nuevoUsuario->Id_Usuario,
-                'Num_Ejidatario' => 202400 + $index, // Un número de control
-                'qr_payload'     => $payloadParaQR,   // <--- AQUÍ ESTÁ EL TRUCO
-                'Id_Estatus'     => 1,                // Asumiendo 1 = Activo
+                'Num_Ejidatario' => 202400 + $index,
+                'qr_payload'     => $payloadParaQR,
+                'Id_Estatus'     => 1,
                 'Fecha_Ingreso'  => now(),
-                // Los campos de dirección y legales quedan NULL para llenarse después
             ]);
         }
     }

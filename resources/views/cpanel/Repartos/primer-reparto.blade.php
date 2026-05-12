@@ -25,7 +25,7 @@
         <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
             <i class="fas fa-exclamation-triangle me-3 fa-lg"></i>
             <div class="fw-normal">
-                Periodo de préstamos cerrado. La fecha límite ({{ \Carbon\Carbon::parse($reparto1->Fecha_Eliminado)->format('d/m/Y') }}) ha vencido. Ya no es posible registrar o modificar movimientos en el primer reparto.
+                Periodo de préstamos cerrado. La fecha límite ({{ \Carbon\Carbon::parse($reparto1->Fecha_Eliminado)->format('d/m/Y') }}) ha vencido.
             </div>
         </div>
     @endif
@@ -71,33 +71,43 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                @if(!(isset($deadlinePasada) && $deadlinePasada))
-                                    <div class="btn-group btn-group-sm">
+                                <div class="btn-group btn-group-sm">
+                                    {{-- BOTÓN TICKET PDF (Manda a llamar a generarTicket en RepartoController) --}}
+                                    <a href="{{ route('prestamo.ticket', $prestamo->Id_Prestamo) }}"
+                                       class="btn btn-outline-primary"
+                                       target="_blank"
+                                       title="Imprimir Ticket">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+
+                                    @if(!(isset($deadlinePasada) && $deadlinePasada))
                                         <button class="btn btn-outline-secondary btn-editar"
                                                 data-id="{{ $prestamo->Id_Prestamo }}"
                                                 data-idejidatario="{{ $prestamo->Id_Ejidatario }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
                                                 data-motivo="{{ $prestamo->Motivo }}"
-                                                data-cantidad="{{ $prestamo->Cantidad }}">
+                                                data-cantidad="{{ $prestamo->Cantidad }}"
+                                                title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-outline-success btn-abonar"
                                                 style="border: 1px solid #1b4b36 !important;"
                                                 data-url="{{ route('prestamo.abonar', $prestamo->Id_Prestamo) }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
-                                                data-saldo="{{ $prestamo->Cantidad }}">
+                                                data-saldo="{{ $prestamo->Cantidad }}"
+                                                title="Abonar">
                                             <i class="fas fa-money-bill-wave"></i>
                                         </button>
                                         <form action="{{ route('prestamo.eliminar', $prestamo->Id_Prestamo) }}" method="POST" class="d-inline">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar registro?')">
+                                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar registro?')" title="Eliminar">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
-                                    </div>
-                                @else
-                                    <span class="badge bg-light text-muted fw-normal border px-3"><i class="fas fa-lock me-1"></i> Cerrado</span>
-                                @endif
+                                    @else
+                                        <span class="badge bg-light text-muted fw-normal border ms-1"><i class="fas fa-lock"></i></span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -108,6 +118,8 @@
             </div>
         </div>
     </div>
+
+    {{-- Los Modales permanecen igual --}}
 
     {{-- MODAL AGREGAR --}}
     <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true">
@@ -171,7 +183,6 @@
                         <div class="mb-3 text-start">
                             <label class="text-muted small text-uppercase">Monto ($)</label>
                             <input type="number" id="editar-cantidad" name="cantidad" class="form-control fw-normal" step="0.01" required min="0.01">
-                            <small id="error-editar-cantidad" class="text-danger d-none"></small>
                         </div>
                         <div class="mb-0 text-start">
                             <label class="text-muted small text-uppercase">Descripción</label>
@@ -216,7 +227,6 @@
         </div>
     </div>
 
-    {{-- SCRIPTS --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -254,11 +264,10 @@
                 fetch(url).then(res => res.json()).then(data => {
                     saldoMaximoPrestamo = parseFloat(data.saldo_disponible) || 0;
                     $('#saldo-info').text("$" + saldoMaximoPrestamo.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-                    $('#input-cantidad').attr('max', saldoMaximoPrestamo);
                 });
             });
 
-            // Validación Agregar Préstamo
+            // Validación Agregar
             $('#form-agregar-prestamo').on('submit', function(e) {
                 const cantidad = parseFloat($('#input-cantidad').val());
                 if (cantidad <= 0) {
@@ -267,9 +276,10 @@
                     return false;
                 }
                 if (cantidad > saldoMaximoPrestamo) {
-                    e.preventDefault();
-                    alert('Error: El monto excede el saldo disponible ($' + saldoMaximoPrestamo.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
-                    return false;
+                    if(!confirm('El monto excede el saldo disponible ($' + saldoMaximoPrestamo.toLocaleString('en-US') + '). ¿Desea continuar?')) {
+                        e.preventDefault();
+                        return false;
+                    }
                 }
             });
 
@@ -283,12 +293,12 @@
                 }
                 if (abono > deudaActualAbono) {
                     e.preventDefault();
-                    alert('Error: No puedes abonar más de la deuda actual ($' + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ')');
+                    alert('Error: No puedes abonar más de la deuda actual ($' + deudaActualAbono.toLocaleString('en-US') + ')');
                     return false;
                 }
             });
 
-            // Modal Editar - Cargar datos
+            // Modal Editar
             $(document).on('click', '.btn-editar', function() {
                 const idPrestamo = $(this).data('id');
                 const idEjidatario = $(this).data('idejidatario');
@@ -300,13 +310,10 @@
                 $('#editar-nombre').val(nombre);
                 $('#editar-motivo').val(motivo);
                 $('#editar-cantidad').val(cantidadActual);
-                $('#error-editar-cantidad').addClass('d-none');
 
                 let url = "{{ route('prestamo.saldo', ':id') }}".replace(':id', idEjidatario);
                 fetch(url).then(res => res.json()).then(data => {
-                    // El saldo disponible real para editar es (SaldoActualEnFondo + LoQueYaTeníaPrestado)
                     saldoDisponibleParaEditar = (parseFloat(data.saldo_disponible) || 0) + cantidadActual;
-                    $('#editar-cantidad').attr('max', saldoDisponibleParaEditar);
                 });
 
                 $('#modalEditar').modal('show');
@@ -321,20 +328,20 @@
                     return false;
                 }
                 if (cantidadNueva > saldoDisponibleParaEditar) {
-                    e.preventDefault();
-                    $('#error-editar-cantidad').removeClass('d-none').text('Error: El límite es $' + saldoDisponibleParaEditar.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-                    alert('No puedes superar el saldo disponible de $' + saldoDisponibleParaEditar.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-                    return false;
+                    if(!confirm('El monto supera el saldo disponible. ¿Desea registrarlo así?')) {
+                        e.preventDefault();
+                        return false;
+                    }
                 }
             });
 
-            // Modal Abonar - Cargar datos
+            // Modal Abonar
             $(document).on('click', '.btn-abonar', function() {
                 deudaActualAbono = parseFloat($(this).data('saldo'));
                 $('#form-abono').attr('action', $(this).data('url'));
                 $('#abono-nombre').text($(this).data('nombre'));
                 $('#abono-saldo').text("$" + deudaActualAbono.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-                $('#input-abono').attr('max', deudaActualAbono).val('');
+                $('#input-abono').val('');
                 $('#modalAbono').modal('show');
             });
         });

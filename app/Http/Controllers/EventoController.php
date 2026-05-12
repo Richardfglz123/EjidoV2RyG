@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Evento;
 use App\Models\Categoria_Evento;
 use Illuminate\Http\Request;
+use App\Models\Sesion;
+use Illuminate\Support\Facades\DB;
 
 class EventoController extends Controller
 {
@@ -78,8 +80,18 @@ class EventoController extends Controller
     public function destroy($id)
     {
         $evento = Evento::findOrFail($id);
+
+        $sesiones = Sesion::where('Id_Referencia', $id)
+            ->where('Tipo', 'Evento')
+            ->get();
+
+        foreach($sesiones as $sesion) {
+            DB::table('asistencia_sesion')->where('Id_Sesion', $sesion->Id_Sesion)->delete();
+            $sesion->delete();
+        }
+
         $evento->delete();
 
-        return redirect()->route('eventos.index')->with('success', 'Evento eliminado con éxito.');
+        return redirect()->route('eventos.index')->with('success', 'Evento y sus registros relacionados eliminados.');
     }
 }

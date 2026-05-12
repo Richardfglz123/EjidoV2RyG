@@ -1,5 +1,8 @@
 <?php
 
+
+use Laravel\Socialite\Facades\Socialite;
+use App\Http\Controllers\SocialController;
 use App\Models\Ejidatario;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ActividadesController;
@@ -21,12 +24,10 @@ use App\Http\Controllers\ProgramaController;
 use App\Http\Controllers\Reparto2Controller;
 use App\Http\Controllers\RepartoController;
 use App\Http\Controllers\MenuController;
-use App\Http\Controllers\SocialController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\MultaController;
 use App\Http\Controllers\PaseListaController;
 use App\Http\Controllers\CategoriaEventoController;
-
 // Modulos Ezequiel
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\ArticuloController;
@@ -34,7 +35,10 @@ use App\Http\Controllers\EntradaController;
 use App\Http\Controllers\SalidaController;
 use App\Http\Controllers\ParcelaController;
 
-//  RUTAS PÚBLICAS Y LOGIN
+Route::get('/auth/google/redirect', [SocialController::class, 'redirectToGoogle'])
+    ->name('google.redirect');
+Route::get('/auth/google/callback', [SocialController::class, 'handleGoogleCallback']);
+
 Route::get('/login', function () {
     return view('cpanel.login.sesion');
 })->name('login.form');
@@ -304,18 +308,6 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: PROGRAMAS ---
-    Route::middleware(['permiso:programas_ver'])->prefix('admon/programas')->group(function () {
-        Route::get('/', [ProgramaController::class, 'index'])->name('programas.index');
-
-        Route::middleware(['permiso:programas_crear'])->group(function () {
-            Route::get('/nuevo', [ProgramaController::class, 'create'])->name('programas.create');
-            Route::post('/', [ProgramaController::class, 'store'])->name('programas.store');
-            Route::get('/{id}/edit', [ProgramaController::class, 'edit'])->name('programas.edit');
-            Route::put('/{id}', [ProgramaController::class, 'update'])->name('programas.update');
-            Route::delete('/{id}', [ProgramaController::class, 'destroy'])->name('programas.destroy');
-        });
-    });
 
     // --- MÓDULO: REPARTOS ---
     Route::middleware(['permiso:repartos_ver'])->prefix('admon/repartos')->group(function () {
@@ -363,6 +355,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::delete('/{id}', [RepartoController::class, 'eliminarPrestamo'])->name('prestamo.eliminar');
             Route::post('/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
             Route::get('/{id}/ticket', [RepartoController::class, 'generarTicketPDF'])->name('prestamo.ticket');
+            Route::get('/ticket/{id}', [RepartoController::class, 'generarTicket'])->name('prestamo.ticket');
         });
 
         Route::prefix('segundo-reparto')->group(function () {
@@ -384,19 +377,19 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-// --- RUTAS PARA EVENTOS ---
+    // --- RUTAS PARA EVENTOS ---
     Route::resource('eventos', EventoController::class);
     Route::resource('categorias', CategoriaEventoController::class);
 
-// --- RUTAS PARA MULTAS ---
+    // --- RUTAS PARA MULTAS ---
     Route::resource('multas', MultaController::class);
 
-// --- RUTAS UNIFICADAS PARA PASE DE LISTA ---
+    // --- RUTAS UNIFICADAS PARA PASE DE LISTA ---
     Route::prefix('asistencia')->group(function () {
 
         // Vista principal: Muestra el formulario de inicio Y la tabla de historial
         Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
-
+        Route::delete('/asistencia/{id}', [PaseListaController::class, 'destroy'])->name('asistencia.destroy');
         // Procesa el inicio de la sesión
         Route::post('/registrar', [PaseListaController::class, 'registrarAsistencia'])->name('asistencia.registrar');
 
@@ -409,15 +402,24 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
 
     });
 
-    // Rutas para google y apple
-    Route::get('/social/redirect/{provider}', [SocialController::class, 'redirectToProvider'])->name('social.redirect');
-    Route::get('/social/callback/{provider}', [SocialController::class, 'handleProviderCallback']);
-    Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
-    // qr
+// --- Rutas de Autenticación Social ---
+
+
+// 3. Desvincular (Esta sí puede ir dentro de tu grupo de autenticados)
+    Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])
+        ->name('social.unlink');
+
+// Ruta para pruebas de QR
     Route::get('/test-qr', function () {
-        $ejidatarios = Ejidatario::with('usuario')->get();
+        $ejidatarios = \App\Models\Ejidatario::with('usuario')->get();
         return view('test_qr', compact('ejidatarios'));
     });
+
+
+// Esta es la que Google llamará de vuelta
+
+
+
     Route::get('/debug-auth', function () {
         return response()->json(session()->all());
     });

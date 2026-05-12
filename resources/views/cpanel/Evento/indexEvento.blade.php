@@ -32,9 +32,18 @@
                     <label class="form-label small fw-bold text-ejidal">Categoría</label>
                     <select name="categoria" class="form-select">
                         <option value="">Todas las categorías</option>
-                        {{-- Aquí recorres tus categorías --}}
                         <option value="1" {{ request('categoria') == '1' ? 'selected' : '' }}>1ra Asamblea elección</option>
                         <option value="2" {{ request('categoria') == '2' ? 'selected' : '' }}>Asamblea extraordinaria</option>
+                        <option value="3" {{ request('categoria') == '3' ? 'selected' : '' }}>Asamblea Diciembre</option>
+                        <option value="4" {{ request('categoria') == '4' ? 'selected' : '' }}>Asamblea Enero</option>
+                        <option value="5" {{ request('categoria') == '5' ? 'selected' : '' }}>Asamblea Marzo</option>
+                        <option value="6" {{ request('categoria') == '6' ? 'selected' : '' }}>Asamblea Junio</option>
+                        <option value="7" {{ request('categoria') == '7' ? 'selected' : '' }}>Asamblea Seprimbre (corte de caja)</option>
+                        <option value="8" {{ request('categoria') == '8' ? 'selected' : '' }}>Asamblea Ordinaria</option>
+                        <option value="9" {{ request('categoria') == '9' ? 'selected' : '' }}>Faena Saneamiento </option>
+                        <option value="10" {{ request('categoria') == '10' ? 'selected' : '' }}>Faena Aprovechamiento</option>
+                        <option value="11" {{ request('categoria') == '11' ? 'selected' : '' }}>Otro</option>
+
                     </select>
                 </div>
 

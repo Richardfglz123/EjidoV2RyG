@@ -34,10 +34,18 @@ class DescuentoController extends Controller
 
     public function faenas()
     {
-        $ejidatarios = Ejidatario::with(['usuario', 'descuentos'])->paginate(15);
         $catalogoFaenas = CatalogoMulta::where('Tipo', 'LIKE', '%Faena%')->get();
+        $costoSaneamiento = CatalogoMulta::where('Tipo', 'LIKE', '%saneamient%')->first()?->Costo ?? 0;
+        $costoAprovechamiento = CatalogoMulta::where('Tipo', 'LIKE', '%aprovecham%')->first()?->Costo ?? 0;
+        $ejidatarios = Ejidatario::with(['usuario', 'descuentos', 'pasesLista'])
+            ->paginate(10);
 
-        return view('cpanel.Descuentos.faenas', compact('ejidatarios', 'catalogoFaenas'));
+        return view('cpanel.Descuentos.faenas', compact(
+            'ejidatarios',
+            'catalogoFaenas',
+            'costoSaneamiento',
+            'costoAprovechamiento'
+        ));
     }
 
     public function descuento(Request $request)
@@ -67,9 +75,9 @@ class DescuentoController extends Controller
             return response()->json(['success' => true]);
         }
 
-        $asambleaElegida = CatalogoMulta::findOrFail($request->id_multa_c);
-        $montoMaestro = CatalogoMulta::where('Tipo', 'ASAMBLEAS')->first();
-        $costoReal = $montoMaestro ? $montoMaestro->Costo : 0;
+        $tipoFaena = CatalogoMulta::findOrFail($request->id_multa_c);
+        $montoConfigurado = CatalogoMulta::where('Tipo', 'LIKE', '%' . $request->concepto_monto . '%')->first();
+        $precioAAplicar = $montoConfigurado ? $montoConfigurado->Costo : 0;
 
         DB::table('Descuentos')->updateOrInsert(
             [
@@ -77,8 +85,8 @@ class DescuentoController extends Controller
                 'Id_MultaC'     => $request->id_multa_c
             ],
             [
-                'tipo'          => $asambleaElegida->Tipo,
-                'Descuento'     => $costoReal,
+                'tipo'          => $tipoFaena->Tipo, // Nombre de la faena (columna)
+                'Descuento'     => $precioAAplicar,   // El precio que "jaló" de configuración
                 'Id_Creo'       => session('usuario.nombre') ?? 'Admin',
                 'Fecha_Creo'    => now()
             ]
@@ -105,23 +113,21 @@ class DescuentoController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'Costo' => 'required|numeric|min:0',
+        ]);
+
         $multaOriginal = CatalogoMulta::findOrFail($id);
         $nuevoCosto = $request->Costo;
-
         if (stripos($multaOriginal->Tipo, 'ASAMBLEA') !== false) {
             CatalogoMulta::where('Tipo', 'LIKE', '%ASAMBLEA%')->update([
-                'Costo' => $nuevoCosto,
-                'Id_Modificado' => session('usuario.nombre') ?? 'Admin',
-                'Fecha_Modificado' => now()
+                'Costo' => $nuevoCosto
             ]);
         } else {
-            $multaOriginal->update([
-                'Costo' => $nuevoCosto,
-                'Id_Modificado' => session('usuario.nombre') ?? 'Admin',
-                'Fecha_Modificado' => now()
-            ]);
+            $multaOriginal->Costo = $nuevoCosto;
+            $multaOriginal->save();
         }
 
-        return redirect()->route('menu')->with('success', 'Precio actualizado globalmente.');
+        return redirect()->route('menu')->with('success', 'Precio actualizado correctamente.');
     }
 }

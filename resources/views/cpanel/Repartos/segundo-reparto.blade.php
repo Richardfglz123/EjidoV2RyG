@@ -95,71 +95,24 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white border-0">
-            {{ $ejidatarios->links() }}
-        </div>
-    </div>
 
-    {{-- MODAL DETALLE (Asambleas/Faenas) --}}
-    <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title" id="tituloDetalle">Detalles</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="card-footer bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="small text-muted">
+                    Mostrando registros del <b>{{ $ejidatarios->firstItem() }}</b> al <b>{{ $ejidatarios->lastItem() }}</b>
+                    de un total de <b>{{ $ejidatarios->total() }}</b>
                 </div>
-                <div class="modal-body p-0">
-                    <table class="table mb-0">
-                        <thead class="small text-uppercase bg-light">
-                        <tr><th>Concepto</th><th>Monto</th><th class="text-center">Acción</th></tr>
-                        </thead>
-                        <tbody id="cuerpoDetalle"></tbody>
-                    </table>
+                <div class="pagination-sm">
+                    {{ $ejidatarios->appends(request()->query())->links() }}
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- MODAL ABONO --}}
-    <div class="modal fade" id="modalAbono" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content card-ejidal border-0 shadow-lg">
-                <div class="modal-header card-header-ejidal border-0">
-                    <h5 class="modal-title fw-normal text-white"><i class="fas fa-coins me-2"></i> Registrar Abono</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formAbono" method="POST">
-                    @csrf
-                    <div class="modal-body p-4 bg-white text-dark text-center">
-                        <h6 id="nombreEjidatario" class="fw-bold mb-1"></h6>
-                        <div class="p-2 border rounded bg-light mb-3">
-                            <small class="text-danger d-block fw-bold small">SALDO PENDIENTE</small>
-                            <span class="h4 mb-0 fw-bold text-danger" id="saldoPendiente"></span>
-                        </div>
-                        <div class="form-group text-start">
-                            <label class="small fw-bold mb-2">MONTO A ABONAR:</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" name="monto_abono" id="inputMonto" class="form-control fw-bold text-center" step="0.01" min="0.01" required>
-                                <button type="button" class="btn btn-dark" onclick="liquidarTodo()">TODO</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light border-0">
-                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="submit" class="btn btn-ejidal px-3">Guardar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- SCRIPTS FINALES --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         let saldoGlobal = 0;
 
-        // --- LÓGICA DE DETALLES Y ELIMINACIÓN ---
         function verDetalle(id, tipo) {
             const url = tipo === 'asambleas' ? `/detalle-asambleas/${id}` : `/detalle-faenas/${id}`;
             $('#tituloDetalle').text(tipo === 'asambleas' ? 'DESCUENTOS POR ASAMBLEAS' : 'DESCUENTOS POR FAENAS');
@@ -170,7 +123,6 @@
                 let html = '';
                 if(data.length > 0) {
                     data.forEach(d => {
-                        // Verificamos si el ID viene como 'id' o 'Id_Descuento' según tu base de datos
                         let idDescuento = d.id || d.Id_Descuento;
                         html += `<tr>
                             <td class="small text-uppercase">${d.tipo}</td>
@@ -205,8 +157,6 @@
                 }
             });
         }
-
-        // --- LÓGICA DE ABONOS (RESTAURADA Y PROBADA) ---
         function abrirModalAbono(nombre, saldo, url) {
             saldoGlobal = parseFloat(saldo);
             $('#nombreEjidatario').text(nombre);

@@ -15,7 +15,6 @@
         </div>
     </div>
 
-    {{-- SECCIÓN 1: INFORMACIÓN DE REPARTOS --}}
     <div class="card card-ejidal mb-4 shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
             <h3 class="card-title m-0" style="font-size: 1.1rem;">
@@ -76,7 +75,7 @@
     <div class="card card-ejidal shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
             <h3 class="card-title m-0" style="font-size: 1.1rem;">
-                <i class="fas fa-minus-circle me-2"></i> Descuentos Faenas y Asambleas
+                <i class="fas fa-minus-circle me-2"></i> Multas Faenas y Asambleas
             </h3>
             <a href="{{ route('descuento.descuento') }}" class="btn btn-sm btn-light fw-bold">
                 <i class="fas fa-edit me-1"></i> AJUSTAR DESCUENTOS

@@ -11,15 +11,23 @@ class Prestamo extends Model
 
     protected $table = 'Prestamo';
     protected $primaryKey = 'Id_Prestamo';
+
+    // Desactivamos timestamps porque tu tabla no tiene created_at/updated_at
     public $timestamps = false;
 
     protected $fillable = [
         'Fecha',
         'Cantidad',
-        'Motivo',
+        'Motivo', // Agregado correctamente
         'Id_Ejidatario',
         'Id_Utilidad',
-        'Saldo_Continuo',
+        // 'Saldo_Continuo', // Asegúrate de que esta columna exista en la BD
+    ];
+
+    // Ayuda a Laravel a manejar los tipos de datos correctamente
+    protected $casts = [
+        'Fecha' => 'date',
+        'Cantidad' => 'decimal:2',
     ];
 
     public function ejidatario()
@@ -29,6 +37,7 @@ class Prestamo extends Model
 
     public function utilidad()
     {
+        // Asegúrate de que el modelo Utilidad exista y use 'Id_Utilidad' como PK
         return $this->belongsTo(Utilidad::class, 'Id_Utilidad');
     }
 }
