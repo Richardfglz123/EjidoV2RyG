@@ -424,7 +424,6 @@ class EjidatarioSeeder extends Seeder
 
             $nombreLimpio = trim(str_replace(["\n", "\r"], ' ', $nombreSucio));
 
-            // 2. Creamos el Usuario primero
             $nuevoUsuario = Usuario::create([
                 'Nombres'          => $nombreLimpio,
                 'Apellido_Paterno' => $apPaterno,

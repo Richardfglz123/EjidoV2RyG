@@ -2,15 +2,11 @@
 @section('title', 'Gestión de Ejidatarios')
 
 @section('content')
-    {{-- Librerías --}}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
     <style>
-        /* Título en Negro (Igual que Usuarios) */
         .text-negro-titulo { color: #000000 !important; font-weight: normal !important; }
-
-        /* EL VERDE EXACTO (#198754) APLICADO A LAS CLASES */
         .card-header-ejidal {
             background-color: #198754 !important;
             color: white !important;
@@ -28,7 +24,6 @@
             color: white !important;
         }
 
-        /* Ajustes Select2 para que combine con el verde */
         .select2-container--bootstrap-5.select2-container--focus .select2-selection {
             border-color: #198754 !important;
             box-shadow: 0 0 0 .25rem rgba(25, 135, 84, 0.25) !important;
