@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Prestamo;
 use App\Models\Utilidad;
-use App\Models\usuario;
+use App\Models\Usuario; // CORREGIDO: 'Usuario' con U mayúscula
 use App\Models\Ejidatario;
 use App\Models\CatalogoMulta;
 use App\Models\Abono;
@@ -38,7 +38,7 @@ class RepartoController extends Controller
             'responsable' => 'required',
         ]);
 
-        $utilidad = Utilidad::where('Id_Utilidad', $id)->firstOrFail();
+        $utilidad = Utilidad::where('Id_Utility', $id)->orWhere('Id_Utilidad', $id)->firstOrFail();
 
         $utilidad->Monto = $request->monto;
         $utilidad->Año = $request->anio;
@@ -56,7 +56,7 @@ class RepartoController extends Controller
     public function index(Request $request)
     {
         $utilidades = Utilidad::all();
-        $usuarios = usuario::all();
+        $usuarios = Usuario::all(); // CORREGIDO: Uso de clase con mayúscula
         $idSeleccionado = $request->input('id_utilidad');
         $utilidadSeleccionada = $idSeleccionado ? Utilidad::find($idSeleccionado) : null;
 
@@ -75,10 +75,35 @@ class RepartoController extends Controller
             ? Carbon::now()->gt(Carbon::parse($fechaLimite)->endOfDay())
             : false;
 
-        $prestamos = Prestamo::where('Id_Utilidad', $idPrimerReparto)
-            ->with('ejidatario.usuario')
-            ->withSum('abonos as total_abonado', 'Monto') // <-- Crucial: añade esto
+        // 1. Traemos los préstamos haciendo Join para asegurar los datos en entornos estrictos (Linux)
+        $prestamos = Prestamo::select(
+            'Prestamo.*',
+            'usuario.Nombres as usuario_nombres',
+            'usuario.Apellido_Paterno as usuario_paterno',
+            'usuario.Apellido_Materno as usuario_materno'
+        )
+            ->leftJoin('Ejidatario', 'Prestamo.Id_Ejidatario', '=', 'Ejidatario.Id_Ejidatario')
+            ->leftJoin('usuario', 'Ejidatario.Id_usuario', '=', 'usuario.Id_usuario')
+            ->where('Prestamo.Id_Utilidad', $idPrimerReparto)
+            ->withSum('abonos as total_abonado', 'Monto')
             ->paginate(10);
+
+        // 2. Mapeamos los datos planos para inyectarlos en la estructura que Blade espera leer
+        $prestamos->getCollection()->transform(function ($prestamo) {
+            if (!$prestamo->ejidatario) {
+                $prestamo->setRelation('ejidatario', new \App\Models\Ejidatario());
+            }
+            if (!$prestamo->ejidatario->usuario) {
+                $prestamo->ejidatario->setRelation('usuario', new \App\Models\Usuario());
+            }
+
+            // Seteamos los valores recuperados del join directo
+            $prestamo->ejidatario->usuario->Nombres = $prestamo->usuario_nombres ?? 'Ejidatario';
+            $prestamo->ejidatario->usuario->Apellido_Paterno = $prestamo->usuario_paterno ?? '';
+            $prestamo->ejidatario->usuario->Apellido_Materno = $prestamo->usuario_materno ?? '';
+
+            return $prestamo;
+        });
 
         return view('cpanel.Repartos.primer-reparto', compact(
             'prestamos', 'montoReparto1', 'deadlinePasada', 'reparto1'
@@ -98,7 +123,7 @@ class RepartoController extends Controller
         }
 
         $prestamos = Prestamo::where('Id_Utilidad', $segundoReparto->Id_Utilidad)
-            ->with('ejidatario.usuario')
+            ->with(['ejidatario.usuario'])
             ->paginate(10);
 
         return view('cpanel.repartos.segundo-reparto', compact(
@@ -130,18 +155,21 @@ class RepartoController extends Controller
     public function buscarEjidatario(Request $request)
     {
         $q = $request->q;
-        $ejidatarios = Ejidatario::with('usuario')
-            ->whereHas('usuario', function ($query) use ($q) {
-                $query->where('Nombres', 'LIKE', "%{$q}%")
-                    ->orWhere('Apellido_Paterno', 'LIKE', "%{$q}%")
-                    ->orWhere('Apellido_Materno', 'LIKE', "%{$q}%");
-            })->get();
+
+        // Buscamos directamente haciendo join con Query Builder para evitar fallos de relación
+        $ejidatarios = DB::table('Ejidatario')
+            ->join('usuario', 'Ejidatario.Id_usuario', '=', 'usuario.Id_usuario')
+            ->where('usuario.Nombres', 'LIKE', "%{$q}%")
+            ->orWhere('usuario.Apellido_Paterno', 'LIKE', "%{$q}%")
+            ->orWhere('usuario.Apellido_Materno', 'LIKE', "%{$q}%")
+            ->select('Ejidatario.Id_Ejidatario', 'usuario.Nombres', 'usuario.Apellido_Paterno', 'usuario.Apellido_Materno')
+            ->get();
 
         return response()->json(
             $ejidatarios->map(function ($e) {
                 return [
                     'id' => $e->Id_Ejidatario,
-                    'text' => $e->usuario->Nombres . ' ' . $e->usuario->Apellido_Paterno . ' ' . $e->usuario->Apellido_Materno
+                    'text' => $e->Nombres . ' ' . $e->Apellido_Paterno . ' ' . $e->Apellido_Materno
                 ];
             })
         );
@@ -150,9 +178,8 @@ class RepartoController extends Controller
     public function obtenerSaldo($id_ejidatario)
     {
         try {
-            $utilidad = DB::table('utilidad')
-            ->where('Id_Utilidad', 1)
-                ->first();
+            // CORREGIDO: Uso del Query Builder en minúsculas sustituido por consistencia con el Modelo
+            $utilidad = Utilidad::find(1);
 
             if (!$utilidad) {
                 return response()->json(['saldo_disponible' => 0]);
@@ -228,7 +255,6 @@ class RepartoController extends Controller
         }
         return response()->json(['success' => false, 'message' => 'No se encontró el registro'], 404);
     }
-
 
     public function generarTicketPDF($id) {
         $prestamo = Prestamo::with(['ejidatario.usuario', 'abonos'])->findOrFail($id);

@@ -58,20 +58,18 @@
                     <tbody class="fw-normal">
                     @forelse ($prestamos as $prestamo)
                         @php
-                            // Calculamos el saldo real pendiente restando la suma de los abonos
                             $saldoPendiente = max($prestamo->Cantidad - ($prestamo->total_abonado ?? 0), 0);
+                            $nombreEjidatario = trim(($prestamo->ejidatario?->usuario?->Nombres ?? 'Ejidatario') . ' ' . ($prestamo->ejidatario?->usuario?->Apellido_Paterno ?? ''));
                         @endphp
                         <tr>
                             <td class="ps-3 text-muted small">{{ $loop->iteration }}</td>
                             <td class="text-dark">
-                                {{ $prestamo->ejidatario->usuario->Nombres ?? '' }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno ?? '' }}
+                                {{ $nombreEjidatario }}
                             </td>
-                            <!-- Muestra la deuda real tras los abonos -->
                             <td class="text-danger fw-normal">${{ number_format($saldoPendiente, 2) }}</td>
                             <td class="text-muted small">{{ $prestamo->Motivo }}</td>
                             <td>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y') }}</td>
                             <td>
-                                <!-- Recalcula el saldo que el Ejido tiene libre para este ejidatario -->
                                 <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4;">
                                     ${{ number_format($montoReparto1 - $saldoPendiente, 2) }}
                                 </span>
@@ -89,18 +87,17 @@
                                         <button class="btn btn-outline-secondary btn-editar"
                                                 data-id="{{ $prestamo->Id_Prestamo }}"
                                                 data-idejidatario="{{ $prestamo->Id_Ejidatario }}"
-                                                data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
+                                                data-nombre="{{ $nombreEjidatario }}"
                                                 data-motivo="{{ $prestamo->Motivo }}"
                                                 data-cantidad="{{ $prestamo->Cantidad }}"
                                                 title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </button>
 
-                                        <!-- Corregido el data-url y enviado el saldo pendiente dinámico -->
                                         <button class="btn btn-outline-success btn-abonar"
                                                 style="border: 1px solid #1b4b36 !important;"
                                                 data-url="{{ route('prestamo.abonar', $prestamo->Id_Prestamo) }}"
-                                                data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
+                                                data-nombre="{{ $nombreEjidatario }}"
                                                 data-saldo="{{ $saldoPendiente }}"
                                                 title="Abonar">
                                             <i class="fas fa-money-bill-wave"></i>
@@ -339,6 +336,7 @@
                     }
                 }
             });
+
             $(document).on('click', '.btn-abonar', function() {
                 deudaActualAbono = parseFloat($(this).data('saldo'));
                 $('#form-abono').attr('action', $(this).data('url'));
