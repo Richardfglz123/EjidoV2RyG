@@ -1,5 +1,5 @@
 @extends('cpanel/plantilla')
-@section('title','Asistencia de Asambleas')
+@section('title','Descuento de Asambleas')
 
 @section('content')
 
@@ -28,7 +28,6 @@
             align-items: center; justify-content: center; border: 1px solid #dee2e6;
         }
 
-        /* Badges de Asistencia estilo Faenas */
         .badge-asistencia {
             font-size: 0.75rem; padding: 0.5em 0.8em;
             border-radius: 50rem; text-transform: uppercase; font-weight: bold;
@@ -37,7 +36,7 @@
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2 text-header-main">
-            <i class="fas fa-users text-success me-2"></i> Asistencia de Asambleas
+            <i class="fas fa-users text-success me-2"></i> Descuento Asambleas
         </h1>
     </div>
 

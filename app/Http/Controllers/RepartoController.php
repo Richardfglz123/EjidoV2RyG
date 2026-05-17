@@ -8,6 +8,7 @@ use App\Models\Utilidad;
 use App\Models\Usuario;
 use App\Models\Ejidatario;
 use App\Models\CatalogoMulta;
+use App\Models\Abono;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -76,6 +77,7 @@ class RepartoController extends Controller
 
         $prestamos = Prestamo::where('Id_Utilidad', $idPrimerReparto)
             ->with('ejidatario.usuario')
+            ->withSum('abonos as total_abonado', 'Monto') // <-- Crucial: añade esto
             ->paginate(10);
 
         return view('cpanel.repartos.primer-reparto', compact(
@@ -194,11 +196,13 @@ class RepartoController extends Controller
     {
         $request->validate(['monto_abono' => 'required|numeric|min:0.01']);
 
-        $prestamo = Prestamo::findOrFail($id);
-        $prestamo->Cantidad = max($prestamo->Cantidad - $request->monto_abono, 0);
-        $prestamo->save();
+        Abono::create([
+            'Id_Prestamo' => $id,
+            'Monto'       => $request->monto_abono,
+            'Fecha'       => now()
+        ]);
 
-        return redirect()->back()->with('success', 'Abono registrado correctamente.');
+        return redirect()->back()->with('success', 'Abono registrado en el historial correctamente');
     }
 
     public function eliminarPrestamo($id)
@@ -225,14 +229,21 @@ class RepartoController extends Controller
         return response()->json(['success' => false, 'message' => 'No se encontró el registro'], 404);
     }
 
+
     public function generarTicketPDF($id) {
-        $prestamo = Prestamo::with('ejidatario.usuario')->findOrFail($id);
+        $prestamo = Prestamo::with(['ejidatario.usuario', 'abonos'])->findOrFail($id);
+
         $reparto = Utilidad::find(1);
         $montoReparto1 = $reparto?->Monto ?? 0;
 
+        $totalAbonado = $prestamo->abonos->sum('Monto');
+        $saldoRestante = max($prestamo->Cantidad - $totalAbonado, 0);
+
         $pdf = \PDF::loadView('cpanel.Repartos.primer-reparto-pdf', [
-            'prestamo' => $prestamo,
-            'montoReparto1' => $montoReparto1
+            'prestamo'      => $prestamo,
+            'montoReparto1' => $montoReparto1,
+            'totalAbonado'  => $totalAbonado,
+            'saldoRestante' => $saldoRestante
         ]);
 
         return $pdf->stream('ticket-prestamo-'.$id.'.pdf');

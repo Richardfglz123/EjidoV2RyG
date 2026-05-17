@@ -14,12 +14,8 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
-    public function boot(): void
+    public function boot()
     {
-        /* COMENTA ESTO PARA QUE SAFARI NO BUSQUE HTTPS EN LOCAL
-        if (config('app.env') === 'local') {
-            URL::forceScheme('https');
-        }
-        */
+        Paginator::useBootstrapFive(); // O useBootstrapFour();
     }
 }

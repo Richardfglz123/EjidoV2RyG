@@ -57,22 +57,27 @@
                     </thead>
                     <tbody class="fw-normal">
                     @forelse ($prestamos as $prestamo)
+                        @php
+                            // Calculamos el saldo real pendiente restando la suma de los abonos
+                            $saldoPendiente = max($prestamo->Cantidad - ($prestamo->total_abonado ?? 0), 0);
+                        @endphp
                         <tr>
                             <td class="ps-3 text-muted small">{{ $loop->iteration }}</td>
                             <td class="text-dark">
                                 {{ $prestamo->ejidatario->usuario->Nombres ?? '' }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno ?? '' }}
                             </td>
-                            <td class="text-danger fw-normal">${{ number_format($prestamo->Cantidad, 2) }}</td>
+                            <!-- Muestra la deuda real tras los abonos -->
+                            <td class="text-danger fw-normal">${{ number_format($saldoPendiente, 2) }}</td>
                             <td class="text-muted small">{{ $prestamo->Motivo }}</td>
                             <td>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y') }}</td>
                             <td>
+                                <!-- Recalcula el saldo que el Ejido tiene libre para este ejidatario -->
                                 <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4;">
-                                    ${{ number_format($montoReparto1 - $prestamo->Cantidad, 2) }}
+                                    ${{ number_format($montoReparto1 - $saldoPendiente, 2) }}
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    {{-- BOTÓN TICKET PDF (Manda a llamar a generarTicket en RepartoController) --}}
                                     <a href="{{ route('prestamo.ticket', $prestamo->Id_Prestamo) }}"
                                        class="btn btn-outline-primary"
                                        target="_blank"
@@ -90,14 +95,17 @@
                                                 title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </button>
+
+                                        <!-- Corregido el data-url y enviado el saldo pendiente dinámico -->
                                         <button class="btn btn-outline-success btn-abonar"
                                                 style="border: 1px solid #1b4b36 !important;"
                                                 data-url="{{ route('prestamo.abonar', $prestamo->Id_Prestamo) }}"
                                                 data-nombre="{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}"
-                                                data-saldo="{{ $prestamo->Cantidad }}"
+                                                data-saldo="{{ $saldoPendiente }}"
                                                 title="Abonar">
                                             <i class="fas fa-money-bill-wave"></i>
                                         </button>
+
                                         <form action="{{ route('prestamo.eliminar', $prestamo->Id_Prestamo) }}" method="POST" class="d-inline">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar registro?')" title="Eliminar">
@@ -118,8 +126,6 @@
             </div>
         </div>
     </div>
-
-    {{-- Los Modales permanecen igual --}}
 
     {{-- MODAL AGREGAR --}}
     <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true">
@@ -298,7 +304,6 @@
                 }
             });
 
-            // Modal Editar
             $(document).on('click', '.btn-editar', function() {
                 const idPrestamo = $(this).data('id');
                 const idEjidatario = $(this).data('idejidatario');
@@ -334,8 +339,6 @@
                     }
                 }
             });
-
-            // Modal Abonar
             $(document).on('click', '.btn-abonar', function() {
                 deudaActualAbono = parseFloat($(this).data('saldo'));
                 $('#form-abono').attr('action', $(this).data('url'));

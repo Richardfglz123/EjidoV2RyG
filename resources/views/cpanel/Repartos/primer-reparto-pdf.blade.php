@@ -84,13 +84,13 @@
 <div class="ticket-wrapper">
     <div class="header">
         <h1>EJIDO {{ env('APP_NAME', 'SISTEMA DE CONTROL') }}</h1>
-        <p><strong>COMPROBANTE DE PRÉSTAMO</strong><br>
+        <p><strong>ESTADO DE CUENTA Y PRÉSTAMO</strong><br>
             Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
     </div>
 
     <div class="info-section">
         <div class="info-row">
-            <span class="label">Fecha:</span>
+            <span class="label">Fecha Inicial:</span>
             <span>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y H:i') }}</span>
         </div>
         <div class="info-row">
@@ -99,11 +99,12 @@
         </div>
     </div>
 
+    <!-- SECCIÓN DE DETALLE ORIGINAL -->
     <table class="table">
         <thead>
         <tr>
             <th>DESCRIPCIÓN</th>
-            <th style="text-align: right;">MONTO</th>
+            <th style="text-align: right;">MONTO ORIG.</th>
         </tr>
         </thead>
         <tbody>
@@ -114,19 +115,50 @@
         </tbody>
     </table>
 
+    <hr style="border: none; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+    <!-- NUEVA SECCIÓN: HISTORIAL DE MOVIMIENTOS / ABONOS -->
+    <div class="fw-bold" style="font-size: 11px; margin-bottom: 5px; text-transform: uppercase;">Historial de Pagos:</div>
+    <table class="table" style="margin-top: 0;">
+        <tbody>
+        @if($prestamo->abonos->count() > 0)
+            @foreach($prestamo->abonos as $index => $abono)
+                <tr>
+                    <td style="font-size: 10px; color: #555;">
+                        Abono #{{ $index + 1 }} ({{ \Carbon\Carbon::parse($abono->Fecha)->format('d/m/Y') }})
+                    </td>
+                    <td style="text-align: right; font-size: 10px;" class="fw-bold">
+                        -${{ number_format($abono->Monto, 2) }}
+                    </td>
+                </tr>
+            @endforeach
+        @else
+            <tr>
+                <td colspan="2" style="font-size: 10px; color: #777; font-style: italic;">Sin abonos registrados a la fecha.</td>
+            </tr>
+        @endif
+        </tbody>
+    </table>
+
+    <!-- SECCIÓN DE TOTALES ACTUALIZADOS -->
     <div class="total-section">
-        <span class="fw-bold">DEUDA REGISTRADA: ${{ number_format($prestamo->Cantidad, 2) }}</span>
+        <div style="font-size: 11px; color: #555;">Total Prestado: ${{ number_format($prestamo->Cantidad, 2) }}</div>
+        <div style="font-size: 11px; color: #555;">Total Abonado: -${{ number_format($totalAbonado, 2) }}</div>
+        <div class="fw-bold" style="font-size: 13px; margin-top: 4px; border-top: 1px dashed #000; padding-top: 4px;">
+            SALDO PENDIENTE: ${{ number_format($saldoRestante, 2) }}
+        </div>
     </div>
 
+    <!-- FONDO DE REPARTO EJIDAL -->
     <div class="info-section" style="margin-top: 15px; font-size: 10px; background: #f9f9f9; padding: 5px;">
-        {{-- Aquí usamos la variable $montoReparto1 que agregamos al controlador --}}
         <div class="info-row">
             <span>Fondo del Reparto:</span>
             <span>${{ number_format($montoReparto1, 2) }}</span>
         </div>
         <div class="info-row">
-            <span class="fw-bold">Saldo Estimado Restante:</span>
-            <span class="fw-bold">${{ number_format($montoReparto1 - $prestamo->Cantidad, 2) }}</span>
+            <span class="fw-bold">Saldo Neto Restante en Reparto:</span>
+            <!-- Al fondo original le restamos lo que verdaderamente nos debe hoy -->
+            <span class="fw-bold">${{ number_format($montoReparto1 - $saldoRestante, 2) }}</span>
         </div>
     </div>
 

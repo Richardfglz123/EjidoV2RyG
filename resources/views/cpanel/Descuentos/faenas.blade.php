@@ -46,7 +46,6 @@
         </h1>
     </div>
 
-    {{-- Buscador con el estilo de Usuarios --}}
     <div class="card card-ejidal mb-4">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-search me-2"></i> Búsqueda de Ejidatarios

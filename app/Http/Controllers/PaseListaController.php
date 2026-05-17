@@ -36,7 +36,6 @@ class PaseListaController extends Controller
             'tipo'          => 'required',
             'fecha'         => 'required|date',
         ]);
-
         $sesion = Sesion::firstOrCreate(
             [
                 'Tipo'          => $request->tipo,
@@ -61,7 +60,7 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request) {
         try {
             $id_sesion = $request->id_sesion;
-            $sesion = Sesion::findOrFail($id_sesion); // Esta es la sesión del escáner
+            $sesion = Sesion::findOrFail($id_sesion);
 
             $raw = strtoupper($request->qr_data);
             $soloLetrasQR = preg_replace('/[^A-Z]/', '', $raw);
@@ -69,7 +68,6 @@ class PaseListaController extends Controller
             if (empty($soloLetrasQR)) {
                 return response()->json(['success' => false, 'message' => "QR ilegible"]);
             }
-
             $ejidatario = Ejidatario::whereHas('usuario', function($q) use ($soloLetrasQR) {
                 $q->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(Nombres, Apellido_Paterno, Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
                     'LIKE',
@@ -81,11 +79,9 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "No registrado: " . substr($raw, 0, 15)]);
             }
 
-            $idParaRelacionar = ($sesion->Tipo === 'Evento') ? $sesion->Id_Referencia : $id_sesion;
-
             DB::table('PaseLista')->updateOrInsert(
                 [
-                    'Id_Sesion' => $idParaRelacionar, // Ahora sí guardará el 11 o 12
+                    'Id_Sesion' => $sesion->Id_Sesion,
                     'Id_Ejidatario' => $ejidatario->Id_Ejidatario
                 ],
                 [
@@ -102,7 +98,7 @@ class PaseListaController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error de base de datos: " . $e->getMessage()]);
         }
     }
 

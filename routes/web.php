@@ -118,26 +118,22 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: DESCUENTOS Y VISTA AUTOMÁTICA DE FAENAS ---
+    // --- MÓDULO: DESCUENTOS Y AJAX (CORREGIDO PARA REPARTO 2) ---
+    Route::get('/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas']);
+    Route::get('/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas']);
+    Route::post('/reprográmr-falta', [Reparto2Controller::class, 'reprogramarFalta'])->name('reprogramar.falta');
     Route::get('/descuentos-asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
     Route::get('/ejidatarios/buscar-descuentos', [DescuentoController::class, 'buscar'])->name('descuentos.buscar_ejidatario');
     Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
     Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
-    // --- MÓDULO: DESCUENTOS Y VISTA AUTOMÁTICA DE Asambleas ---
-    Route::get('/descuentos/asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
 
-    // AQUÍ ESTÁ EL CAMBIO CLAVE: Apuntamos al FaenasController correcto para solucionar el error de la vista
+    // Ruta para el botón de "Abonar/Pagar" en el Segundo Reparto
+    Route::post('/prestamo/abonar-r2/{id}', [Reparto2Controller::class, 'abonarPrestamo'])->name('prestamo.abonar.r2');
+
+    Route::get('/descuentos/asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
     Route::get('/descuentos-faenas', [FaenasController::class, 'index'])->name('descuentos.faenas');
     Route::post('/faenas/aplicar', [FaenasController::class, 'aplicarDescuento'])->name('faenas.aplicar');
-
-
-    // --- MÓDULO: DETALLES SEGUNDO REPARTO Y ACCIONES ---
-    Route::get('/reparto2/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
-    Route::get('/reparto2/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
-    Route::delete('/reparto2/perdonar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.perdonar');
-    Route::delete('/descuento/eliminar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('descuento.eliminar');
-    Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
 
 
     // --- MÓDULO: ACTIVIDADES ---
@@ -340,7 +336,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::get('/pdf', [RepartoController::class, 'generarPDF'])->name('reparto.primer.pdf');
             Route::get('/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
             Route::post('/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
-            Route::get('/buscar-ejidatario', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
+            Route::get('/buscar-ejidatario', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar_primer');
             Route::get('/ejidatario/{id}/saldo', [RepartoController::class, 'obtenerSaldo'])->name('prestamo.saldo');
         });
 
@@ -350,13 +346,15 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::delete('/{id}', [RepartoController::class, 'eliminarPrestamo'])->name('prestamo.eliminar');
             Route::post('/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
             Route::get('/{id}/ticket', [RepartoController::class, 'generarTicketPDF'])->name('prestamo.ticket');
-            Route::get('/ticket/{id}', [RepartoController::class, 'generarTicket'])->name('prestamo.ticket');
+            Route::get('/ticket/{id}', [RepartoController::class, 'generarTicket'])->name('prestamo.ticket.alias');
         });
 
         Route::prefix('segundo-reparto')->group(function () {
             Route::get('/', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('reparto.segundo');
             Route::get('/alias', [Reparto2Controller::class, 'mostrarSegundoReparto'])->name('repartos.segundo');
             Route::get('/pdf', [Reparto2Controller::class, 'generarPDF'])->name('reparto.segundo.pdf');
+            Route::post('/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
+            Route::get('/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
         });
 
         Route::prefix('prestamo2')->group(function () {
@@ -366,9 +364,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::post('/abonar/{id}', [Reparto2Controller::class, 'agregarAbono'])->name('prestamo2.abonar');
         });
 
-        Route::post('/reparto/segundo/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
-        Route::get('/reparto/segundo/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
-        Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar');
+        Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar_segundo');
     });
 
 

@@ -25,13 +25,9 @@ class Usuario extends Authenticatable
     {
         return $this->Contraseña;
     }
-    /**
-     * Relación con los documentos del expediente del usuario.
-     */
+
     public function documentos()
     {
-        // Si tu modelo de Documentos se llama 'Documento'
-        // Laravel asume que la llave foránea en esa tabla es 'usuario_id' o 'Id_Usuario'
-        return $this->hasMany(\App\Models\Documento::class, 'Id_Usuario');
+        return $this->hasMany(\App\Models\DocumentoUsuario::class, 'Id_Usuario');
     }
 }

@@ -8,22 +8,27 @@ use App\Models\Usuario;
 use App\Models\Descuento;
 use App\Models\CatalogoMulta;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class FaenasController extends Controller
 {
     public function index(Request $request)
     {
-        $anoActual = \Carbon\Carbon::now()->year;
+        $anoActual = now()->year;
 
-        // 1. Obtener eventos de faena (Categorías 9 y 10)
-        $eventosFaenas = \DB::table('Evento')
+        $eventosFaenas = DB::table('Evento')
             ->whereIn('Id_Categoria_Evento', [9, 10])
             ->whereYear('Fecha_Creo', $anoActual)
             ->whereNull('Fecha_Eliminado')
             ->get();
 
-        // 2. Obtener ejidatarios
+        $sesionesFaenas = DB::table('Sesion')
+            ->whereIn('Id_Referencia', $eventosFaenas->pluck('Id_Evento'))
+            ->where('Tipo', 'Evento')
+            ->select('Id_Sesion', 'Id_Referencia')
+            ->get();
+
+        $idsSesiones = $sesionesFaenas->pluck('Id_Sesion')->toArray();
+
         $query = Ejidatario::with(['usuario', 'descuentos']);
 
         if ($request->filled('query')) {
@@ -37,24 +42,17 @@ class FaenasController extends Controller
 
         $ejidatarios = $query->paginate(10);
 
-        // 3. Mapear asistencias POR CADA EJIDATARIO
-// En FaenasController.php, dentro del foreach de ejidatarios:
         foreach ($ejidatarios as $ejidatario) {
-            // Buscamos asistencias donde el Id_Sesion coincida con el Id_Evento
-            // O donde la Sesión esté vinculada al evento por Id_Referencia
-            $ejidatario->asistencias_confirmadas = DB::table('PaseLista')
-                ->leftJoin('Sesion', 'PaseLista.Id_Sesion', '=', 'Sesion.Id_Sesion')
-                ->where('PaseLista.Id_Ejidatario', $ejidatario->Id_Ejidatario)
-                ->where('PaseLista.Asistencia', 1)
-                ->where(function($q) use ($eventosFaenas) {
-                    $ids = $eventosFaenas->pluck('Id_Evento');
-                    $q->whereIn('PaseLista.Id_Sesion', $ids) // Casos nuevos
-                    ->orWhereIn('Sesion.Id_Referencia', $ids); // Casos viejos (7, 8 vinculados a 11, 12)
-                })
-                ->pluck('PaseLista.Id_Sesion', 'Sesion.Id_Referencia')
-                ->map(function($val, $key) {
-                    return $key ?: $val; // Retorna el ID del evento sin importar la columna
-                })
+            $asistenciasEnSesion = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->whereIn('Id_Sesion', $idsSesiones)
+                ->pluck('Id_Sesion')
+                ->toArray();
+
+            $ejidatario->asistencias_confirmadas = $sesionesFaenas
+                ->whereIn('Id_Sesion', $asistenciasEnSesion)
+                ->pluck('Id_Referencia')
                 ->toArray();
         }
 
@@ -63,7 +61,6 @@ class FaenasController extends Controller
 
     public function aplicarDescuento(Request $request)
     {
-        // 🔥 CORRECCIÓN: Ajustados los nombres de tablas/columnas a la estructura Real (Id_Ejidatario, Catalogo_Multa)
         $request->validate([
             'id_ejidatario' => 'required|integer',
             'nombre_faena' => 'required|string|max:100',
@@ -76,7 +73,7 @@ class FaenasController extends Controller
 
         if ($id_multa) {
             $multa = CatalogoMulta::find($id_multa);
-            $montoDescuento = $multa->Costo ?? $multa->monto; // Protegido por si es Costo o monto
+            $montoDescuento = $multa->Costo ?? $multa->monto;
 
             Descuento::updateOrCreate(
                 [
@@ -102,8 +99,6 @@ class FaenasController extends Controller
         if (empty($query)) {
             return response()->json([]);
         }
-
-        // 🔥 CORRECCIÓN: Cambiado 'nombre' por 'Nombres', 'apellido_paterno' por 'Apellido_Paterno', etc.
         $usuarios = Usuario::whereHas('ejidatario')
             ->where(function($q) use ($query) {
                 $q->where('Nombres', 'LIKE', '%' . $query . '%')

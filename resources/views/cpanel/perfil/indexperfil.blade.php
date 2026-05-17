@@ -15,7 +15,6 @@
         </div>
 
         <div class="card-body p-4">
-            {{-- FORMULARIO 1: ACTUALIZACIÓN DE DATOS DEL PERFIL --}}
             <form method="POST" action="{{ route('perfil.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
@@ -140,7 +139,7 @@
                             <div>
                                 <strong class="d-block" style="color: #01579b; font-size: 0.9rem;">¿Para qué sirve vincular mi cuenta?</strong>
                                 <p class="mb-0 small text-secondary" style="line-height: 1.4;">
-                                    Al vincular tu cuenta de Google, podrás entrar al sistema de forma más rápida con un solo clic.
+                                    Al vincular tu cuenta de Google, podrás entrar al sistema de forma más rápida con un solo clic, RECUERDA QUE DEBES TENER EL MISMO COREO REGITRADO AL QUE QUIERES LOGEAR A GOOGLE.
                                 </p>
                             </div>
                         </div>
