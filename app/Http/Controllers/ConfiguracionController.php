@@ -10,10 +10,12 @@ class ConfiguracionController extends Controller
     public function permisos()
     {
         $roles = DB::table('Roles')->get();
-        return view('cpanel.Configuracion.permisos', compact('roles'));
+        // Corregido a minúsculas por buena práctica en rutas de vistas
+        return view('cpanel.configuracion.permisos', compact('roles'));
     }
 
-    public function buscarusuariosAjax(Request $request)
+    // CORREGIDO: 'buscarUsuariosAjax' con U mayúscula para que coincida con web.php
+    public function buscarUsuariosAjax(Request $request)
     {
         return DB::table('usuario')
             ->where('usuario', 'LIKE', '%' . $request->q . '%')
@@ -22,7 +24,8 @@ class ConfiguracionController extends Controller
             ->get();
     }
 
-    public function obtenerPermisosusuario($id)
+    // CORREGIDO: 'obtenerPermisosUsuario' con U mayúscula para coincidir con web.php
+    public function obtenerPermisosUsuario($id)
     {
         $datos = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
@@ -54,8 +57,8 @@ class ConfiguracionController extends Controller
         $miRolNombre = session('usuario.rol_nombre');
 
         // Definimos quién es "Dios" en el sistema (Superadmin)
-        // Puedes usar el ID del Rol (1) o tu correo específico
         $soySuperAdmin = ($miIdRol == 1 || session('usuario.correo') === 'rickvevo1@gmail.com' || session('usuario.id') == 405);
+
         // Validación de acceso inicial
         if (!$soySuperAdmin && !in_array('configuracion_crear', session('usuario.permisos', []))) {
             abort(403, 'No tienes permisos para modificar configuraciones');
@@ -76,7 +79,7 @@ class ConfiguracionController extends Controller
             'Invitado'              => 1
         ];
 
-        // Si eres Superadmin, tu nivel es 999 (invencible), si no, se usa la tabla
+        // Si eres Superadmin, tu nivel es 999 (invencible)
         $miNivel = $soySuperAdmin ? 999 : ($jerarquia[$miRolNombre] ?? 0);
 
         // Datos del usuario al que queremos modificar (Target)
@@ -97,7 +100,6 @@ class ConfiguracionController extends Controller
         }
 
         // 2. No permitir que alguien de rango menor o igual modifique a uno mayor
-        // (Esta es la línea que te daba error; con $miNivel = 999 esto ya no te bloquea)
         if ($miNivel <= $nivelTarget && $request->Id_usuario != $miIdusuario) {
             return back()->withErrors("No tienes rango suficiente para modificar a un {$nombreRolTarget}.");
         }
@@ -139,7 +141,7 @@ class ConfiguracionController extends Controller
 
         DB::beginTransaction();
         try {
-            // Actualizar o Insertar en la tabla de relaciones (La que buscábamos)
+            // Actualizar o Insertar en la tabla de relaciones
             DB::table('Relacion_Ejidatario')->updateOrInsert(
                 ['Id_usuario' => $request->Id_usuario],
                 [
