@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\usuario;
+use App\Models\Usuario;
 use App\Models\Documentousuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
