@@ -5,11 +5,18 @@
 
     @php
         $sesionActual = session('usuario', session('2fa_user', []));
-        $misPermisos = $sesionActual['permisos'] ?? [];
-        $miId = $sesionActual['id'] ?? null;
-        $miRol = strtolower(trim($sesionActual['rol'] ?? ''));
 
-        $esAdmin = ($miRol === 'administrador' || ($sesionActual['id_rol'] ?? null) == 2);
+        if (is_object($sesionActual)) {
+            $sesionArray = (array) $sesionActual;
+        } else {
+            $sesionArray = $sesionActual ?? [];
+        }
+
+        $misPermisos = $sesionArray['permisos'] ?? [];
+        $miId = $sesionArray['Id_Usuario'] ?? $sesionArray['id'] ?? null;
+        $miRol = strtolower(trim($sesionArray['rol'] ?? ''));
+
+        $esAdmin = ($miRol === 'administrador' || ($sesionArray['id_rol'] ?? null) == 1 || ($sesionArray['id_rol'] ?? null) == 2);
 
         $puedeCrear = $esAdmin || in_array('usuarios_crear', $misPermisos);
         $puedeEditar = $esAdmin || in_array('usuarios_editar', $misPermisos);
@@ -50,19 +57,19 @@
         </h1>
 
         @if($puedeCrear)
-            <a href="{{ route('Usuarios.create') }}" class="btn btn-ejidal shadow-sm">
+            {{-- Corregido a minúsculas --}}
+            <a href="{{ route('usuarios.create') }}" class="btn btn-ejidal shadow-sm">
                 <i class="fas fa-user-plus me-1"></i> Nuevo Usuario
             </a>
         @endif
     </div>
 
-    {{-- Buscador --}}
     <div class="card card-ejidal mb-4">
         <div class="card-header card-header-ejidal">
             <i class="fas fa-search me-2"></i> Búsqueda de Usuarios
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('Usuarios.index') }}" class="row g-3">
+            <form method="GET" action="{{ route('usuarios.index') }}" class="row g-3">
                 <div class="col-md-5">
                     <label class="form-label">Nombre</label>
                     <input type="text" name="nombre" class="form-control" placeholder="Nombre..." value="{{ request('nombre') }}">
@@ -99,12 +106,10 @@
                 <tbody>
                 @forelse($data as $fila)
                     @php
-                        // LIMPIEZA DE CARACTERES \N EN NOMBRES Y APELLIDOS
                         $nombresLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Nombres);
                         $apellidoPLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Apellido_Paterno);
                         $apellidoMLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Apellido_Materno);
 
-                        // Eliminar espacios dobles
                         $nombresLimpio = preg_replace('/\s+/', ' ', trim($nombresLimpio));
                         $apellidoPLimpio = preg_replace('/\s+/', ' ', trim($apellidoPLimpio));
                         $apellidoMLimpio = preg_replace('/\s+/', ' ', trim($apellidoMLimpio));
@@ -151,13 +156,13 @@
                         <td class="text-center">
                             <div class="btn-group">
                                 @if($puedeEditar)
-                                    <a href="{{ url('/admon/Usuarios/'.$fila->Id_Usuario.'/edit') }}" class="btn btn-warning btn-sm">
+                                    <a href="{{ route('usuarios.edit', $fila->Id_Usuario) }}" class="btn btn-warning btn-sm">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 @endif
 
                                 @if($puedeEliminar && $miId != $fila->Id_Usuario && !str_contains(strtolower($fila->rol ?? ''), 'admin'))
-                                    <form action="{{ url('/admon/Usuarios/'.$fila->Id_Usuario) }}" method="post" class="d-inline">
+                                    <form action="{{ route('usuarios.destroy', $fila->Id_Usuario) }}" method="post" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar usuario?')">

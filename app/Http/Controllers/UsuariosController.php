@@ -131,8 +131,14 @@ class UsuariosController extends Controller
     public function edit($id)
     {
         $this->checkPermission('usuarios_editar');
+
+        // Forzamos a buscar por la variable exacta mapeada desde la ruta
         $fila = DB::table('usuario')->where('Id_Usuario', $id)->first();
-        abort_if(!$fila, 404);
+
+        if (!$fila) {
+            abort(404, "Usuario con ID {$id} no fue encontrado en la base de datos.");
+        }
+
         return view('cpanel.usuarios.editusuario', compact('fila'));
     }
 
@@ -204,7 +210,6 @@ class UsuariosController extends Controller
 
         return back()->with('success', 'Usuario eliminado correctamente.');
     }
-
     public function login(Request $request)
     {
         $request->validate([
@@ -212,7 +217,6 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        // Busca por la columna exacta 'Usuario' o 'Correo'
         $user = DB::table('usuario')
             ->where('Usuario', $request->username)
             ->orWhere('Correo', $request->username)
@@ -224,7 +228,6 @@ class UsuariosController extends Controller
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
 
-        // Mapeo 100% exacto con las columnas reales de tu DB
         $userId = $user->Id_Usuario;
         $usernameStr = $user->Usuario;
 
@@ -243,8 +246,8 @@ class UsuariosController extends Controller
         session([
             '2fa_code' => $code,
             '2fa_user' => [
-                'Id_Usuario'      => $userId, // Mantenemos la consistencia de tu DB
-                'id'              => $userId, // Fallback por si acaso en las vistas usas ->id
+                'Id_Usuario'      => $userId,
+                'id'              => $userId,
                 'username'        => $usernameStr,
                 'email'           => $user->Correo,
                 'foto'            => $user->foto ?? null,

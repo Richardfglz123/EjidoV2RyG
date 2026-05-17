@@ -89,28 +89,38 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
 
-    // --- MÓDULO: USUARIOS (Sincronizado con UsuariosController) ---
+// --- MÓDULO: USUARIOS
     Route::prefix('admon/usuarios')->group(function () {
+
+        // PERMISO: VER
         Route::middleware(['permiso:usuarios_ver'])->group(function () {
-            Route::get('/buscar', [UsuariosController::class, 'buscar'])->name('usuarios.buscar');
             Route::get('/', [UsuariosController::class, 'index'])->name('usuarios.index');
-            Route::get('/usuarios', [UsuariosController::class, 'index'])->name('Usuarios.index'); // Compatibilidad legacy
+            Route::get('/buscar', [UsuariosController::class, 'buscar'])->name('usuarios.buscar');
+            Route::get('/usuarios', [UsuariosController::class, 'index'])->name('Usuarios.index'); // Legacy
         });
 
+        // PERMISO: CREAR
         Route::middleware(['permiso:usuarios_crear'])->group(function () {
             Route::get('/create', [UsuariosController::class, 'create'])->name('usuarios.create');
-            Route::get('/create-legacy', [UsuariosController::class, 'create'])->name('Usuarios.create'); // Compatibilidad legacy
+            Route::get('/create-legacy', [UsuariosController::class, 'create'])->name('Usuarios.create'); // Legacy
             Route::post('/', [UsuariosController::class, 'store'])->name('usuarios.store');
-            Route::post('/store-legacy', [UsuariosController::class, 'store'])->name('Usuarios.store'); // Compatibilidad legacy
-            Route::get('/{Usuario}/edit', [UsuariosController::class, 'edit'])->name('usuarios.edit');
-            Route::get('/{Usuario}/edit-legacy', [UsuariosController::class, 'edit'])->name('Usuarios.edit'); // Compatibilidad legacy
-            Route::put('/{Usuario}', [UsuariosController::class, 'update'])->name('usuarios.update');
-            Route::put('/{Usuario}-legacy', [UsuariosController::class, 'update'])->name('Usuarios.update'); // Compatibilidad legacy
-            Route::delete('/{Usuario}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
-            Route::delete('/{Usuario}-legacy', [UsuariosController::class, 'destroy'])->name('Usuarios.destroy'); // Compatibilidad legacy
+            Route::post('/store-legacy', [UsuariosController::class, 'store'])->name('Usuarios.store'); // Legacy
+        });
+
+        // PERMISO: EDITAR (Movido a su middleware correcto y corregido parámetro a {id})
+        Route::middleware(['permiso:usuarios_editar'])->group(function () {
+            Route::get('/{id}/edit', [UsuariosController::class, 'edit'])->name('usuarios.edit');
+            Route::get('/{id}/edit-legacy', [UsuariosController::class, 'edit'])->name('Usuarios.edit'); // Legacy
+            Route::put('/{id}', [UsuariosController::class, 'update'])->name('usuarios.update');
+            Route::put('/{id}-legacy', [UsuariosController::class, 'update'])->name('Usuarios.update'); // Legacy
+        });
+
+        // PERMISO: ELIMINAR
+        Route::middleware(['permiso:usuarios_eliminar'])->group(function () {
+            Route::delete('/{id}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
+            Route::delete('/{id}-legacy', [UsuariosController::class, 'destroy'])->name('Usuarios.destroy'); // Legacy
         });
     });
-
 
     // --- MÓDULO: EJIDATARIOS ---
     Route::prefix('admon/Ejidatarios')->group(function () {
