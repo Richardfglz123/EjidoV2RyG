@@ -18,7 +18,8 @@ class Ejidatario extends Model
 
     public function usuario()
     {
-        return $this->belongsTo(usuario::class, 'Id_usuario', 'Id_usuario');
+        // CORREGIDO: 'Usuario' con U mayúscula para compatibilidad con Linux (Hostinger)
+        return $this->belongsTo(Usuario::class, 'Id_usuario', 'Id_usuario');
     }
 
     public function descuentos()
