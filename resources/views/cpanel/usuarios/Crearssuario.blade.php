@@ -5,7 +5,7 @@
     <div class="card-body">
         <form action="{{ route('Usuarios.store') }}" class="cmxform" id="signupForm" method="post">
             @csrf
-            @include('cpanel/usuarios/formUsuario')
+            @include('cpanel.usuarios.formusuario')
         </form>
     </div>
 
