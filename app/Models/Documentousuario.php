@@ -6,16 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Documentousuario extends Model
 {
-    protected $table = 'documentos_usuario';
+    protected $table = 'Documentos_Usuario';
 
-    protected $primaryKey = 'Id_documento';
+    protected $primaryKey = 'Id_Documento';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
-    protected $fillable = ['Id_usuario', 'nombre_documento', 'ruta_archivo', 'validado'];
+    protected $fillable = [
+        'Id_Usuario', 'nombre_documento', 'ruta_archivo',
+        'Id_Elimino', 'Id_Modificado', 'Id_Creo',
+        'Fecha_Eliminado', 'Fecha_Modificado', 'Fecha_Creo'
+    ];
 
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'Id_usuario', 'Id_usuario');
+        return $this->belongsTo(Usuario::class, 'Id_Usuario', 'Id_usuario');
     }
 }
