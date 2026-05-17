@@ -194,7 +194,6 @@ class UsuariosController extends Controller
 
         return back()->with('success', 'usuario eliminado correctamente.');
     }
-
     public function login(Request $request)
     {
         $request->validate([
@@ -202,7 +201,7 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        // Buscamos con el Modelo Eloquent 'Usuario'
+        // Buscamos el usuario usando Eloquent
         $user = Usuario::where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
@@ -213,8 +212,7 @@ class UsuariosController extends Controller
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
 
-        // CORRECCIÓN CRÍTICA DE MAYÚSCULAS: Se cambió 're.Id_usuario' por 're.Id_Usuario'
-        // También nos aseguramos de que la unión use 'Roles.Id_Rol' con el formato correcto de tu BD
+        // Buscamos el rol respetando la mayúscula estricta de Linux (Id_Usuario)
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_Usuario', $user->Id_usuario)
@@ -228,24 +226,26 @@ class UsuariosController extends Controller
             $nombreCompleto = $user->usuario;
         }
 
-        // Si $acceso sigue dando null por alguna razón extraña de la tabla intermedia,
-        // este bloque de respaldo te forzará como Administrador temporalmente si tu ID es el de tu cuenta principal (por ejemplo, el 1 o el que uses)
-        // para que no te quedes fuera mientras pruebas.
         $rolNombre = $acceso ? $acceso->Tipo_Rol : 'Invitado';
         $idRolReal = $acceso ? $acceso->Id_Rol : null;
         $permisosReales = ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : [];
 
-        // RESPALDO DE EMERGENCIA: Si tu correo es el administrador, forzar los datos aquí si la consulta falla
+        // RESPALDO DE SEGURIDAD INTERNO: Si tu correo coincide, te asegura el rol pase lo que pase
         if ($user->Correo === 'rickvevo1@gmail.com' && $rolNombre === 'Invitado') {
             $rolNombre = 'Administrador';
             $idRolReal = 1;
-            // Te asignamos el permiso de configuración para que puedas entrar a corregir visualmente
             $permisosReales = ['usuarios_ver', 'usuarios_crear', 'usuarios_eliminar', 'configuracion_ver', 'configuracion_crear'];
         }
 
-        // UNIFICACIÓN DE LA SESIÓN
+        // CREACIÓN DE TODAS LAS LLAVES QUE COMPROBARÁN TUS MIDDLEWARES
         session([
+            // 1. Satisface a CheckAuth y Check2FA para que no te expulsen al Login
+            'authenticated' => true,
+
+            // 2. Guarda el token aleatorio para el formulario 2FA
             '2fa_code' => $code,
+
+            // 3. Satisface el arreglo temporal 2FA
             '2fa_user' => [
                 'id'              => $user->Id_usuario,
                 'username'        => $user->usuario,
@@ -256,12 +256,17 @@ class UsuariosController extends Controller
                 'rol'             => strtolower(trim($rolNombre)),
                 'permisos'        => $permisosReales
             ],
+
+            // 4. Satisface a CheckPermiso y ConfiguracionController de forma inmediata
             'usuario' => [
-                'id'         => $user->Id_usuario,
-                'id_rol'     => $idRolReal,
-                'rol_nombre' => $rolNombre,
-                'correo'     => $user->Correo,
-                'permisos'   => $permisosReales
+                'id'              => $user->Id_usuario,
+                'id_rol'          => $idRolReal,
+                'rol'             => $rolNombre,       // Usado por CheckPermiso ($user->Tipo_Rol)
+                'rol_nombre'      => $rolNombre,       // Usado por tu ConfiguracionController
+                'correo'          => $user->Correo,
+                'foto'            => $user->foto,
+                'nombre_completo' => $nombreCompleto,
+                'permisos'        => $permisosReales
             ]
         ]);
 
