@@ -33,20 +33,20 @@ class UsuariosController extends Controller
             'Contraseña' => 'contraseña',
             'Telefono' => 'teléfono',
             'Nombres' => 'nombre(s)',
-            'Apellido_Paterno' => 'apellido paterno',
-            'Apellido_Materno' => 'apellido materno',
+            'Apellido_Paterno' => 'apellido` paterno',
+            'Apellido_Materno' => 'apellido` materno',
             'code' => 'código de verificación',
             'username' => 'nombre de usuario o correo',
             'password' => 'contraseña'
         ];
     }
+
     private function checkPermission($permission)
     {
         $sesion = session('usuario', session('2fa_user', []));
         $permisos = $sesion['permisos'] ?? [];
         $rol = strtolower(trim($sesion['rol'] ?? ''));
 
-        // Si es administrador, tiene permiso para todo por defecto
         if ($rol === 'administrador') {
             return true;
         }
@@ -88,6 +88,7 @@ class UsuariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
+        // CORRECCIÓN CRÍTICA: Se especifica la validación directamente apuntando a la tabla 'usuario' de la base de datos
         $request->validate([
             'usuario' => 'required|unique:usuario,usuario',
             'Correo' => 'required|email|unique:usuario,Correo',
@@ -144,6 +145,7 @@ class UsuariosController extends Controller
         ];
 
         if ($esAdmin && $request->filled('Correo')) {
+            // CORRECCIÓN: Evitamos que busque el modelo 'usuario' usando la definición explícita de llave primaria en la tabla
             $reglas['Correo'] = 'required|email|unique:usuario,Correo,' . $id . ',Id_usuario';
         }
 
@@ -204,22 +206,24 @@ class UsuariosController extends Controller
             ->where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
+
         if (!$user || !Hash::check($request->password, $user->Contraseña)) {
             return back()
-                ->withInput($request->only('username')) // Para que no se borre el nombre de usuario
+                ->withInput($request->only('username'))
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
+
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_usuario', $user->Id_usuario)
             ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
             ->first();
 
-        // enerar código 2FA
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim($user->Nombres . ' ' . $user->Apellido_Paterno);
         if (empty($nombreCompleto)) { $nombreCompleto = $user->usuario; }
+
         session([
             '2fa_code' => $code,
             '2fa_user' => [
@@ -236,13 +240,10 @@ class UsuariosController extends Controller
 
         session()->save();
 
-        // 7. Enviar correo 2FA
         try {
             Mail::to($user->Correo)->send(new CodigoVerificacionMail($nombreCompleto, $code));
         } catch (\Exception $e) {
             \Log::error("Error enviando correo 2FA: " . $e->getMessage());
-
-            // return "El código es: " . $code;
         }
 
         return redirect()->route('2fa.form');
