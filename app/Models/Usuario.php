@@ -28,6 +28,7 @@ class Usuario extends Authenticatable
 
     public function documentos()
     {
-        return $this->hasMany(\App\Models\Documentousuario::class, 'Id_usuario');
+        // CORREGIDO: Ajusta 'documentos_usuario' según tu phpMyAdmin
+        return $this->hasMany(Documento::class, 'documentos_usuario', 'Id_usuario');
     }
 }
