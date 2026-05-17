@@ -13,20 +13,20 @@ class ConfiguracionController extends Controller
         return view('cpanel.Configuracion.permisos', compact('roles'));
     }
 
-    public function buscarUsuariosAjax(Request $request)
+    public function buscarusuariosAjax(Request $request)
     {
-        return DB::table('Usuario')
-            ->where('Usuario', 'LIKE', '%' . $request->q . '%')
-            ->select('Id_Usuario as id', 'Usuario as text')
+        return DB::table('usuario')
+            ->where('usuario', 'LIKE', '%' . $request->q . '%')
+            ->select('Id_usuario as id', 'usuario as text')
             ->limit(10)
             ->get();
     }
 
-    public function obtenerPermisosUsuario($id)
+    public function obtenerPermisosusuario($id)
     {
         $datos = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
-            ->where('Relacion_Ejidatario.Id_Usuario', $id)
+            ->where('Relacion_Ejidatario.Id_usuario', $id)
             ->select('Relacion_Ejidatario.Id_Rol', 'Roles.Permisos')
             ->first();
 
@@ -49,7 +49,7 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        $miIdUsuario = session('usuario.id');
+        $miIdusuario = session('usuario.id');
         $miIdRol     = session('usuario.id_rol');
         $miRolNombre = session('usuario.rol_nombre');
 
@@ -62,7 +62,7 @@ class ConfiguracionController extends Controller
         }
 
         $request->validate([
-            'Id_Usuario' => 'required|integer',
+            'Id_usuario' => 'required|integer',
             'Id_Rol'     => 'required|integer',
             'permisos'   => 'array'
         ]);
@@ -82,7 +82,7 @@ class ConfiguracionController extends Controller
         // Datos del usuario al que queremos modificar (Target)
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
-            ->where('Relacion_Ejidatario.Id_Usuario', $request->Id_Usuario)
+            ->where('Relacion_Ejidatario.Id_usuario', $request->Id_usuario)
             ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol')
             ->first();
 
@@ -98,12 +98,12 @@ class ConfiguracionController extends Controller
 
         // 2. No permitir que alguien de rango menor o igual modifique a uno mayor
         // (Esta es la línea que te daba error; con $miNivel = 999 esto ya no te bloquea)
-        if ($miNivel <= $nivelTarget && $request->Id_Usuario != $miIdUsuario) {
+        if ($miNivel <= $nivelTarget && $request->Id_usuario != $miIdusuario) {
             return back()->withErrors("No tienes rango suficiente para modificar a un {$nombreRolTarget}.");
         }
 
         // 3. No permitir asignarse a sí mismo permisos (para evitar bloqueos accidentales)
-        if ($request->Id_Usuario == $miIdUsuario) {
+        if ($request->Id_usuario == $miIdusuario) {
             return back()->withErrors('No puedes modificar tus propios permisos directamente.');
         }
 
@@ -141,7 +141,7 @@ class ConfiguracionController extends Controller
         try {
             // Actualizar o Insertar en la tabla de relaciones (La que buscábamos)
             DB::table('Relacion_Ejidatario')->updateOrInsert(
-                ['Id_Usuario' => $request->Id_Usuario],
+                ['Id_usuario' => $request->Id_usuario],
                 [
                     'Id_Rol'           => $request->Id_Rol,
                     'Fecha_Modificado' => now()

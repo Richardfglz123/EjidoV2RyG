@@ -12,7 +12,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class UsuariosExport implements
+class usuariosExport implements
     FromCollection,
     WithHeadings,
     WithStyles,
@@ -28,10 +28,10 @@ class UsuariosExport implements
 
     public function collection()
     {
-        return DB::table('Usuario')->select(
+        return DB::table('usuario')->select(
             'Nombres',
             DB::raw("CONCAT(Apellido_Paterno, ' ', Apellido_Materno) as Apellidos"),
-            'Usuario',
+            'usuario',
             'Correo',
             'Telefono'
         )->get();
@@ -42,7 +42,7 @@ class UsuariosExport implements
         return [
             'Nombres',
             'Apellidos',
-            'Nombre de Usuario',
+            'Nombre de usuario',
             'Correo Electrónico',
             'Teléfono'
         ];
@@ -56,7 +56,7 @@ class UsuariosExport implements
 
                 // 1. Título del Reporte (Combinado de A a E)
                 $sheet->mergeCells('A1:E1');
-                $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE USUARIOS');
+                $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE usuarioS');
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '00A651']],
                     'alignment' => ['horizontal' => 'center']
@@ -64,7 +64,7 @@ class UsuariosExport implements
 
                 // 2. Información de fecha y total
                 $sheet->mergeCells('A2:E2');
-                $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | Usuarios registrados: ' . ($sheet->getHighestRow() - 4));
+                $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | usuarios registrados: ' . ($sheet->getHighestRow() - 4));
                 $sheet->getStyle('A2')->applyFromArray([
                     'font' => ['italic' => true, 'size' => 10],
                     'alignment' => ['horizontal' => 'center']
@@ -118,7 +118,7 @@ class UsuariosExport implements
             ]
         ]);
 
-        // Centrar columnas de Usuario y Teléfono para mejor vista
+        // Centrar columnas de usuario y Teléfono para mejor vista
         $sheet->getStyle("C5:C{$lastRow}")->getAlignment()->setHorizontal('center');
         $sheet->getStyle("E5:E{$lastRow}")->getAlignment()->setHorizontal('center');
 

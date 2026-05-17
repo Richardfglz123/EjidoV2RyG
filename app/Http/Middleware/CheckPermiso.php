@@ -14,9 +14,9 @@ class CheckPermiso
         }
 
         $user = DB::table('usuario')
-            ->leftJoin('Relacion_Ejidatario', 'usuario.Id_Usuario', '=', 'Relacion_Ejidatario.Id_Usuario')
+            ->leftJoin('Relacion_Ejidatario', 'usuario.Id_usuario', '=', 'Relacion_Ejidatario.Id_usuario')
             ->leftJoin('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
-            ->where('usuario.Id_Usuario', session('usuario.id'))
+            ->where('usuario.Id_usuario', session('usuario.id'))
             ->select('Roles.Tipo_Rol', 'Roles.Permisos', 'usuario.foto', 'usuario.Nombres', 'usuario.Apellido_Paterno')
             ->first();
 

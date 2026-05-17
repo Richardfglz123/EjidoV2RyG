@@ -46,7 +46,7 @@ class PaseListaController extends Controller
 
         $presentes = DB::table('PaseLista as a')
             ->join('Ejidatario as e', 'a.Id_Ejidatario', '=', 'e.Id_Ejidatario')
-            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->where('a.Id_Sesion', $sesion->Id_Sesion)
             ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'a.Fecha as Hora')
             ->orderBy('a.Fecha', 'desc')

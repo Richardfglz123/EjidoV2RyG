@@ -29,13 +29,13 @@ class EjidatariosExport implements
     public function collection()
     {
         return DB::table('Ejidatario')
-            ->join('Usuario', 'Ejidatario.Id_Usuario', '=', 'Usuario.Id_Usuario')
+            ->join('usuario', 'Ejidatario.Id_usuario', '=', 'usuario.Id_usuario')
             ->join('Estatus', 'Ejidatario.Id_Estatus', '=', 'Estatus.Id_Estatus')
             ->select(
                 'Ejidatario.Num_Ejidatario',
                 DB::raw("CONCAT(Ejidatario.Calle, ' #', Ejidatario.Num_Exterior, ', ', Ejidatario.Colonia, ', ', Ejidatario.Municipio) as Direccion"),
                 'Ejidatario.CURP',
-                DB::raw("CONCAT(Usuario.Nombres, ' ', Usuario.Apellido_Paterno) as Responsable"),
+                DB::raw("CONCAT(usuario.Nombres, ' ', usuario.Apellido_Paterno) as Responsable"),
                 'Estatus.Estatus as NombreEstatus'
             )->get();
     }

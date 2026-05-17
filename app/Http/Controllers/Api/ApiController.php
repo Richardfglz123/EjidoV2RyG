@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use App\Models\Usuario;
+use App\Models\usuario;
 use Exception;
 
 class ApiController extends Controller
@@ -21,8 +21,8 @@ class ApiController extends Controller
             'password' => 'required'
         ]);
 
-        // 2. Buscamos por la columna 'Correo' (según tu modelo Usuario)
-        $usuario = \App\Models\Usuario::where('Correo', $request->email)->first();
+        // 2. Buscamos por la columna 'Correo' (según tu modelo usuario)
+        $usuario = \App\Models\usuario::where('Correo', $request->email)->first();
 
         // 3. Verificamos contra la columna 'Contraseña'
         if (!$usuario || !\Hash::check($request->password, $usuario->Contraseña)) {
@@ -75,14 +75,14 @@ class ApiController extends Controller
             ], 401);
         }
 
-        $usuario = Usuario::where('Correo', $email)->first();
+        $usuario = usuario::where('Correo', $email)->first();
 
         if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+            return response()->json(['ok' => false, 'error' => 'usuario no encontrado'], 404);
         }
 
         // GENERACIÓN DE TOKEN (Sanctum)
-        // Asegúrate de tener HasApiTokens en tu modelo Usuario
+        // Asegúrate de tener HasApiTokens en tu modelo usuario
         $token = $usuario->createToken('ios-device')->plainTextToken;
 
         // COMENTA ESTA LÍNEA TEMPORALMENTE

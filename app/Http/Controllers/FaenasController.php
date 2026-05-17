@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Ejidatario;
-use App\Models\Usuario;
+use App\Models\usuario;
 use App\Models\Descuento;
 use App\Models\CatalogoMulta;
 use Illuminate\Support\Facades\DB;
@@ -99,7 +99,7 @@ class FaenasController extends Controller
         if (empty($query)) {
             return response()->json([]);
         }
-        $usuarios = Usuario::whereHas('ejidatario')
+        $usuarios = usuario::whereHas('ejidatario')
             ->where(function($q) use ($query) {
                 $q->where('Nombres', 'LIKE', '%' . $query . '%')
                     ->orWhere('Apellido_Paterno', 'LIKE', '%' . $query . '%')

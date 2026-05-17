@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
 
-class UsuariosController extends Controller
+class usuariosController extends Controller
 {
     private function validationMessages()
     {
@@ -28,7 +28,7 @@ class UsuariosController extends Controller
     private function validationAttributes()
     {
         return [
-            'Usuario' => 'usuario',
+            'usuario' => 'usuario',
             'Correo' => 'correo electrónico',
             'Contraseña' => 'contraseña',
             'Telefono' => 'teléfono',
@@ -58,8 +58,8 @@ class UsuariosController extends Controller
 
     public function index(Request $request)
     {
-        $query = DB::table('Usuario as u')
-            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_Usuario', '=', 're.Id_Usuario')
+        $query = DB::table('usuario as u')
+            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_usuario', '=', 're.Id_usuario')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->select('u.*', 'r.Tipo_Rol as rol');
 
@@ -75,13 +75,13 @@ class UsuariosController extends Controller
         }
 
         $data = $query->paginate(10)->withQueryString();
-        return view('cpanel.usuarios.indexUsuario', compact('data'));
+        return view('cpanel.usuarios.indexusuario', compact('data'));
     }
 
     public function create()
     {
         $this->checkPermission('usuarios_crear');
-        return view('cpanel.usuarios.formUsuario');
+        return view('cpanel.usuarios.formusuario');
     }
 
     public function store(Request $request)
@@ -89,8 +89,8 @@ class UsuariosController extends Controller
         $this->checkPermission('usuarios_crear');
 
         $request->validate([
-            'Usuario' => 'required|unique:Usuario,Usuario',
-            'Correo' => 'required|email|unique:Usuario,Correo',
+            'usuario' => 'required|unique:usuario,usuario',
+            'Correo' => 'required|email|unique:usuario,Correo',
             'Contraseña' => ['required', 'confirmed', 'min:8', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
             'Telefono' => 'required|numeric',
             'Nombres' => 'required',
@@ -101,11 +101,11 @@ class UsuariosController extends Controller
         $rol = DB::table('Roles')->where('Tipo_Rol', 'Ejidatario')->first();
         $rolId = $rol ? $rol->Id_Rol : DB::table('Roles')->insertGetId(['Tipo_Rol' => 'Ejidatario', 'Fecha_Creo' => now()]);
 
-        $idUsuario = DB::table('Usuario')->insertGetId([
+        $idusuario = DB::table('usuario')->insertGetId([
             'Nombres' => $request->Nombres,
             'Apellido_Paterno' => $request->Apellido_Paterno,
             'Apellido_Materno' => $request->Apellido_Materno,
-            'Usuario' => $request->Usuario,
+            'usuario' => $request->usuario,
             'Correo' => $request->Correo,
             'Contraseña' => Hash::make($request->Contraseña),
             'Telefono' => $request->Telefono,
@@ -114,19 +114,19 @@ class UsuariosController extends Controller
 
         DB::table('Relacion_Ejidatario')->insert([
             'Id_Rol' => $rolId,
-            'Id_Usuario' => $idUsuario,
+            'Id_usuario' => $idusuario,
             'Fecha_Creo' => now()
         ]);
 
-        return redirect()->route('Usuarios.index')->with('success', 'Usuario registrado');
+        return redirect()->route('usuarios.index')->with('success', 'usuario registrado');
     }
 
     public function edit($id)
     {
         $this->checkPermission('usuarios_editar');
-        $fila = DB::table('Usuario')->where('Id_Usuario', $id)->first();
+        $fila = DB::table('usuario')->where('Id_usuario', $id)->first();
         abort_if(!$fila, 404);
-        return view('cpanel.usuarios.editUsuario', compact('fila'));
+        return view('cpanel.usuarios.editusuario', compact('fila'));
     }
 
     public function update(Request $request, $id)
@@ -144,7 +144,7 @@ class UsuariosController extends Controller
         ];
 
         if ($esAdmin && $request->filled('Correo')) {
-            $reglas['Correo'] = 'required|email|unique:Usuario,Correo,' . $id . ',Id_Usuario';
+            $reglas['Correo'] = 'required|email|unique:usuario,Correo,' . $id . ',Id_usuario';
         }
 
         $request->validate($reglas, $this->validationMessages(), $this->validationAttributes());
@@ -161,8 +161,8 @@ class UsuariosController extends Controller
             $data['Correo'] = $request->Correo;
         }
 
-        DB::table('Usuario')->where('Id_Usuario', $id)->update($data);
-        return redirect()->route('Usuarios.index')->with('success', 'Usuario actualizado');
+        DB::table('usuario')->where('Id_usuario', $id)->update($data);
+        return redirect()->route('usuarios.index')->with('success', 'usuario actualizado');
     }
 
     public function destroy($id)
@@ -178,7 +178,7 @@ class UsuariosController extends Controller
 
         $rolObjetivo = DB::table('Relacion_Ejidatario as re')
             ->join('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-            ->where('re.Id_Usuario', $id)
+            ->where('re.Id_usuario', $id)
             ->value('r.Tipo_Rol');
 
         if (strtolower($rolObjetivo) === 'administrador') {
@@ -186,11 +186,11 @@ class UsuariosController extends Controller
         }
 
         DB::transaction(function () use ($id) {
-            DB::table('Relacion_Ejidatario')->where('Id_Usuario', $id)->delete();
-            DB::table('Usuario')->where('Id_Usuario', $id)->delete();
+            DB::table('Relacion_Ejidatario')->where('Id_usuario', $id)->delete();
+            DB::table('usuario')->where('Id_usuario', $id)->delete();
         });
 
-        return back()->with('success', 'Usuario eliminado correctamente.');
+        return back()->with('success', 'usuario eliminado correctamente.');
     }
 
     public function login(Request $request)
@@ -200,8 +200,8 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        $user = DB::table('Usuario')
-            ->where('Usuario', $request->username)
+        $user = DB::table('usuario')
+            ->where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
         if (!$user || !Hash::check($request->password, $user->Contraseña)) {
@@ -211,7 +211,7 @@ class UsuariosController extends Controller
         }
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-            ->where('re.Id_Usuario', $user->Id_Usuario)
+            ->where('re.Id_usuario', $user->Id_usuario)
             ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
             ->first();
 
@@ -219,17 +219,17 @@ class UsuariosController extends Controller
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim($user->Nombres . ' ' . $user->Apellido_Paterno);
-        if (empty($nombreCompleto)) { $nombreCompleto = $user->Usuario; }
+        if (empty($nombreCompleto)) { $nombreCompleto = $user->usuario; }
         session([
             '2fa_code' => $code,
             '2fa_user' => [
-                'id'              => $user->Id_Usuario,
-                'username'        => $user->Usuario,
+                'id'              => $user->Id_usuario,
+                'username'        => $user->usuario,
                 'email'           => $user->Correo,
                 'foto'            => $user->foto,
                 'nombre_completo' => $nombreCompleto,
                 'id_rol'          => $acceso ? $acceso->Id_Rol : null,
-                'rol'             => $acceso ? ($acceso->Tipo_Rol ?? 'Usuario') : 'Usuario',
+                'rol'             => $acceso ? ($acceso->Tipo_Rol ?? 'usuario') : 'usuario',
                 'permisos'        => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
             ]
         ]);
@@ -250,7 +250,7 @@ class UsuariosController extends Controller
 
     public function buscar(Request $request)
     {
-        $query = DB::table('Usuario as u')->select('u.*');
+        $query = DB::table('usuario as u')->select('u.*');
         if ($request->filled('nombre')) { $query->where('u.Nombres', 'like', '%' . $request->nombre . '%'); }
         if ($request->filled('apellido')) {
             $query->where(function ($q) use ($request) {
@@ -259,7 +259,7 @@ class UsuariosController extends Controller
             });
         }
         $usuarios = $query->paginate(10)->withQueryString();
-        return view('cpanel.usuarios.BuscarUsuarios', compact('usuarios'));
+        return view('cpanel.usuarios.Buscarusuarios', compact('usuarios'));
     }
 
     public function forgotForm() { return view('cpanel.login.forgot-password'); }
@@ -267,7 +267,7 @@ class UsuariosController extends Controller
     public function sendResetCode(Request $request)
     {
         $request->validate(['username' => 'required'], $this->validationMessages(), $this->validationAttributes());
-        $user = DB::table('Usuario')->where('Correo', $request->username)->orWhere('Usuario', $request->username)->first();
+        $user = DB::table('usuario')->where('Correo', $request->username)->orWhere('usuario', $request->username)->first();
         if (!$user) { return back()->withErrors(['username' => 'No encontrado']); }
         $code = rand(100000, 999999);
         DB::table('password_resets')->updateOrInsert(['email' => $user->Correo], ['token' => $code, 'expires_at' => now()->addMinutes(10), 'created_at' => now()]);
@@ -293,7 +293,7 @@ class UsuariosController extends Controller
 
         if (!$record) { return back()->withErrors(['code' => 'Código inválido o expirado']); }
 
-        DB::table('Usuario')->where('Correo', session('reset_email'))->update([
+        DB::table('usuario')->where('Correo', session('reset_email'))->update([
             'Contraseña' => Hash::make($request->password),
             'Fecha_Modificado' => now()
         ]);

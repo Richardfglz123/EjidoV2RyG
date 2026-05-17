@@ -7,7 +7,7 @@ use App\Models\Programa;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Postulacion;
-use App\Models\Usuario;
+use App\Models\usuario;
 
 class ProgramaController extends Controller
 {

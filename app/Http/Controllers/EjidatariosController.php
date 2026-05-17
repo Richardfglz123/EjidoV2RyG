@@ -25,7 +25,7 @@ class EjidatariosController extends Controller
     public function index()
     {
         $ejidatarios = DB::table('Ejidatario as e')
-            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
             ->select(
                 'e.*',
@@ -46,7 +46,7 @@ class EjidatariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
-        $usuarios = DB::table('Usuario')->get();
+        $usuarios = DB::table('usuario')->get();
         $estatus  = DB::table('Estatus')->get();
 
         return view('cpanel.ejidatarios.CrearEjidatario', [
@@ -73,7 +73,7 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_Usuario'         => 'required|exists:Usuario,Id_Usuario',
+            'Id_usuario'         => 'required|exists:usuario,Id_usuario',
         ]);
 
         // 1. GENERAR NÚMERO DE EJIDATARIO AUTOMÁTICO
@@ -82,7 +82,7 @@ class EjidatariosController extends Controller
 
         // 2. PREPARAR DATOS PARA EL QR (QR PAYLOAD)
         // Obtenemos el nombre del usuario seleccionado para que el QR sea legible
-        $user = DB::table('Usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
+        $user = DB::table('usuario')->where('Id_usuario', $request->Id_usuario)->first();
 
         // Formato: NOMBRE APELLIDOP APELLIDOM (Todo en mayúsculas y sin saltos)
         $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
@@ -90,7 +90,7 @@ class EjidatariosController extends Controller
 
         DB::table('Ejidatario')->insert([
             'Num_Ejidatario'   => $nuevoNum, // Asignado automáticamente
-            'Id_Usuario'       => $request->Id_Usuario,
+            'Id_usuario'       => $request->Id_usuario,
             'qr_payload'       => $payloadQR, // Guardamos el texto que leerá el escáner
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
@@ -119,7 +119,7 @@ class EjidatariosController extends Controller
         $fila = DB::table('Ejidatario')->where('Id_Ejidatario', $id)->first();
         abort_if(!$fila, 404);
 
-        $usuarios = DB::table('Usuario')->get();
+        $usuarios = DB::table('usuario')->get();
         $estatus  = DB::table('Estatus')->get();
 
         return view('cpanel/ejidatarios/editEjidatarios', compact('fila', 'usuarios', 'estatus'));
@@ -149,7 +149,7 @@ class EjidatariosController extends Controller
             'Clave_Elector'    => $request->Clave_Elector,
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
-            'Id_Usuario'       => $request->Id_Usuario,
+            'Id_usuario'       => $request->Id_usuario,
             'Fecha_Modificado' => now(),
             'Id_Modificado'    => session('usuario.username', 'admin')
         ]);
@@ -175,7 +175,7 @@ class EjidatariosController extends Controller
         }
 
         // Permitir eliminar solo si no soy yo O si soy administrador
-        if (!$esAdmin && $miId == $fila->Id_Usuario) {
+        if (!$esAdmin && $miId == $fila->Id_usuario) {
             return back()->withErrors('No puedes eliminar tu propio registro.');
         }
 
@@ -205,7 +205,7 @@ class EjidatariosController extends Controller
     }
     public function getEjidatariosApi() {
         $ejidatarios = DB::table('Ejidatario as e')
-            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
             ->select(
                 'e.Id_Ejidatario',

@@ -13,12 +13,12 @@ class ReportesEController extends Controller
     public function GenerarPDF()
     {
         $ejidatarios = DB::table('Ejidatario')
-            ->join('Usuario', 'Ejidatario.Id_Usuario', '=', 'Usuario.Id_Usuario')
+            ->join('usuario', 'Ejidatario.Id_usuario', '=', 'usuario.Id_usuario')
             ->join('Estatus', 'Ejidatario.Id_Estatus', '=', 'Estatus.Id_Estatus')
             ->select(
                 'Ejidatario.*',
-                'Usuario.Nombres',
-                'Usuario.Apellido_Paterno',
+                'usuario.Nombres',
+                'usuario.Apellido_Paterno',
                 'Estatus.Estatus as NombreEstatus'
             )
             ->get();

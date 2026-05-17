@@ -12,8 +12,8 @@ class PerfilController extends Controller
     public function index()
     {
         $usuario = DB::table('usuario')
-        ->leftJoin('Ejidatario', 'usuario.Id_Usuario', '=', 'Ejidatario.Id_Usuario')
-            ->where('usuario.Id_Usuario', session('usuario.id'))
+        ->leftJoin('Ejidatario', 'usuario.Id_usuario', '=', 'Ejidatario.Id_usuario')
+            ->where('usuario.Id_usuario', session('usuario.id'))
             ->select('usuario.*', 'Ejidatario.Id_Ejidatario', 'Ejidatario.Num_Ejidatario')
             ->first();
 
@@ -34,8 +34,8 @@ class PerfilController extends Controller
         $userId = session('usuario.id');
 
         $request->validate([
-            'Usuario'    => 'required|unique:usuario,Usuario,' . $userId . ',Id_Usuario',
-            'Correo'     => 'required|email|unique:usuario,Correo,' . $userId . ',Id_Usuario',
+            'usuario'    => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
+            'Correo'     => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono'   => 'required|numeric',
             'foto'       => 'nullable|image|mimes:jpg,jpeg|max:2048',
             'Contraseña' => [
@@ -48,14 +48,14 @@ class PerfilController extends Controller
         ]);
 
         $data = [
-            'Usuario'          => $request->Usuario,
+            'usuario'          => $request->usuario,
             'Correo'           => $request->Correo,
             'Telefono'         => $request->Telefono,
             'Fecha_Modificado' => now(),
         ];
 
         if ($request->hasFile('foto')) {
-            $userRecord = DB::table('usuario')->where('Id_Usuario', $userId)->first();
+            $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
 
             if ($userRecord && isset($userRecord->foto) && $userRecord->foto) {
                 Storage::disk('public')->delete($userRecord->foto);
@@ -72,10 +72,10 @@ class PerfilController extends Controller
         }
 
         DB::table('usuario')
-            ->where('Id_Usuario', $userId)
+            ->where('Id_usuario', $userId)
             ->update($data);
 
-        session(['usuario.nombre_completo' => $request->Usuario]);
+        session(['usuario.nombre_completo' => $request->usuario]);
 
         $request->session()->save();
 

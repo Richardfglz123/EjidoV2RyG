@@ -39,7 +39,7 @@ class TwoFAController extends Controller
                 'rol' => $userSession['rol'],
                 'permisos' => $userSession['permisos']
             ],
-            'Id_Usuario' => $userSession['id'],
+            'Id_usuario' => $userSession['id'],
             'nombre_completo' => $userSession['nombre_completo']
         ]);
         session()->forget(['2fa_code', '2fa_user']);

@@ -6,17 +6,17 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class Usuario extends Authenticatable
+class usuario extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
     protected $table = 'usuario';
-    protected $primaryKey = 'Id_Usuario';
+    protected $primaryKey = 'Id_usuario';
     public $timestamps = false;
 
     protected $fillable = [
         'Nombres', 'Apellido_Paterno', 'Apellido_Materno',
-        'Usuario', 'Correo', 'Contraseña', 'Telefono'
+        'usuario', 'Correo', 'Contraseña', 'Telefono'
     ];
 
     protected $hidden = ['Contraseña'];
@@ -28,6 +28,6 @@ class Usuario extends Authenticatable
 
     public function documentos()
     {
-        return $this->hasMany(\App\Models\DocumentoUsuario::class, 'Id_Usuario');
+        return $this->hasMany(\App\Models\Documentousuario::class, 'Id_usuario');
     }
 }

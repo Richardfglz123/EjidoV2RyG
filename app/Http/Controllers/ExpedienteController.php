@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Usuario;
-use App\Models\DocumentoUsuario;
+use App\Models\usuario;
+use App\Models\Documentousuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +19,7 @@ class ExpedienteController extends Controller
         // Si tiene permiso puede ver todos los usuarios
         if (in_array('expedientes_ver', $permisos)) {
 
-            $usuarios = Usuario::whereNull('fecha_eliminado')
+            $usuarios = usuario::whereNull('fecha_eliminado')
                 ->with('documentos')
                 ->orderBy('Apellido_Paterno', 'asc')
                 ->get();
@@ -27,14 +27,14 @@ class ExpedienteController extends Controller
         } else {
 
             // Si NO tiene permiso solo ve su propio expediente
-            $usuarios = Usuario::where('Id_Usuario', $usuarioId)
+            $usuarios = usuario::where('Id_usuario', $usuarioId)
                 ->whereNull('fecha_eliminado')
                 ->with('documentos')
                 ->get();
         }
 
         $total_usuarios = $usuarios->count();
-        $total_con_expediente = DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
+        $total_con_expediente = Documentousuario::distinct('Id_usuario')->count('Id_usuario');
 
         return view(
             'cpanel.Expedientes.expediente',
@@ -52,9 +52,9 @@ class ExpedienteController extends Controller
             'doc_comprobante' => 'nullable|file|mimes:pdf|max:5000',
         ]);
 
-        $usuario = Usuario::findOrFail($request->id_usuario);
-        $slugUsuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_Usuario);
-        $rutaBase = "expedientes/{$slugUsuario}";
+        $usuario = usuario::findOrFail($request->id_usuario);
+        $slugusuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_usuario);
+        $rutaBase = "expedientes/{$slugusuario}";
 
         $tipos = [
             'doc_ine' => 'INE',
@@ -67,8 +67,8 @@ class ExpedienteController extends Controller
                 // Guardamos en storage/app/public/expedientes/...
                 $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
 
-                DocumentoUsuario::updateOrCreate(
-                    ['Id_Usuario' => $usuario->Id_Usuario, 'nombre_documento' => $nombreDoc],
+                Documentousuario::updateOrCreate(
+                    ['Id_usuario' => $usuario->Id_usuario, 'nombre_documento' => $nombreDoc],
                     ['ruta_archivo' => 'storage/' . $path]
                 );
             }
@@ -79,13 +79,13 @@ class ExpedienteController extends Controller
 
     public function guardarMio(Request $request)
     {
-        $idUsuario = Auth::guard('ejidatario')->id();
+        $idusuario = Auth::guard('ejidatario')->id();
 
-        if(!$idUsuario) {
+        if(!$idusuario) {
             return redirect()->back()->with('error', 'No se pudo identificar al usuario.');
         }
 
-        $request->merge(['id_usuario' => $idUsuario]);
+        $request->merge(['id_usuario' => $idusuario]);
         return $this->store($request);
     }
 }

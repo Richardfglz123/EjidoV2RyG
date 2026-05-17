@@ -13,12 +13,12 @@ class Ejidatario extends Model
     protected $fillable = [
         'Num_Ejidatario','qr_payload', 'Calle', 'Num_Exterior', 'Num_Interior', 'Colonia',
         'Municipio', 'Estado', 'Codigo_Postal', 'Fecha_Nacimiento', 'CURP',
-        'RFC', 'Clave_Elector', 'Fecha_Ingreso', 'Id_Estatus', 'Id_Usuario'
+        'RFC', 'Clave_Elector', 'Fecha_Ingreso', 'Id_Estatus', 'Id_usuario'
     ];
 
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'Id_Usuario', 'Id_Usuario');
+        return $this->belongsTo(usuario::class, 'Id_usuario', 'Id_usuario');
     }
 
     public function descuentos()

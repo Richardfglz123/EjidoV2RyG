@@ -25,7 +25,6 @@ class Reparto2Controller extends Controller
         $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
         $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
 
-        // 1. Obtener los IDs de los eventos del año actual
         $eventosAsambleasIds = DB::table('Evento')
             ->where('Id_Categoria_Evento', 1)
             ->whereYear('Fecha_Creo', $anoActual)

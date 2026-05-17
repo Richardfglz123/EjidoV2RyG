@@ -32,7 +32,7 @@ class ParcelaController extends Controller
     {
         $parcelas = DB::table('Parcela as p')
             ->leftJoin('Ejidatario as e', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
-            ->leftJoin('Usuario as u', 'u.Id_Usuario', '=', 'e.Id_Usuario')
+            ->leftJoin('usuario as u', 'u.Id_usuario', '=', 'e.Id_usuario')
             ->select(
                 'p.Id_Parcela',
                 'p.No_Parcela as noParcela',

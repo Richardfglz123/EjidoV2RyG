@@ -16,11 +16,11 @@ class RegistrerController extends Controller
         return "Parcela eliminada";
     }
 
-    public function ActualizarUsuario(){
+    public function Actualizarusuario(){
         return "Parcela actualizada";
     }
 
-    public function MostrarUsuario(){
+    public function Mostrarusuario(){
         return "Mostrar parcela";
     }
 }

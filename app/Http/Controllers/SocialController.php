@@ -33,7 +33,7 @@ class SocialController extends Controller
 
             $acceso = DB::table('Relacion_Ejidatario as re')
                 ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-                ->where('re.Id_Usuario', $usuario->Id_Usuario)
+                ->where('re.Id_usuario', $usuario->Id_usuario)
                 ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
                 ->first();
 
@@ -41,11 +41,11 @@ class SocialController extends Controller
             session([
                 'authenticated' => true, // Para tu Middleware CheckAuth
                 'usuario' => [
-                    'id'              => $usuario->Id_Usuario,
-                    'username'        => $usuario->Usuario,
+                    'id'              => $usuario->Id_usuario,
+                    'username'        => $usuario->usuario,
                     'email'           => $usuario->Correo,
                     'nombre_completo' => $usuario->Nombres . ' ' . $usuario->Apellido_Paterno,
-                    'rol'             => $acceso ? $acceso->Tipo_Rol : 'Usuario',
+                    'rol'             => $acceso ? $acceso->Tipo_Rol : 'usuario',
                     'permisos'        => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
                 ]
             ]);
@@ -54,7 +54,7 @@ class SocialController extends Controller
 
             // Antes de redirigir, verificamos si existe google_id, si no, lo actualizamos
             if (empty($usuario->google_id)) {
-                DB::table('usuario')->where('Id_Usuario', $usuario->Id_Usuario)->update(['google_id' => $googleUser->id]);
+                DB::table('usuario')->where('Id_usuario', $usuario->Id_usuario)->update(['google_id' => $googleUser->id]);
             }
 
             return redirect()->route('inicio');
@@ -64,10 +64,10 @@ class SocialController extends Controller
         }
     }
 
-    private function crearSesionUsuario($usuario) {
+    private function crearSesionusuario($usuario) {
         session([
-            'usuario.id' => $usuario->Id_Usuario,
-            'usuario.nombre_completo' => $usuario->Usuario,
+            'usuario.id' => $usuario->Id_usuario,
+            'usuario.nombre_completo' => $usuario->usuario,
             'usuario.foto' => $usuario->foto,
             'usuario.rol' => $usuario->Rol ?? null
         ]);
@@ -79,7 +79,7 @@ class SocialController extends Controller
         if (!$userId) return redirect()->route('login');
 
         if ($provider === 'google') {
-            DB::table('usuario')->where('Id_Usuario', $userId)->update(['google_id' => null]);
+            DB::table('usuario')->where('Id_usuario', $userId)->update(['google_id' => null]);
             return redirect()->route('perfil.index')->with('success', 'Cuenta desvinculada.');
         }
         return back();

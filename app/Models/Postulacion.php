@@ -25,7 +25,7 @@ class Postulacion extends Model
 
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'id_usuario');
+        return $this->belongsTo(usuario::class, 'id_usuario');
     }
 
     public function programa()

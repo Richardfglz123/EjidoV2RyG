@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Prestamo;
 use App\Models\Utilidad;
-use App\Models\Usuario;
+use App\Models\usuario;
 use App\Models\Ejidatario;
 use App\Models\CatalogoMulta;
 use App\Models\Abono;
@@ -56,7 +56,7 @@ class RepartoController extends Controller
     public function index(Request $request)
     {
         $utilidades = Utilidad::all();
-        $usuarios = Usuario::all();
+        $usuarios = usuario::all();
         $idSeleccionado = $request->input('id_utilidad');
         $utilidadSeleccionada = $idSeleccionado ? Utilidad::find($idSeleccionado) : null;
 

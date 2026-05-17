@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Utilidad;
 use App\Models\CatalogoMulta;
-use App\Models\Usuario;
+use App\Models\usuario;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -20,7 +20,7 @@ class MenuController extends Controller
             $utilidadSeleccionada = Utilidad::find($id_seleccionado);
         }
 
-        $usuarios = Usuario::all();
+        $usuarios = usuario::all();
 
         $data = [
             'utilidades'                => $utilidades,
