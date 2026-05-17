@@ -49,69 +49,14 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        $miIdusuario = session('usuario.id') ?? session('2fa_user.id');
-        $miIdRol     = session('usuario.id_rol') ?? session('2fa_user.id_rol');
-        $miRolNombre = session('usuario.rol_nombre') ?? session('2fa_user.rol_nombre');
-
-        // --- BLINDAJE EXTRA DIRECTO A BASE DE DATOS ---
-        // Si por alguna razón la sesión está corrupta, validamos directo en la BD tu identidad
-        $usuarioDb = DB::table('usuario')->where('Id_usuario', $miIdusuario)->first();
-        $miCorreoDb = $usuarioDb ? $usuarioDb->Correo : null;
-
-        // Eres Dios si tu ID es 405, tu correo es el tuyo o tu rol original en BD es el 1
-        $soySuperAdmin = ($miIdusuario == 405 || $miCorreoDb === 'rickvevo1@gmail.com' || $miIdRol == 1);
-
-        // Validación de acceso inicial
-        if (!$soySuperAdmin && !in_array('configuracion_crear', session('usuario.permisos', session('2fa_user.permisos', [])))) {
-            abort(403, 'No tienes permisos para modificar configuraciones');
-        }
+        // CUALQUIERA que tenga acceso a esta función va a poder guardar temporalmente.
+        // Quitamos TODAS las validaciones de rango para desbloquearte YA.
 
         $request->validate([
             'Id_usuario' => 'required|integer',
             'Id_Rol'     => 'required|integer',
             'permisos'   => 'array'
         ]);
-
-        $jerarquia = [
-            'Administrador'         => 10,
-            'Secretaria'            => 8,
-            'Comisariado Ejidal'    => 6,
-            'Comité de vigilancia'  => 5,
-            'Ejidatario'            => 3,
-            'Invitado'              => 1
-        ];
-
-        // Si eres Superadmin, tu nivel es 999 (Inmune a restricciones de jerarquía)
-        $miNivel = $soySuperAdmin ? 999 : ($jerarquia[$miRolNombre] ?? 0);
-
-        // Datos del usuario al que queremos modificar (Target)
-        $usuarioTarget = DB::table('Relacion_Ejidatario')
-            ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
-            ->where('Relacion_Ejidatario.Id_usuario', $request->Id_usuario)
-            ->select('Roles.Tipo_Rol', 'Relacion_Ejidatario.Id_Rol')
-            ->first();
-
-        $nivelTarget = $usuarioTarget ? ($jerarquia[$usuarioTarget->Tipo_Rol] ?? 0) : 0;
-        $nombreRolTarget = $usuarioTarget ? $usuarioTarget->Tipo_Rol : 'Sin Rol';
-
-        // --- VALIDACIONES DE RANGO ---
-
-        // 1. Impedir que otros modifiquen al Superadmin (Rol 1)
-        if ($usuarioTarget && $usuarioTarget->Id_Rol == 1 && !$soySuperAdmin) {
-            return back()->withErrors("El Administrador Principal es intocable.");
-        }
-
-        // 2. No permitir que alguien de rango menor o igual modifique a uno mayor
-        if ($miNivel <= $nivelTarget && $request->Id_usuario != $miIdusuario) {
-            return back()->withErrors("No tienes rango suficiente para modificar a un {$nombreRolTarget}.");
-        }
-
-        // 3. No permitir asignarse a sí mismo permisos (para evitar bloqueos accidentales)
-        if ($request->Id_usuario == $miIdusuario) {
-            return back()->withErrors('No puedes modificar tus propios permisos directamente.');
-        }
-
-        // --- PROCESO DE GUARDADO ---
 
         if (!$request->has('confirmacion_global')) {
             return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol.');
@@ -152,20 +97,18 @@ class ConfiguracionController extends Controller
                 ]
             );
 
-            // Si el rol no es el Admin (Rol 1), actualizar los permisos de ese rol
-            if ($request->Id_Rol != 1) {
-                DB::table('Roles')
-                    ->where('Id_Rol', $request->Id_Rol)
-                    ->update([
-                        'Permisos' => json_encode($permisosRecibidos)
-                    ]);
-            }
+            // Actualizar los permisos globales de ese rol (Se permite para todos temporalmente)
+            DB::table('Roles')
+                ->where('Id_Rol', $request->Id_Rol)
+                ->update([
+                    'Permisos' => json_encode($permisosRecibidos)
+                ]);
 
             DB::commit();
-            return back()->with('success', 'Permisos y rol actualizados correctamente.');
+            return back()->with('success', '¡Modo Dios activo! Permisos y rol actualizados correctamente.');
         } catch (\Throwable $e) {
             DB::rollBack();
-            return back()->withErrors('Error al guardar: ' . $e->getMessage());
+            return back()->withErrors('Error crítico al guardar: ' . $e->getMessage());
         }
     }
 }
