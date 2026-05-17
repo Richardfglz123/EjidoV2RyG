@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Usuario;
 
 class Ejidatario extends Model
 {
@@ -18,7 +19,6 @@ class Ejidatario extends Model
 
     public function usuario()
     {
-        // CORREGIDO: 'Usuario' con U mayúscula para compatibilidad con Linux (Hostinger)
         return $this->belongsTo(Usuario::class, 'Id_usuario', 'Id_usuario');
     }
 

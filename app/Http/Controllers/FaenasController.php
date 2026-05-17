@@ -3,10 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Ejidatario;
-use App\Models\usuario;
-use App\Models\Descuento;
-use App\Models\CatalogoMulta;
 use Illuminate\Support\Facades\DB;
 
 class FaenasController extends Controller
@@ -15,12 +11,14 @@ class FaenasController extends Controller
     {
         $anoActual = now()->year;
 
+        // 1. Obtenemos eventos de Faenas (Categorías 9 y 10)
         $eventosFaenas = DB::table('Evento')
             ->whereIn('Id_Categoria_Evento', [9, 10])
             ->whereYear('Fecha_Creo', $anoActual)
             ->whereNull('Fecha_Eliminado')
             ->get();
 
+        // 2. Obtenemos sesiones ligadas
         $sesionesFaenas = DB::table('Sesion')
             ->whereIn('Id_Referencia', $eventosFaenas->pluck('Id_Evento'))
             ->where('Tipo', 'Evento')
@@ -29,19 +27,28 @@ class FaenasController extends Controller
 
         $idsSesiones = $sesionesFaenas->pluck('Id_Sesion')->toArray();
 
-        $query = Ejidatario::with(['usuario', 'descuentos']);
+        // 3. CONSULTA CON JOIN (Para asegurar que los nombres aparezcan)
+        $query = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->select(
+                'e.Id_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno'
+            );
 
         if ($request->filled('query')) {
-            $search = $request->get('query');
-            $query->whereHas('usuario', function($q) use ($search) {
-                $q->where('Nombres', 'LIKE', "%$search%")
-                    ->orWhere('Apellido_Paterno', 'LIKE', "%$search%")
-                    ->orWhere('Apellido_Materno', 'LIKE', "%$search%");
+            $search = trim($request->get('query'));
+            $query->where(function($q) use ($search) {
+                $q->where('u.Nombres', 'LIKE', "%{$search}%")
+                    ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
+                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%");
             });
         }
 
-        $ejidatarios = $query->paginate(10);
+        $ejidatarios = $query->paginate(15);
 
+        // 4. Mapeo de asistencias
         foreach ($ejidatarios as $ejidatario) {
             $asistenciasEnSesion = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
@@ -58,6 +65,7 @@ class FaenasController extends Controller
 
         return view('cpanel.Descuentos.faenas', compact('ejidatarios', 'eventosFaenas'));
     }
+
 
     public function aplicarDescuento(Request $request)
     {

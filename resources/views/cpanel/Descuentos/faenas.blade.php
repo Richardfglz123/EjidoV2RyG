@@ -96,10 +96,11 @@
 
                         <td>
                             <div class="text-dark fw-bold">
-                                {{ $ejidatario->usuario?->Nombres }}
+                                {{-- Ahora el nombre viene directo en el objeto ejidatario --}}
+                                {{ $ejidatario->Nombres ?? 'Sin Nombre' }}
                             </div>
                             <div class="small text-muted text-uppercase">
-                                {{ $ejidatario->usuario?->Apellido_Paterno }} {{ $ejidatario->usuario?->Apellido_Materno }}
+                                {{ $ejidatario->Apellido_Paterno ?? '' }} {{ $ejidatario->Apellido_Materno ?? '' }}
                             </div>
                         </td>
 
