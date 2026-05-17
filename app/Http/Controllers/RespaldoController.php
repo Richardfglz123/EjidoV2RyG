@@ -72,7 +72,7 @@ class RespaldoController extends Controller
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
             $passArg,
-            escapesisons($dbName),
+            escapeshellarg($dbName),
             escapeshellarg($fullPath),
             escapeshellarg($errorLog)
         );
