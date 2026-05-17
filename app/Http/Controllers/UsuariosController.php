@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
-use App\Models\Usuario; // AGREGADO: Importamos el modelo correcto
+use App\Models\Usuario;
 
 class UsuariosController extends Controller
 {
@@ -38,7 +38,8 @@ class UsuariosController extends Controller
             'Apellido_Materno' => 'apellido materno',
             'code' => 'código de verificación',
             'username' => 'nombre de usuario o correo',
-            'password' => 'contraseña'
+            'password' => 'contraseña',
+            'Id_usuario' => 'id usuario'
         ];
     }
 
@@ -46,7 +47,7 @@ class UsuariosController extends Controller
     {
         $sesion = session('usuario', session('2fa_user', []));
         $permisos = $sesion['permisos'] ?? [];
-        $rol = strtolower(trim($sesion['rol'] ?? ''));
+        $rol = strtolower(trim($sesion['rol'] ?? $sesion['rol_nombre'] ?? ''));
 
         if ($rol === 'administrador') {
             return true;
@@ -60,7 +61,7 @@ class UsuariosController extends Controller
     public function index(Request $request)
     {
         $query = DB::table('usuario as u')
-            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_usuario', '=', 're.Id_usuario')
+            ->leftJoin('Relacion_Ejidatario as re', 'u.Id_usuario', '=', 're.Id_Usuario')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->select('u.*', 'r.Tipo_Rol as rol');
 
@@ -115,7 +116,7 @@ class UsuariosController extends Controller
 
         DB::table('Relacion_Ejidatario')->insert([
             'Id_Rol' => $rolId,
-            'Id_usuario' => $idusuario,
+            'Id_Usuario' => $idusuario,
             'Fecha_Creo' => now()
         ]);
 
@@ -125,7 +126,6 @@ class UsuariosController extends Controller
     public function edit($id)
     {
         $this->checkPermission('usuarios_editar');
-        // CORREGIDO: Usamos el modelo Usuario para mantener consistencia de objetos Eloquent
         $fila = Usuario::where('Id_usuario', $id)->first();
         abort_if(!$fila, 404);
         return view('cpanel.usuarios.editusuario', compact('fila'));
@@ -136,7 +136,8 @@ class UsuariosController extends Controller
         $this->checkPermission('usuarios_editar');
 
         $sesion = session('usuario', session('2fa_user'));
-        $esAdmin = (strtolower($sesion['rol'] ?? '') === 'administrador');
+        $rolActual = strtolower(trim($sesion['rol'] ?? $sesion['rol_nombre'] ?? ''));
+        $esAdmin = ($rolActual === 'administrador');
 
         $reglas = [
             'Nombres' => 'required',
@@ -180,7 +181,7 @@ class UsuariosController extends Controller
 
         $rolObjetivo = DB::table('Relacion_Ejidatario as re')
             ->join('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
-            ->where('re.Id_usuario', $id)
+            ->where('re.Id_Usuario', $id)
             ->value('r.Tipo_Rol');
 
         if (strtolower($rolObjetivo) === 'administrador') {
@@ -188,12 +189,13 @@ class UsuariosController extends Controller
         }
 
         DB::transaction(function () use ($id) {
-            DB::table('Relacion_Ejidatario')->where('Id_usuario', $id)->delete();
+            DB::table('Relacion_Ejidatario')->where('Id_Usuario', $id)->delete();
             DB::table('usuario')->where('Id_usuario', $id)->delete();
         });
 
         return back()->with('success', 'usuario eliminado correctamente.');
     }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -201,7 +203,6 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        // Buscamos el usuario usando Eloquent
         $user = Usuario::where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
@@ -212,7 +213,6 @@ class UsuariosController extends Controller
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
 
-        // Buscamos el rol respetando la mayúscula estricta de Linux (Id_Usuario)
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_Usuario', $user->Id_usuario)
@@ -230,22 +230,15 @@ class UsuariosController extends Controller
         $idRolReal = $acceso ? $acceso->Id_Rol : null;
         $permisosReales = ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : [];
 
-        // RESPALDO DE SEGURIDAD INTERNO: Si tu correo coincide, te asegura el rol pase lo que pase
         if ($user->Correo === 'rickvevo1@gmail.com' && $rolNombre === 'Invitado') {
             $rolNombre = 'Administrador';
             $idRolReal = 1;
             $permisosReales = ['usuarios_ver', 'usuarios_crear', 'usuarios_eliminar', 'configuracion_ver', 'configuracion_crear'];
         }
 
-        // CREACIÓN DE TODAS LAS LLAVES QUE COMPROBARÁN TUS MIDDLEWARES
         session([
-            // 1. Satisface a CheckAuth y Check2FA para que no te expulsen al Login
             'authenticated' => true,
-
-            // 2. Guarda el token aleatorio para el formulario 2FA
             '2fa_code' => $code,
-
-            // 3. Satisface el arreglo temporal 2FA
             '2fa_user' => [
                 'id'              => $user->Id_usuario,
                 'username'        => $user->usuario,
@@ -254,15 +247,14 @@ class UsuariosController extends Controller
                 'nombre_completo' => $nombreCompleto,
                 'id_rol'          => $idRolReal,
                 'rol'             => strtolower(trim($rolNombre)),
+                'rol_nombre'      => $rolNombre,
                 'permisos'        => $permisosReales
             ],
-
-            // 4. Satisface a CheckPermiso y ConfiguracionController de forma inmediata
             'usuario' => [
                 'id'              => $user->Id_usuario,
                 'id_rol'          => $idRolReal,
-                'rol'             => $rolNombre,       // Usado por CheckPermiso ($user->Tipo_Rol)
-                'rol_nombre'      => $rolNombre,       // Usado por tu ConfiguracionController
+                'rol'             => $rolNombre,
+                'rol_nombre'      => $rolNombre,
                 'correo'          => $user->Correo,
                 'foto'            => $user->foto,
                 'nombre_completo' => $nombreCompleto,
