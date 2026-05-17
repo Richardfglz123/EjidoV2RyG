@@ -66,7 +66,7 @@ Route::post('password/forgot-send', [UsuariosController::class, 'sendResetCode']
 Route::get('password/reset', [UsuariosController::class, 'resetForm'])->name('password.reset.form');
 Route::post('password/reset', [UsuariosController::class, 'resetPassword'])->name('password.reset');
 
-// Ruta de limpieza agregada previamente
+// Ruta de limpieza
 Route::get('/limpiar', function () {
     \Artisan::call('cache:clear');
     \Artisan::call('route:clear');
@@ -89,20 +89,25 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
 
-    // --- MÓDULO: USUARIOS ---
-    Route::prefix('admon/Usuarios')->group(function () {
+    // --- MÓDULO: USUARIOS (Sincronizado con UsuariosController) ---
+    Route::prefix('admon/usuarios')->group(function () {
         Route::middleware(['permiso:usuarios_ver'])->group(function () {
             Route::get('/buscar', [UsuariosController::class, 'buscar'])->name('usuarios.buscar');
-            Route::get('/', [UsuariosController::class, 'index'])->name('Usuarios.index');
-            Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
+            Route::get('/', [UsuariosController::class, 'index'])->name('usuarios.index');
+            Route::get('/usuarios', [UsuariosController::class, 'index'])->name('Usuarios.index'); // Compatibilidad legacy
         });
 
         Route::middleware(['permiso:usuarios_crear'])->group(function () {
-            Route::get('/create', [UsuariosController::class, 'create'])->name('Usuarios.create');
-            Route::post('/', [UsuariosController::class, 'store'])->name('Usuarios.store');
-            Route::get('/{Usuario}/edit', [UsuariosController::class, 'edit'])->name('Usuarios.edit');
-            Route::put('/{Usuario}', [UsuariosController::class, 'update'])->name('Usuarios.update');
-            Route::delete('/{Usuario}', [UsuariosController::class, 'destroy'])->name('Usuarios.destroy');
+            Route::get('/create', [UsuariosController::class, 'create'])->name('usuarios.create');
+            Route::get('/create-legacy', [UsuariosController::class, 'create'])->name('Usuarios.create'); // Compatibilidad legacy
+            Route::post('/', [UsuariosController::class, 'store'])->name('usuarios.store');
+            Route::post('/store-legacy', [UsuariosController::class, 'store'])->name('Usuarios.store'); // Compatibilidad legacy
+            Route::get('/{Usuario}/edit', [UsuariosController::class, 'edit'])->name('usuarios.edit');
+            Route::get('/{Usuario}/edit-legacy', [UsuariosController::class, 'edit'])->name('Usuarios.edit'); // Compatibilidad legacy
+            Route::put('/{Usuario}', [UsuariosController::class, 'update'])->name('usuarios.update');
+            Route::put('/{Usuario}-legacy', [UsuariosController::class, 'update'])->name('Usuarios.update'); // Compatibilidad legacy
+            Route::delete('/{Usuario}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
+            Route::delete('/{Usuario}-legacy', [UsuariosController::class, 'destroy'])->name('Usuarios.destroy'); // Compatibilidad legacy
         });
     });
 
