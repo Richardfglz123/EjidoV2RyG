@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
+use App\Models\Usuario;
 
 class UsuariosController extends Controller
 {
@@ -33,8 +34,8 @@ class UsuariosController extends Controller
             'Contraseña' => 'contraseña',
             'Telefono' => 'teléfono',
             'Nombres' => 'nombre(s)',
-            'Apellido_Paterno' => 'apellido` paterno',
-            'Apellido_Materno' => 'apellido` materno',
+            'Apellido_Paterno' => 'apellido paterno',
+            'Apellido_Materno' => 'apellido materno',
             'code' => 'código de verificación',
             'username' => 'nombre de usuario o correo',
             'password' => 'contraseña'
@@ -88,7 +89,6 @@ class UsuariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
-        // CORRECCIÓN CRÍTICA: Se especifica la validación directamente apuntando a la tabla 'usuario' de la base de datos
         $request->validate([
             'usuario' => 'required|unique:usuario,usuario',
             'Correo' => 'required|email|unique:usuario,Correo',
@@ -125,7 +125,8 @@ class UsuariosController extends Controller
     public function edit($id)
     {
         $this->checkPermission('usuarios_editar');
-        $fila = DB::table('usuario')->where('Id_usuario', $id)->first();
+        // CORREGIDO: Usamos el modelo Usuario para mantener consistencia de objetos Eloquent
+        $fila = Usuario::where('Id_usuario', $id)->first();
         abort_if(!$fila, 404);
         return view('cpanel.usuarios.editusuario', compact('fila'));
     }
@@ -145,7 +146,6 @@ class UsuariosController extends Controller
         ];
 
         if ($esAdmin && $request->filled('Correo')) {
-            // CORRECCIÓN: Evitamos que busque el modelo 'usuario' usando la definición explícita de llave primaria en la tabla
             $reglas['Correo'] = 'required|email|unique:usuario,Correo,' . $id . ',Id_usuario';
         }
 
@@ -172,7 +172,7 @@ class UsuariosController extends Controller
         $this->checkPermission('usuarios_eliminar');
 
         $sesion = session('usuario', session('2fa_user'));
-        $authId = $sesion['id'];
+        $authId = $sesion['id'] ?? null;
 
         if ($authId == $id) {
             return back()->withErrors('No puedes eliminar tu propio usuario.');
@@ -202,8 +202,8 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        $user = DB::table('usuario')
-            ->where('usuario', $request->username)
+        // CORREGIDO: Buscamos con el Modelo Eloquent 'Usuario' para asegurar el mapeo de propiedades exactas
+        $user = Usuario::where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
 
@@ -268,8 +268,10 @@ class UsuariosController extends Controller
     public function sendResetCode(Request $request)
     {
         $request->validate(['username' => 'required'], $this->validationMessages(), $this->validationAttributes());
-        $user = DB::table('usuario')->where('Correo', $request->username)->orWhere('usuario', $request->username)->first();
+
+        $user = Usuario::where('Correo', $request->username)->orWhere('usuario', $request->username)->first();
         if (!$user) { return back()->withErrors(['username' => 'No encontrado']); }
+
         $code = rand(100000, 999999);
         DB::table('password_resets')->updateOrInsert(['email' => $user->Correo], ['token' => $code, 'expires_at' => now()->addMinutes(10), 'created_at' => now()]);
         Mail::to($user->Correo)->send(new ResetPasswordMail($user->Nombres, $code));
