@@ -66,6 +66,15 @@ Route::post('password/forgot-send', [UsuariosController::class, 'sendResetCode']
 Route::get('password/reset', [UsuariosController::class, 'resetForm'])->name('password.reset.form');
 Route::post('password/reset', [UsuariosController::class, 'resetPassword'])->name('password.reset');
 
+// Ruta de limpieza agregada previamente
+Route::get('/limpiar', function () {
+    \Artisan::call('cache:clear');
+    \Artisan::call('route:clear');
+    \Artisan::call('config:clear');
+    \Artisan::call('view:clear');
+    return "¡Caché del sistema completamente limpia!";
+});
+
 
 // =========================================================================
 // GRUPO PROTEGIDO (AUTH Y 2FA)
@@ -125,7 +134,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::post('/reprográmr-falta', [Reparto2Controller::class, 'reprogramarFalta'])->name('reprogramar.falta');
     Route::get('/descuentos-asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
     Route::get('/ejidatarios/buscar-descuentos', [DescuentoController::class, 'buscar'])->name('descuentos.buscar_ejidatario');
-    Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
+    Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuento.store');
     Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
 
