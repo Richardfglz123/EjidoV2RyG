@@ -10,11 +10,9 @@ class ConfiguracionController extends Controller
     public function permisos()
     {
         $roles = DB::table('Roles')->get();
-        // Corregido a minúsculas por buena práctica en rutas de vistas
         return view('cpanel.configuracion.permisos', compact('roles'));
     }
 
-    // CORREGIDO: 'buscarUsuariosAjax' con U mayúscula para que coincida con web.php
     public function buscarUsuariosAjax(Request $request)
     {
         return DB::table('usuario')
@@ -24,7 +22,6 @@ class ConfiguracionController extends Controller
             ->get();
     }
 
-    // CORREGIDO: 'obtenerPermisosUsuario' con U mayúscula para coincidir con web.php
     public function obtenerPermisosUsuario($id)
     {
         $datos = DB::table('Relacion_Ejidatario')
@@ -52,15 +49,20 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        $miIdusuario = session('usuario.id');
-        $miIdRol     = session('usuario.id_rol');
-        $miRolNombre = session('usuario.rol_nombre');
+        $miIdusuario = session('usuario.id') ?? session('2fa_user.id');
+        $miIdRol     = session('usuario.id_rol') ?? session('2fa_user.id_rol');
+        $miRolNombre = session('usuario.rol_nombre') ?? session('2fa_user.rol_nombre');
 
-        // Definimos quién es "Dios" en el sistema (Superadmin)
-        $soySuperAdmin = ($miIdRol == 1 || session('usuario.correo') === 'rickvevo1@gmail.com' || session('usuario.id') == 405);
+        // --- BLINDAJE EXTRA DIRECTO A BASE DE DATOS ---
+        // Si por alguna razón la sesión está corrupta, validamos directo en la BD tu identidad
+        $usuarioDb = DB::table('usuario')->where('Id_usuario', $miIdusuario)->first();
+        $miCorreoDb = $usuarioDb ? $usuarioDb->Correo : null;
+
+        // Eres Dios si tu ID es 405, tu correo es el tuyo o tu rol original en BD es el 1
+        $soySuperAdmin = ($miIdusuario == 405 || $miCorreoDb === 'rickvevo1@gmail.com' || $miIdRol == 1);
 
         // Validación de acceso inicial
-        if (!$soySuperAdmin && !in_array('configuracion_crear', session('usuario.permisos', []))) {
+        if (!$soySuperAdmin && !in_array('configuracion_crear', session('usuario.permisos', session('2fa_user.permisos', [])))) {
             abort(403, 'No tienes permisos para modificar configuraciones');
         }
 
@@ -79,7 +81,7 @@ class ConfiguracionController extends Controller
             'Invitado'              => 1
         ];
 
-        // Si eres Superadmin, tu nivel es 999 (invencible)
+        // Si eres Superadmin, tu nivel es 999 (Inmune a restricciones de jerarquía)
         $miNivel = $soySuperAdmin ? 999 : ($jerarquia[$miRolNombre] ?? 0);
 
         // Datos del usuario al que queremos modificar (Target)
@@ -150,7 +152,7 @@ class ConfiguracionController extends Controller
                 ]
             );
 
-            // Si el rol no es el Admin, actualizar los permisos globales de ese rol
+            // Si el rol no es el Admin (Rol 1), actualizar los permisos de ese rol
             if ($request->Id_Rol != 1) {
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
