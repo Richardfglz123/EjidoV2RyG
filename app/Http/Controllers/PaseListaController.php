@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sesion;
-use App\Models\PaseLista;
 use App\Models\Evento;
 use App\Models\Ejidatario;
 use Illuminate\Http\Request;
@@ -16,6 +15,8 @@ class PaseListaController extends Controller
     {
         $eventos = Evento::all();
         $totalEjidatarios = Ejidatario::count();
+
+        // Sesiones con conteo de asistencias corregido
         $sesiones = Sesion::with('evento')
             ->select('Sesion.*')
             ->addSelect([
@@ -36,6 +37,7 @@ class PaseListaController extends Controller
             'tipo'          => 'required',
             'fecha'         => 'required|date',
         ]);
+
         $sesion = Sesion::firstOrCreate(
             [
                 'Tipo'          => $request->tipo,
@@ -44,11 +46,18 @@ class PaseListaController extends Controller
             ]
         );
 
+        // JOIN corregido para mostrar nombres de quienes ya estaban registrados en la sesión
         $presentes = DB::table('PaseLista as a')
             ->join('Ejidatario as e', 'a.Id_Ejidatario', '=', 'e.Id_Ejidatario')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->where('a.Id_Sesion', $sesion->Id_Sesion)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'a.Fecha as Hora')
+            ->select(
+                'e.Num_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno',
+                'a.Fecha as Hora'
+            )
             ->orderBy('a.Fecha', 'desc')
             ->get();
 
@@ -57,28 +66,35 @@ class PaseListaController extends Controller
         return view('cpanel.PaseLista.escanear', compact('sesion', 'evento', 'presentes'));
     }
 
-    public function marcarAsistencia(Request $request) {
+    public function marcarAsistencia(Request $request)
+    {
         try {
             $id_sesion = $request->id_sesion;
             $sesion = Sesion::findOrFail($id_sesion);
 
+            // Limpieza del QR
             $raw = strtoupper($request->qr_data);
-            $soloLetrasQR = preg_replace('/[^A-Z]/', '', $raw);
+            $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
             if (empty($soloLetrasQR)) {
-                return response()->json(['success' => false, 'message' => "QR ilegible"]);
+                return response()->json(['success' => false, 'message' => "QR ilegible o vacío"]);
             }
-            $ejidatario = Ejidatario::whereHas('usuario', function($q) use ($soloLetrasQR) {
-                $q->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(Nombres, Apellido_Paterno, Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
+
+            // Búsqueda del Ejidatario usando JOIN para evitar fallos de relación Eloquent
+            $ejidatario = DB::table('Ejidatario as e')
+                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+                ->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
                     'LIKE',
                     "%$soloLetrasQR%"
-                );
-            })->first();
+                )
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno')
+                ->first();
 
             if (!$ejidatario) {
                 return response()->json(['success' => false, 'message' => "No registrado: " . substr($raw, 0, 15)]);
             }
 
+            // Registro de asistencia (PaseLista suele ser el nombre de la tabla en tu DB)
             DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -94,11 +110,11 @@ class PaseListaController extends Controller
             return response()->json([
                 'success' => true,
                 'num_ejid' => $ejidatario->Num_Ejidatario,
-                'nombre' => $ejidatario->usuario->Nombres . ' ' . $ejidatario->usuario->Apellido_Paterno
+                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => "Error de base de datos: " . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
 
@@ -106,26 +122,41 @@ class PaseListaController extends Controller
     {
         try {
             DB::beginTransaction();
+            // Eliminamos asistencias vinculadas primero por integridad
             DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
             Sesion::destroy($id);
             DB::commit();
-            return redirect()->back()->with('success', 'Sesión eliminada.');
+            return redirect()->back()->with('success', 'Sesión y asistencias eliminadas.');
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()->with('error', 'Error al eliminar.');
+            return redirect()->back()->with('error', 'Error al eliminar la sesión.');
         }
     }
 
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
+
+        // Obtener asistentes con JOIN para el PDF
+        $asistieron = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
+            ->where('p.Id_Sesion', $id)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
+
+        // Obtener NO asistentes (aquellos que no están en PaseLista para esta sesión)
         $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
 
-        $asistieron = Ejidatario::with('usuario')->whereIn('Id_Ejidatario', $idsAsistentes)->get();
-        $noAsistieron = Ejidatario::with('usuario')->whereNotIn('Id_Ejidatario', $idsAsistentes)->get();
+        $noAsistieron = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
+
         $total = Ejidatario::count();
 
         $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
-        return $pdf->stream('Reporte_'.$id.'.pdf');
+        return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
     }
 }

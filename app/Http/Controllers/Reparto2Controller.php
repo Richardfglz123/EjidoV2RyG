@@ -61,16 +61,13 @@ class Reparto2Controller extends Controller
 
         $ejidatarios = $query->paginate(15);
 
-        // Procesar cálculos por cada ejidatario
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena) {
 
-            // 1. Deuda de Préstamos R1
             $ejidatario->deuda_arrastrada_r1 = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
                 ->sum('Cantidad') ?? 0;
 
-            // 2. Asistencias reales
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
@@ -78,7 +75,6 @@ class Reparto2Controller extends Controller
                 ->pluck('Id_Sesion')
                 ->toArray();
 
-            // 3. Reprogramaciones (Asistencias sin sesión vinculada)
             $reprosAsambleas = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
