@@ -194,7 +194,6 @@ class UsuariosController extends Controller
 
         return back()->with('success', 'usuario eliminado correctamente.');
     }
-
     public function login(Request $request)
     {
         $request->validate([
@@ -202,7 +201,7 @@ class UsuariosController extends Controller
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        // CORREGIDO: Buscamos con el Modelo Eloquent 'Usuario' para asegurar el mapeo de propiedades exactas
+        // Buscamos con el Modelo Eloquent 'Usuario' para asegurar el mapeo de propiedades exactas en Linux
         $user = Usuario::where('usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
@@ -213,6 +212,7 @@ class UsuariosController extends Controller
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
 
+        // Buscamos la relación de rol. Se usa 're.Id_usuario' (si da error de columna no encontrada, cámbialo a 're.Id_Usuario')
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_usuario', $user->Id_usuario)
@@ -222,8 +222,14 @@ class UsuariosController extends Controller
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim($user->Nombres . ' ' . $user->Apellido_Paterno);
-        if (empty($nombreCompleto)) { $nombreCompleto = $user->usuario; }
+        if (empty($nombreCompleto)) {
+            $nombreCompleto = $user->usuario;
+        }
 
+        // El nombre del rol tal cual viene de la base de datos ("Administrador")
+        $rolNombre = $acceso ? $acceso->Tipo_Rol : 'Invitado';
+
+        // UNIFICACIÓN DE LA SESIÓN (Mapea tanto para el 2FA como para el ConfiguracionController)
         session([
             '2fa_code' => $code,
             '2fa_user' => [
@@ -233,8 +239,16 @@ class UsuariosController extends Controller
                 'foto'            => $user->foto,
                 'nombre_completo' => $nombreCompleto,
                 'id_rol'          => $acceso ? $acceso->Id_Rol : null,
-                'rol'             => $acceso ? ($acceso->Tipo_Rol ?? 'usuario') : 'usuario',
+                'rol'             => strtolower(trim($rolNombre)), // En minúsculas para validaciones de controladores generales
                 'permisos'        => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
+            ],
+            // LLAVE 'usuario' EXACTA QUE BUSCA TU CONFIGURACIONCONTROLLER (Evita que pierdas el rango)
+            'usuario' => [
+                'id'         => $user->Id_usuario,
+                'id_rol'     => $acceso ? $acceso->Id_Rol : null,
+                'rol_nombre' => $rolNombre, // Mantén la mayúscula exacta ("Administrador") para la jerarquía
+                'correo'     => $user->Correo,
+                'permisos'   => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
             ]
         ]);
 
