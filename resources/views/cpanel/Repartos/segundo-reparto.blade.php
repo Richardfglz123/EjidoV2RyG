@@ -71,10 +71,14 @@
                         <td class="ps-3 text-center text-muted small">
                             {{ ($ejidatarios->currentPage() - 1) * $ejidatarios->perPage() + $loop->iteration }}
                         </td>
+                        {{-- Busca este bloque en tu tabla --}}
                         <td>
-                            <div class="text-dark fw-bold">{{ $ejidatario->usuario?->Nombres }}</div>
+                            <div class="text-dark fw-bold">
+                                {{-- CAMBIO AQUÍ: Sin el "usuario?->" --}}
+                                {{ $ejidatario->Nombres }}
+                            </div>
                             <div class="small text-muted text-uppercase">
-                                {{ $ejidatario->usuario?->Apellido_Paterno }} {{ $ejidatario->usuario?->Apellido_Materno }}
+                                {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
                             </div>
                         </td>
 

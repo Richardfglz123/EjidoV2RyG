@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Utilidad;
 use App\Models\Ejidatario;
-use App\Models\Evento;
-use App\Models\Descuento;
 use App\Models\CatalogoMulta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,58 +19,66 @@ class Reparto2Controller extends Controller
         $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
         $anoActual = now()->year;
 
+        // Precios de multas
         $precios = CatalogoMulta::where('Año', $anoActual)->get();
         $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
         $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
 
-        $eventosAsambleasIds = DB::table('Evento')
-            ->where('Id_Categoria_Evento', 1)
-            ->whereYear('Fecha_Creo', $anoActual)
-            ->pluck('Id_Evento')->toArray();
-
-        $eventosFaenasIds = DB::table('Evento')
-            ->where('Id_Categoria_Evento', '!=', 1)
-            ->whereYear('Fecha_Creo', $anoActual)
-            ->pluck('Id_Evento')->toArray();
-
+        // Ids de Sesiones para cálculos
         $sesionesAsambleasIds = DB::table('Sesion')
-            ->whereIn('Id_Referencia', $eventosAsambleasIds)
-            ->where('Tipo', 'Evento')
-            ->pluck('Id_Sesion')->toArray();
+            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
+            ->where('Sesion.Tipo', 'Evento')
+            ->pluck('Sesion.Id_Sesion')->toArray();
 
         $sesionesFaenasIds = DB::table('Sesion')
-            ->whereIn('Id_Referencia', $eventosFaenasIds)
-            ->where('Tipo', 'Evento')
-            ->pluck('Id_Sesion')->toArray();
+            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', '!=', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
+            ->where('Sesion.Tipo', 'Evento')
+            ->pluck('Sesion.Id_Sesion')->toArray();
 
-        $query = Ejidatario::with(['usuario', 'prestamos' => function($q) {
-            $q->where('Id_Utilidad', $this->idUtilidadReparto1);
-        }]);
+        // CONSULTA CON JOIN PARA ASEGURAR NOMBRES
+        $query = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->select(
+                'e.Id_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno'
+            );
 
         if ($request->filled('query')) {
-            $search = $request->get('query');
-            $query->whereHas('usuario', function($q) use ($search) {
-                $q->where(function($sub) use ($search) {
-                    $sub->where('Nombres', 'LIKE', "%$search%")
-                        ->orWhere('Apellido_Paterno', 'LIKE', "%$search%")
-                        ->orWhere('Apellido_Materno', 'LIKE', "%$search%")
-                        ->orWhere(DB::raw("CONCAT(Nombres, ' ', Apellido_Paterno, ' ', Apellido_Materno)"), 'LIKE', "%$search%");
-                });
+            $search = trim($request->get('query'));
+            $query->where(function($q) use ($search) {
+                $q->where('u.Nombres', 'LIKE', "%{$search}%")
+                    ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
+                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%")
+                    ->orWhere(DB::raw("CONCAT(u.Nombres, ' ', u.Apellido_Paterno, ' ', u.Apellido_Materno)"), 'LIKE', "%{$search}%");
             });
         }
 
         $ejidatarios = $query->paginate(15);
 
+        // Procesar cálculos por cada ejidatario
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena) {
 
-            $ejidatario->deuda_arrastrada_r1 = $ejidatario->prestamos->sum('Cantidad') ?? 0;
+            // 1. Deuda de Préstamos R1
+            $ejidatario->deuda_arrastrada_r1 = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->sum('Cantidad') ?? 0;
 
+            // 2. Asistencias reales
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
+                ->whereNotNull('Id_Sesion')
                 ->pluck('Id_Sesion')
                 ->toArray();
 
+            // 3. Reprogramaciones (Asistencias sin sesión vinculada)
             $reprosAsambleas = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
@@ -87,11 +93,14 @@ class Reparto2Controller extends Controller
                 ->where('Id_Actividad', 2)
                 ->count();
 
+            // 4. Cálculo de Faltas
             $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
             $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
+
             $ejidatario->total_asambleas = max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
             $ejidatario->total_faenas = max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
 
+            // 5. TOTAL FINAL
             $ejidatario->total_a_pagar = $montoFijoR2 - ($ejidatario->deuda_arrastrada_r1 + $ejidatario->total_asambleas + $ejidatario->total_faenas);
 
             return $ejidatario;
@@ -99,6 +108,7 @@ class Reparto2Controller extends Controller
 
         return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
     }
+
 
     public function obtenerDetalleAsambleas($id_ejidatario) {
         try {
