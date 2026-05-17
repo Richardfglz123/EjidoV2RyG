@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class DocumentoUsuario extends Model
+class Documentousuario extends Model
 {
     protected $table = 'Documentos_usuario';
     protected $fillable = ['Id_usuario', 'nombre_documento', 'ruta_archivo', 'validado'];
