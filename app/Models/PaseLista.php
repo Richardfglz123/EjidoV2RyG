@@ -7,16 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class PaseLista extends Model
 {
     protected $table = 'PaseLista';
-    protected $primaryKey = 'Id_Asistencia';
+    protected $primaryKey = 'Id_PaseL'; // Corregido según tu DESCRIBE
     public $timestamps = false;
 
     protected $fillable = [
         'Id_Sesion',
         'Id_Ejidatario',
-        'Estatus',
-        'Fecha_Creo',
-        'Id_Creo'
+        'Asistencia',
+        'Fecha',
+        'Id_Actividad'
     ];
+
     public function sesion()
     {
         return $this->belongsTo(Sesion::class, 'Id_Sesion', 'Id_Sesion');

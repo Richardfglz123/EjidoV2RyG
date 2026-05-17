@@ -16,7 +16,6 @@ class RepartoController extends Controller
     public function menu()
     {
         $data = [
-            // Nombres exactos como están en la base de datos ahora
             'finiquito_saneamiento'     => Utilidad::where('Tipo_Reparto', 'REPARTO FINIQUITO')->first(),
             'primer_reparto'            => Utilidad::where('Tipo_Reparto', 'PRIMER REPARTO')->first(),
             'segundo_reparto'           => Utilidad::where('Tipo_Reparto', 'SEGUNDO REPARTO')->first(),
@@ -38,12 +37,10 @@ class RepartoController extends Controller
             'responsable' => 'required',
         ]);
 
-        // Buscamos por la llave primaria correcta: Id_Utilidad
         $utilidad = Utilidad::where('Id_Utilidad', $id)->firstOrFail();
 
         $utilidad->Monto = $request->monto;
         $utilidad->Año = $request->anio;
-        // Si el usuario quiere cambiar el nombre (ej. de minúsculas a mayúsculas para que el menu lo vea)
         if($request->has('nombre_reparto')){
             $utilidad->Tipo_Reparto = $request->nombre_reparto;
         }
@@ -230,8 +227,6 @@ class RepartoController extends Controller
 
     public function generarTicketPDF($id) {
         $prestamo = Prestamo::with('ejidatario.usuario')->findOrFail($id);
-
-        // Obtenemos el monto para evitar el error de variable indefinida que mencionaste antes
         $reparto = Utilidad::find(1);
         $montoReparto1 = $reparto?->Monto ?? 0;
 

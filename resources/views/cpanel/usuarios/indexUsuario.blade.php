@@ -17,10 +17,8 @@
     @endphp
 
     <style>
-        /* Título en Negro sin negritas resaltadas */
         .text-header-main { color: #000000 !important; font-weight: normal !important; }
 
-        /* Estilos de la miniatura de foto */
         .avatar-sm {
             width: 40px;
             height: 40px;

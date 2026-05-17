@@ -46,23 +46,30 @@
                                 <strong>{{ $ejidatario->usuario?->Nombres }} {{ $ejidatario->usuario?->Apellido_Paterno }}</strong>
                             </td>
 
+                            {{-- Dentro del @forelse de la tabla --}}
                             <td>
                                 @if($ejidatario->total_asambleas > 0)
-                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 fw-bold" onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'asambleas')">
+                                    {{-- Botón en rojo indicando que tiene faltas --}}
+                                    <button type="button" class="btn btn-sm btn-danger py-0 fw-bold shadow-sm" onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'asambleas')">
                                         -${{ number_format($ejidatario->total_asambleas, 2) }}
                                     </button>
                                 @else
-                                    <span class="text-muted small">--</span>
+                                    {{-- Badge verde indicando que asistió a todo --}}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">
+            <i class="fas fa-check-circle"></i> Al corriente
+        </span>
                                 @endif
                             </td>
 
                             <td>
                                 @if($ejidatario->total_faenas > 0)
-                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 fw-bold" onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'faenas')">
+                                    <button type="button" class="btn btn-sm btn-danger py-0 fw-bold shadow-sm" onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'faenas')">
                                         -${{ number_format($ejidatario->total_faenas, 2) }}
                                     </button>
                                 @else
-                                    <span class="text-muted small">--</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">
+            <i class="fas fa-check-circle"></i> Al corriente
+        </span>
                                 @endif
                             </td>
 

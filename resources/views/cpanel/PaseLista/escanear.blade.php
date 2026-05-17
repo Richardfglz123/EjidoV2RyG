@@ -98,18 +98,16 @@
     </main>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         const html5QrCode = new Html5Qrcode("reader");
         let scanning = true;
 
         function onScanSuccess(decodedText) {
             if (!scanning) return;
-            scanning = false;
+            scanning = false; // Bloqueamos para evitar envíos dobles
 
             const statusLabel = document.getElementById('status-scan');
-            statusLabel.innerHTML = `<span class="text-ejidal"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>`;
+            statusLabel.innerHTML = `<b class="text-primary">PROCESANDO...</b>`;
 
             fetch("{{ route('asistencia.marcar') }}", {
                 method: 'POST',
@@ -125,53 +123,53 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        actualizarTabla(decodedText, data.nombre);
-                        statusLabel.innerHTML = `<span class="text-success"><i class="fas fa-check-circle"></i> ${data.nombre}</span>`;
+                        actualizarTabla(data.num_ejid, data.nombre);
+                        statusLabel.innerHTML = `<span class="text-success">✔ OK: ${data.nombre}</span>`;
                     } else {
-                        statusLabel.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
+                        statusLabel.innerHTML = `<span class="text-danger">✘ ${data.message}</span>`;
                     }
                 })
-                .catch(() => {
-                    statusLabel.innerHTML = `<span class="text-danger">Error de servidor</span>`;
+                .catch(err => {
+                    statusLabel.innerHTML = `<span class="text-danger">ERROR DE RED</span>`;
                 })
                 .finally(() => {
+                    // Tiempo de espera corto para el siguiente escaneo
                     setTimeout(() => {
                         scanning = true;
-                        statusLabel.innerHTML = `<i class="fas fa-sync fa-spin me-2"></i> Esperando código QR...`;
-                    }, 2000);
+                        statusLabel.innerHTML = '<i class="fas fa-sync fa-spin me-2"></i> Esperando QR...';
+                    }, 600);
                 });
         }
 
-        function actualizarTabla(payload, nombre) {
-            const body = document.getElementById('listaCuerpo');
-            const vacio = document.getElementById('vacio');
-            const idParaFila = payload.split(/[\n\\]/)[0].trim();
+        // CONFIGURACIÓN DE ALTA VELOCIDAD
+        const config = {
+            fps: 30,             // Más cuadros por segundo = lectura más rápida
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+                return { width: viewfinderWidth * 0.8, height: viewfinderHeight * 0.8 }; // Cuadro más grande
+            },
+            aspectRatio: 1.0,
+            disableFlip: true
+        };
 
-            if (vacio) vacio.remove();
-            if (document.getElementById(`row-${idParaFila}`)) return;
+        // Arrancamos con la cámara trasera por defecto
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
 
+        function actualizarTabla(id, nombre) {
+            if (document.getElementById(`row-${id}`)) return;
+            const v = document.getElementById('vacio'); if (v) v.remove();
             const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const nombreLimpio = nombre.replace(/\\n/gi, ' ').replace(/\n/g, ' ');
 
             const row = `
-            <tr id="row-${idParaFila}" class="new-row border-start border-success border-4">
-                <td class="ps-3 fw-bold text-muted">#${idParaFila}</td>
-                <td class="fw-bold text-dark text-uppercase">${nombreLimpio}</td>
+            <tr id="row-${id}" class="new-row">
+                <td class="ps-3 fw-bold">#${id}</td>
+                <td class="fw-bold text-dark text-uppercase">${nombre}</td>
                 <td class="small">${hora}</td>
-                <td class="text-center"><span class="badge bg-success"><i class="fas fa-check"></i> EN LISTA</span></td>
+                <td class="text-center"><span class="badge bg-success"><i class="fas fa-check"></i> ASISTIÓ</span></td>
             </tr>`;
+            document.getElementById('listaCuerpo').insertAdjacentHTML('afterbegin', row);
 
-            body.insertAdjacentHTML('afterbegin', row);
-            actualizarContador();
+            const n = document.querySelectorAll('#listaCuerpo tr:not(#vacio)').length;
+            document.getElementById('contador').innerText = `${n} presentes`;
         }
-
-        function actualizarContador() {
-            const filas = document.querySelectorAll('#listaCuerpo tr:not(#vacio)').length;
-            document.getElementById('contador').innerText = `${filas} presentes`;
-        }
-
-        const config = { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, disableFlip: true };
-        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-        window.onload = actualizarContador;
     </script>
 @endsection

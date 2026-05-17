@@ -60,7 +60,7 @@ class EjidatariosController extends Controller
         $this->checkPermission('usuarios_crear');
 
         $request->validate([
-            'Num_Ejidatario'     => 'required|integer|unique:Ejidatario,Num_Ejidatario',
+            // Quitamos la validación 'required' de Num_Ejidatario porque lo haremos automático
             'Calle'              => 'required|string|max:100',
             'Num_Exterior'       => 'required|string|max:10',
             'Colonia'            => 'required|string|max:100',
@@ -76,8 +76,22 @@ class EjidatariosController extends Controller
             'Id_Usuario'         => 'required|exists:Usuario,Id_Usuario',
         ]);
 
+        // 1. GENERAR NÚMERO DE EJIDATARIO AUTOMÁTICO
+        $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
+        $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
+
+        // 2. PREPARAR DATOS PARA EL QR (QR PAYLOAD)
+        // Obtenemos el nombre del usuario seleccionado para que el QR sea legible
+        $user = DB::table('Usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
+
+        // Formato: NOMBRE APELLIDOP APELLIDOM (Todo en mayúsculas y sin saltos)
+        $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
+        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR); // Limpia espacios dobles
+
         DB::table('Ejidatario')->insert([
-            'Num_Ejidatario'   => $request->Num_Ejidatario,
+            'Num_Ejidatario'   => $nuevoNum, // Asignado automáticamente
+            'Id_Usuario'       => $request->Id_Usuario,
+            'qr_payload'       => $payloadQR, // Guardamos el texto que leerá el escáner
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
             'Num_Interior'     => $request->Num_Interior,
@@ -91,12 +105,11 @@ class EjidatariosController extends Controller
             'Clave_Elector'    => $request->Clave_Elector,
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
-            'Id_Usuario'       => $request->Id_Usuario,
             'Fecha_Creo'       => now(),
             'Id_Creo'          => session('usuario.username', 'admin')
         ]);
 
-        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario registrado');
+        return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado con éxito.");
     }
 
     public function edit($id)
@@ -189,5 +202,22 @@ class EjidatariosController extends Controller
             ->get();
 
         return response()->json($resultados);
+    }
+    public function getEjidatariosApi() {
+        $ejidatarios = DB::table('Ejidatario as e')
+            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+            ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
+            ->select(
+                'e.Id_Ejidatario',
+                'e.Num_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno',
+                'e.qr_payload',
+                'es.Estatus as NombreEstatus' // Importante: darle el nombre exacto
+            )
+            ->get();
+
+        return response()->json($ejidatarios);
     }
 }

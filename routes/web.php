@@ -1,9 +1,9 @@
 <?php
 
-
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\SocialController;
 use App\Models\Ejidatario;
+use App\Http\Controllers\AsambleaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ActividadesController;
 use App\Http\Controllers\UsuariosController;
@@ -35,8 +35,10 @@ use App\Http\Controllers\EntradaController;
 use App\Http\Controllers\SalidaController;
 use App\Http\Controllers\ParcelaController;
 
-Route::get('/auth/google/redirect', [SocialController::class, 'redirectToGoogle'])
-    ->name('google.redirect');
+// =========================================================================
+// RUTAS PÚBLICAS Y AUTENTICACIÓN
+// =========================================================================
+Route::get('/auth/google/redirect', [SocialController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('/auth/google/callback', [SocialController::class, 'handleGoogleCallback']);
 
 Route::get('/login', function () {
@@ -64,7 +66,10 @@ Route::post('password/forgot-send', [UsuariosController::class, 'sendResetCode']
 Route::get('password/reset', [UsuariosController::class, 'resetForm'])->name('password.reset.form');
 Route::post('password/reset', [UsuariosController::class, 'resetPassword'])->name('password.reset');
 
-// --- GRUPO PROTEGIDO (AUTH Y 2FA) ---
+
+// =========================================================================
+// GRUPO PROTEGIDO (AUTH Y 2FA)
+// =========================================================================
 Route::middleware([CheckAuth::class, '2fa'])->group(function () {
 
     // Dashboard e Inicio
@@ -73,6 +78,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     // Perfil
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
+
 
     // --- MÓDULO: USUARIOS ---
     Route::prefix('admon/Usuarios')->group(function () {
@@ -90,11 +96,13 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
+
     // --- MÓDULO: EJIDATARIOS ---
     Route::prefix('admon/Ejidatarios')->group(function () {
         Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
         Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
         Route::get('/api/cp/{cp}', [EjidatariosController::class, 'buscarCP'])->name('api.cp');
+
         Route::middleware(['permiso:ejidatarios_crear'])->group(function () {
             Route::get('/create', [EjidatariosController::class, 'create'])->name('Ejidatarios.create');
             Route::post('/', [EjidatariosController::class, 'store'])->name('Ejidatarios.store');
@@ -102,38 +110,38 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::put('/{Ejidatario}', [EjidatariosController::class, 'update'])->name('Ejidatarios.update');
             Route::delete('/{Ejidatario}', [EjidatariosController::class, 'destroy'])->name('Ejidatarios.destroy');
         });
+
         Route::middleware(['permiso:ejidatarios_ver'])->group(function () {
             Route::get('/', [EjidatariosController::class, 'index'])->name('Ejidatarios.index');
             Route::get('/{Ejidatario}', [EjidatariosController::class, 'show'])->name('Ejidatarios.show');
         });
     });
 
-    // --- MÓDULO: DESCUENTOS (Acomodado aquí para que herede la sesión) ---
-    Route::get('/descuentos-asambleas', [DescuentoController::class, 'index'])->name('descuentos.asambleas');
-    Route::get('/descuentos-faenas', [DescuentoController::class, 'faenas'])->name('descuentos.faenas');
+
+    // --- MÓDULO: DESCUENTOS Y VISTA AUTOMÁTICA DE FAENAS ---
+    Route::get('/descuentos-asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
     Route::get('/ejidatarios/buscar-descuentos', [DescuentoController::class, 'buscar'])->name('descuentos.buscar_ejidatario');
     Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('descuentos.store');
-    Route::post('/faenas/aplicar', [DescuentoController::class, 'store'])->name('faenas.aplicar');
     Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
+    // --- MÓDULO: DESCUENTOS Y VISTA AUTOMÁTICA DE Asambleas ---
+    Route::get('/descuentos/asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
+
+    // AQUÍ ESTÁ EL CAMBIO CLAVE: Apuntamos al FaenasController correcto para solucionar el error de la vista
+    Route::get('/descuentos-faenas', [FaenasController::class, 'index'])->name('descuentos.faenas');
+    Route::post('/faenas/aplicar', [FaenasController::class, 'aplicarDescuento'])->name('faenas.aplicar');
 
 
-
-    Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
+    // --- MÓDULO: DETALLES SEGUNDO REPARTO Y ACCIONES ---
+    Route::get('/reparto2/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
+    Route::get('/reparto2/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
+    Route::delete('/reparto2/perdonar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.perdonar');
+    Route::delete('/descuento/eliminar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('descuento.eliminar');
     Route::post('/prestamo/abonar/{id}', [RepartoController::class, 'agregarAbono'])->name('prestamo.abonar');
-// Rutas para los detalles y perdonar multas
-    Route::get('/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto.detalle.asambleas');
-    Route::get('/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto.detalle.faenas');
-    Route::post('/perdonar-descuento/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto.perdonar');
 
-    Route::post('/prestamo/guardar', [RepartoController::class, 'agregarPrestamo'])->name('prestamo.agregar');
-    Route::get('/reparto/obtener-fecha', [RepartoController::class, 'obtenerFechaLimite'])->name('reparto.primer.obtenerFecha');
-    Route::post('/reparto/fijar-fecha', [RepartoController::class, 'fijarFechaLimite'])->name('reparto.primer.fijarFecha');
 
-// --- MÓDULO: ACTIVIDADES ---
+    // --- MÓDULO: ACTIVIDADES ---
     Route::prefix('admon/actividades')->group(function () {
-
-        // 1. Rutas Estáticas (Deben ir PRIMERO)
         Route::middleware(['permiso:actividades_ver'])->group(function () {
             Route::get('/', [ActividadesController::class, 'index'])->name('actividades.index');
             Route::get('/reportes/pdf', [ActividadesController::class, 'reportePDF'])->name('actividades.reporte.pdf');
@@ -141,12 +149,10 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
 
         Route::middleware(['permiso:actividades_crear'])->group(function () {
-            // Esta ruta DEBE ir antes de las que tienen {actividade}
             Route::get('/create', [ActividadesController::class, 'create'])->name('actividades.create');
             Route::post('/', [ActividadesController::class, 'store'])->name('actividades.store');
         });
 
-        // 2. Rutas con Parámetros Dinámicos (Deben ir AL FINAL)
         Route::middleware(['permiso:actividades_editar'])->group(function () {
             Route::get('/{actividade}/edit', [ActividadesController::class, 'edit'])->name('actividades.edit');
             Route::match(['put', 'patch'], '/{actividade}', [ActividadesController::class, 'update'])->name('actividades.update');
@@ -157,10 +163,10 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
 
         Route::middleware(['permiso:actividades_ver'])->group(function () {
-            // El "show" siempre al final de todo
             Route::get('/{actividade}', [ActividadesController::class, 'show'])->name('actividades.show');
         });
     });
+
 
     // --- REPORTES ---
     Route::middleware(['permiso:usuarios_ver'])->prefix('admon/reportes/usuarios')->group(function () {
@@ -172,6 +178,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::get('/pdf', [ReportesEController::class, 'GenerarPDF'])->name('reportes.ejidatarios.pdf');
         Route::get('/excel', [ReportesEController::class, 'GenerarExcel'])->name('reportes.ejidatarios.excel');
     });
+
 
     // --- MÓDULO: DATOS HISTÓRICOS ---
     Route::middleware(['permiso:historicos_ver'])->prefix('admon/DatosHistoricos')->group(function () {
@@ -189,6 +196,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
+
     // --- MÓDULO: PARCELAS ---
     Route::middleware(['permiso:parcelas_ver'])->group(function () {
         Route::get('/parcelas', [ParcelaController::class, 'index'])->name('parcelas.index');
@@ -202,6 +210,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::delete('/parcela/eliminar/{id}', [ParcelaController::class, 'eliminarParcela'])->name('parcelas.eliminar');
         });
     });
+
 
     // --- MÓDULO: GASTOS ---
     Route::middleware(['permiso:gastos_ver'])->group(function () {
@@ -218,6 +227,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::delete('/gastos/{id}/eliminar', [GastoController::class, 'destroy'])->name('gastos.destroy');
         });
     });
+
 
     // --- MÓDULO: INVENTARIO ---
     Route::middleware(['permiso:inventario_ver'])->group(function () {
@@ -251,7 +261,8 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: Respaldo ---
+
+    // --- MÓDULO: RESPALDO ---
     Route::middleware(['permiso:respaldo_ver'])->prefix('admon')->group(function () {
         Route::get('/Respaldos', [RespaldoController::class, 'index'])->name('Respaldos.index');
         Route::post('/Respaldos/generar', [RespaldoController::class, 'store'])->name('Respaldos.store');
@@ -259,30 +270,25 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::delete('/Respaldos/eliminar/{filename}', [RespaldoController::class, 'destroy'])->name('Respaldos.destroy');
     });
 
-    // --- MÓDULO: Config ---
-    Route::prefix('configuracion')->group(function () {
 
-        //  ESTA FUERA DE PERMISOS
-        Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])
-            ->name('configuracion.usuarios.buscar_ajax');
+    // --- MÓDULO: CONFIGURACIÓN Y PERMISOS ---
+    Route::prefix('configuracion')->group(function () {
+        Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])->name('configuracion.usuarios.buscar_ajax');
 
         Route::middleware(['permiso:configuracion_ver'])->group(function () {
-
             Route::get('/permisos', [ConfiguracionController::class, 'permisos'])->name('configuracion.permisos');
             Route::get('/permisos/buscar/{id}', [ConfiguracionController::class, 'obtenerPermisosUsuario']);
             Route::get('/permisos/rol/{id}', [ConfiguracionController::class, 'obtenerPermisosRol']);
 
             Route::middleware(['permiso:configuracion_crear'])->group(function () {
-                Route::post('/permisos/guardar', [ConfiguracionController::class, 'guardarPermisos'])
-                    ->name('configuracion.permisos.guardar');
+                Route::post('/permisos/guardar', [ConfiguracionController::class, 'guardarPermisos'])->name('configuracion.permisos.guardar');
             });
-
         });
     });
 
-// --- MÓDULO: EXPEDIENTES ---
-    Route::prefix('admon/expedientes')->group(function () {
 
+    // --- MÓDULO: EXPEDIENTES ---
+    Route::prefix('admon/expedientes')->group(function () {
         Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
         Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
 
@@ -293,9 +299,10 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
             Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');
         });
-
     });
-    // --- MÓDULO: FAENAS ---
+
+
+    // --- MÓDULO: ADMINISTRACIÓN DE FAENAS (CRUD CON PERMISOS) ---
     Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
         Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');
 
@@ -319,24 +326,12 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // Rutas de Reparto 2 (Detalles y Perdonar)
-    Route::get('/reparto2/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas'])->name('reparto2.detalle.asambleas');
-    Route::get('/reparto2/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas'])->name('reparto2.detalle.faenas');
-    Route::delete('/reparto2/perdonar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('reparto2.perdonar');
-    Route::delete('/descuento/eliminar/{id}', [Reparto2Controller::class, 'perdonarAsamblea'])->name('descuento.eliminar');
 
-    // Dashboards y otros de Reparto
-    Route::get('/repartos/dashboard', [RepartoController::class, 'menu'])->name('menu');
-    Route::get('/repartos/configurar', [RepartoController::class, 'index'])->name('monto.index');
-    Route::patch('/update-monto/{id}', [RepartoController::class, 'update'])->name('monto.update');
-    Route::get('/primer-reparto', [RepartoController::class, 'mostrarPrimerReparto'])->name('reparto.primer');
-
-    // --- MÓDULO: REPARTOS Y FINANZAS ---
+    // --- MÓDULO: REPARTOS Y FINANZAS (UTILIDADES) ---
     Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(function () {
         Route::get('/menu-repartos', [RepartoController::class, 'menu'])->name('menu');
         Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('monto.index');
         Route::get('/registro-repartos-alias', [RepartoController::class, 'index'])->name('repartos.registro');
-        Route::get('/menu', [MenuController::class, 'index'])->name('menu');
         Route::patch('/configurar-monto/{id}', [RepartoController::class, 'update'])->name('monto.update');
 
         Route::prefix('primer-reparto')->group(function () {
@@ -377,48 +372,29 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- RUTAS PARA EVENTOS ---
+    // --- RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
     Route::resource('eventos', EventoController::class);
     Route::resource('categorias', CategoriaEventoController::class);
-
-    // --- RUTAS PARA MULTAS ---
     Route::resource('multas', MultaController::class);
 
-    // --- RUTAS UNIFICADAS PARA PASE DE LISTA ---
-    Route::prefix('asistencia')->group(function () {
 
-        // Vista principal: Muestra el formulario de inicio Y la tabla de historial
+    // --- MÓDULO: PASE DE LISTA Y ASISTENCIA ---
+    Route::prefix('asistencia')->group(function () {
         Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
         Route::delete('/asistencia/{id}', [PaseListaController::class, 'destroy'])->name('asistencia.destroy');
-        // Procesa el inicio de la sesión
         Route::post('/registrar', [PaseListaController::class, 'registrarAsistencia'])->name('asistencia.registrar');
-
-        // Ruta para el marcado mediante QR
         Route::post('/marcar', [PaseListaController::class, 'marcarAsistencia'])->name('asistencia.marcar');
-
-        // Rutas de Exportación
         Route::get('/exportar-excel/{id}', [PaseListaController::class, 'exportarExcel'])->name('asistencia.excel');
         Route::get('/exportar-pdf/{id}', [PaseListaController::class, 'exportarPdf'])->name('asistencia.pdf');
-
     });
 
-// --- Rutas de Autenticación Social ---
+    Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
 
-
-// 3. Desvincular (Esta sí puede ir dentro de tu grupo de autenticados)
-    Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])
-        ->name('social.unlink');
-
-// Ruta para pruebas de QR
+    // --- RUTAS DE PRUEBAS ---
     Route::get('/test-qr', function () {
         $ejidatarios = \App\Models\Ejidatario::with('usuario')->get();
         return view('test_qr', compact('ejidatarios'));
     });
-
-
-// Esta es la que Google llamará de vuelta
-
-
 
     Route::get('/debug-auth', function () {
         return response()->json(session()->all());

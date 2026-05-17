@@ -81,4 +81,26 @@ class PerfilController extends Controller
 
         return back()->with('success', 'Perfil actualizado correctamente');
     }
+    // Dentro de PerfilController.php
+
+    public function getPerfilApi(Request $request)
+    {
+        // Usamos el middleware 'auth:sanctum', así que el usuario ya viene en el request
+        $usuario = $request->user();
+
+        if (!$usuario) {
+            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        // Devolvemos solo los datos que Swift necesita pintar en la pantalla
+        return response()->json([
+            'ok' => true,
+            'usuario' => [
+                'nombre'   => $usuario->Nombres . ' ' . $usuario->Apellido_Paterno,
+                'correo'   => $usuario->Correo,
+                'telefono' => $usuario->Telefono,
+                'foto_url' => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
+            ]
+        ]);
+    }
 }

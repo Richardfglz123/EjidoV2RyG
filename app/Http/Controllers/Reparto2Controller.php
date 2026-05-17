@@ -4,12 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Utilidad;
 use App\Models\Ejidatario;
-use App\Models\CatalogoMulta;
+use App\Models\Evento;
 use App\Models\Descuento;
-use App\Models\Prestamo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class Reparto2Controller extends Controller
 {
@@ -20,6 +18,10 @@ class Reparto2Controller extends Controller
     {
         $reparto2 = Utilidad::find($this->idUtilidadReparto2);
         $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
+        $anoActual = now()->year;
+
+        $eventosAsambleas = DB::table('Evento')->where('Id_Categoria_Evento', 1)->whereYear('Fecha_Creo', $anoActual)->pluck('Id_Evento')->toArray();
+        $eventosFaenas = DB::table('Evento')->whereIn('Id_Categoria_Evento', [2, 3])->whereYear('Fecha_Creo', $anoActual)->pluck('Id_Evento')->toArray();
 
         $query = Ejidatario::with(['usuario', 'descuentos', 'prestamos' => function($q) {
             $q->where('Id_Utilidad', $this->idUtilidadReparto1);
@@ -33,15 +35,26 @@ class Reparto2Controller extends Controller
             });
         }
 
-        $ejidatarios = $query->paginate(10);
-        $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2) {
+        $ejidatarios = $query->paginate(15);
+
+        $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $eventosAsambleas, $eventosFaenas) {
+
             $ejidatario->deuda_arrastrada_r1 = $ejidatario->prestamos->sum('Cantidad') ?? 0;
+            $asistenciasUser = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->pluck('Id_Sesion')
+                ->toArray();
+
             $ejidatario->total_asambleas = $ejidatario->descuentos
-                ->filter(fn($d) => stripos($d->tipo, 'ASAMBLEA') !== false)
+                ->whereIn('Id_MultaC', $eventosAsambleas)
                 ->sum('Descuento') ?? 0;
+
             $ejidatario->total_faenas = $ejidatario->descuentos
-                ->filter(fn($d) => stripos($d->tipo, 'saneamient') !== false || stripos($d->tipo, 'aprovecham') !== false)
+                ->whereIn('Id_MultaC', $eventosFaenas)
                 ->sum('Descuento') ?? 0;
+
+            // 4. Cálculo final
             $ejidatario->total_a_pagar = $montoFijoR2 - ($ejidatario->deuda_arrastrada_r1 + $ejidatario->total_asambleas + $ejidatario->total_faenas);
 
             return $ejidatario;
@@ -49,6 +62,7 @@ class Reparto2Controller extends Controller
 
         return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
     }
+
 
     public function obtenerDetalleAsambleas($id_ejidatario) {
         $detalles = Descuento::where('Id_Ejidatario', $id_ejidatario)

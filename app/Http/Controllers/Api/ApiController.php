@@ -7,20 +7,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Models\Usuario;
+use Exception;
 
 class ApiController extends Controller
 {
     public function login(Request $request)
     {
+        // 1. Validamos los datos que llegan desde Swift
         $request->validate([
             'email' => 'required|email',
             'password' => 'required'
         ]);
 
-        $usuario = Usuario::where('email', $request->email)->first();
+        // 2. Buscamos por la columna 'Correo' (según tu modelo Usuario)
+        $usuario = \App\Models\Usuario::where('Correo', $request->email)->first();
 
-        if (! $usuario || ! Hash::check($request->password, $usuario->password)) {
+        // 3. Verificamos contra la columna 'Contraseña'
+        if (!$usuario || !\Hash::check($request->password, $usuario->Contraseña)) {
             return response()->json([
                 'ok' => false,
                 'error' => 'Credenciales incorrectas'
@@ -29,11 +34,19 @@ class ApiController extends Controller
 
         $code = rand(100000, 999999);
 
-        Cache::put('2fa_'.$usuario->email, $code, now()->addMinutes(10));
+        // Usamos el Log para ver el código en la Mac por si el mail falla
+        \Log::info("Código generado para {$usuario->Correo}: {$code}");
 
-        Mail::raw("Tu código es: {$code}", function ($mail) use ($usuario) {
-            $mail->to($usuario->email)->subject('Código de acceso');
-        });
+        \Cache::put('2fa_'.$usuario->Correo, $code, now()->addMinutes(10));
+
+        try {
+            \Mail::raw("Tu código es: {$code}", function ($mail) use ($usuario) {
+                $mail->to($usuario->Correo)->subject('Código de acceso');
+            });
+        } catch (\Exception $e) {
+            // Si el mail falla, NO rompemos la respuesta, solo avisamos
+            \Log::error("Error SMTP: " . $e->getMessage());
+        }
 
         return response()->json([
             'ok' => true,
@@ -48,26 +61,40 @@ class ApiController extends Controller
             'code' => 'required'
         ]);
 
-        $stored = Cache::get('2fa_'.$request->email);
+        // NORMALIZACIÓN: Evita errores por espacios o mayúsculas
+        $email = strtolower(trim($request->email));
+        $stored = Cache::get('2fa_'.$email);
 
-        if (! $stored || $stored != $request->code) {
+        // LOG DE SEGURIDAD: Revisa esto en tu terminal (storage/logs/laravel.log)
+        \Log::info("Intento 2FA - Email: $email | Enviado: {$request->code} | En Cache: $stored");
+
+        if (!$stored || $stored != $request->code) {
             return response()->json([
                 'ok' => false,
-                'error' => 'Código inválido'
+                'error' => 'Código inválido o expirado'
             ], 401);
         }
 
-        Cache::forget('2fa_'.$request->email);
+        $usuario = Usuario::where('Correo', $email)->first();
 
-        $usuario = Usuario::where('email', $request->email)->first();
+        if (!$usuario) {
+            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+        }
+
+        // GENERACIÓN DE TOKEN (Sanctum)
+        // Asegúrate de tener HasApiTokens en tu modelo Usuario
+        $token = $usuario->createToken('ios-device')->plainTextToken;
+
+        // COMENTA ESTA LÍNEA TEMPORALMENTE
+        // Cache::forget('2fa_'.$email);
 
         return response()->json([
             'ok' => true,
-            'token' => $usuario->createToken('ios')->plainTextToken,
+            'token' => $token, // Importante enviarlo para que Swift lo guarde
             'user' => [
-                'id' => $usuario->id,
-                'nombre' => $usuario->nombre,
-                'email' => $usuario->email
+                'id' => $usuario->getKey(),
+                'nombre' => $usuario->Nombres,
+                'email' => $usuario->Correo
             ]
         ]);
     }

@@ -33,8 +33,6 @@ class Ejidatario extends Model
 
     public function pasesLista()
     {
-        // El primer 'Id_Ejidatario' es el campo en la tabla PaseLista
-        // El segundo 'Id_Ejidatario' es el campo en la tabla Ejidatario
         return $this->hasMany(PaseLista::class, 'Id_Ejidatario', 'Id_Ejidatario');
     }
 }

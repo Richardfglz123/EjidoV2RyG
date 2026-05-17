@@ -7,40 +7,67 @@ use App\Models\Ejidatario;
 use App\Models\Usuario;
 use App\Models\Descuento;
 use App\Models\CatalogoMulta;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class FaenasController extends Controller
 {
-
-    public function index()
+    public function index(Request $request)
     {
+        $anoActual = \Carbon\Carbon::now()->year;
 
-        $faenas = [
-            'Descuento faenas de saneamient',
-            'Descuento faenas de aprovecham'
-        ];
+        // 1. Obtener eventos de faena (Categorías 9 y 10)
+        $eventosFaenas = \DB::table('Evento')
+            ->whereIn('Id_Categoria_Evento', [9, 10])
+            ->whereYear('Fecha_Creo', $anoActual)
+            ->whereNull('Fecha_Eliminado')
+            ->get();
 
+        // 2. Obtener ejidatarios
+        $query = Ejidatario::with(['usuario', 'descuentos']);
 
-        $ejidatarios = Ejidatario::with(['usuario', 'descuentos'])->paginate(10);
+        if ($request->filled('query')) {
+            $search = $request->get('query');
+            $query->whereHas('usuario', function($q) use ($search) {
+                $q->where('Nombres', 'LIKE', "%$search%")
+                    ->orWhere('Apellido_Paterno', 'LIKE', "%$search%")
+                    ->orWhere('Apellido_Materno', 'LIKE', "%$search%");
+            });
+        }
 
+        $ejidatarios = $query->paginate(10);
 
-        $catalogoFaenas = CatalogoMulta::where('tipo', 'like', 'Descuento faenas%')->get();
+        // 3. Mapear asistencias POR CADA EJIDATARIO
+// En FaenasController.php, dentro del foreach de ejidatarios:
+        foreach ($ejidatarios as $ejidatario) {
+            // Buscamos asistencias donde el Id_Sesion coincida con el Id_Evento
+            // O donde la Sesión esté vinculada al evento por Id_Referencia
+            $ejidatario->asistencias_confirmadas = DB::table('PaseLista')
+                ->leftJoin('Sesion', 'PaseLista.Id_Sesion', '=', 'Sesion.Id_Sesion')
+                ->where('PaseLista.Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('PaseLista.Asistencia', 1)
+                ->where(function($q) use ($eventosFaenas) {
+                    $ids = $eventosFaenas->pluck('Id_Evento');
+                    $q->whereIn('PaseLista.Id_Sesion', $ids) // Casos nuevos
+                    ->orWhereIn('Sesion.Id_Referencia', $ids); // Casos viejos (7, 8 vinculados a 11, 12)
+                })
+                ->pluck('PaseLista.Id_Sesion', 'Sesion.Id_Referencia')
+                ->map(function($val, $key) {
+                    return $key ?: $val; // Retorna el ID del evento sin importar la columna
+                })
+                ->toArray();
+        }
 
-
-        return view('cpanel.Descuentos.faenas', [
-            'ejidatarios' => $ejidatarios,
-            'faenas' => $faenas,
-            'catalogoFaenas' => $catalogoFaenas
-        ]);
+        return view('cpanel.Descuentos.faenas', compact('ejidatarios', 'eventosFaenas'));
     }
-
 
     public function aplicarDescuento(Request $request)
     {
-
+        // 🔥 CORRECCIÓN: Ajustados los nombres de tablas/columnas a la estructura Real (Id_Ejidatario, Catalogo_Multa)
         $request->validate([
-            'id_ejidatario' => 'required|integer|exists:ejidatario,id_ejidatario',
+            'id_ejidatario' => 'required|integer',
             'nombre_faena' => 'required|string|max:100',
-            'id_multa_c' => 'nullable|integer|exists:catalogo_multa,id_multa_c'
+            'id_multa_c' => 'nullable|integer'
         ]);
 
         $id_ejidatario = $request->id_ejidatario;
@@ -48,14 +75,12 @@ class FaenasController extends Controller
         $id_multa = $request->id_multa_c;
 
         if ($id_multa) {
-
             $multa = CatalogoMulta::find($id_multa);
-            $montoDescuento = $multa->monto;
-
+            $montoDescuento = $multa->Costo ?? $multa->monto; // Protegido por si es Costo o monto
 
             Descuento::updateOrCreate(
                 [
-                    'id_ejidatario' => $id_ejidatario,
+                    'Id_Ejidatario' => $id_ejidatario,
                     'tipo' => $nombre_faena
                 ],
                 [
@@ -63,8 +88,7 @@ class FaenasController extends Controller
                 ]
             );
         } else {
-
-            Descuento::where('id_ejidatario', $id_ejidatario)
+            Descuento::where('Id_Ejidatario', $id_ejidatario)
                 ->where('tipo', $nombre_faena)
                 ->delete();
         }
@@ -72,20 +96,19 @@ class FaenasController extends Controller
         return response()->json(['success' => true, 'message' => 'Descuento actualizado.']);
     }
 
-
     public function buscarEjidatarios(Request $request)
     {
-
         $query = $request->get('query');
         if (empty($query)) {
             return response()->json([]);
         }
 
+        // 🔥 CORRECCIÓN: Cambiado 'nombre' por 'Nombres', 'apellido_paterno' por 'Apellido_Paterno', etc.
         $usuarios = Usuario::whereHas('ejidatario')
             ->where(function($q) use ($query) {
-                $q->where('nombre', 'LIKE', '%' . $query . '%')
-                    ->orWhere('apellido_paterno', 'LIKE', '%' . $query . '%')
-                    ->orWhere('apellido_materno', 'LIKE', '%' . $query . '%');
+                $q->where('Nombres', 'LIKE', '%' . $query . '%')
+                    ->orWhere('Apellido_Paterno', 'LIKE', '%' . $query . '%')
+                    ->orWhere('Apellido_Materno', 'LIKE', '%' . $query . '%');
             })
             ->with('ejidatario')
             ->limit(5)

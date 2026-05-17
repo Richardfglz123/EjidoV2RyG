@@ -195,39 +195,31 @@ class UsuariosController extends Controller
 
     public function login(Request $request)
     {
-        // 1. Validación de campos
         $request->validate([
             'username' => 'required',
             'password' => 'required'
         ], $this->validationMessages(), $this->validationAttributes());
 
-        // 2. Buscar usuario por Nickname o Correo
         $user = DB::table('Usuario')
             ->where('Usuario', $request->username)
             ->orWhere('Correo', $request->username)
             ->first();
-
-        // 3. Validar existencia y contraseña
         if (!$user || !Hash::check($request->password, $user->Contraseña)) {
             return back()
                 ->withInput($request->only('username')) // Para que no se borre el nombre de usuario
                 ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
         }
-
-        // 4. Obtener Rol y Permisos
         $acceso = DB::table('Relacion_Ejidatario as re')
             ->leftJoin('Roles as r', 're.Id_Rol', '=', 'r.Id_Rol')
             ->where('re.Id_Usuario', $user->Id_Usuario)
             ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
             ->first();
 
-        // 5. Generar código 2FA
+        // enerar código 2FA
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim($user->Nombres . ' ' . $user->Apellido_Paterno);
         if (empty($nombreCompleto)) { $nombreCompleto = $user->Usuario; }
-
-        // 6. Guardar en sesión temporal para el 2FA
         session([
             '2fa_code' => $code,
             '2fa_user' => [
@@ -242,24 +234,20 @@ class UsuariosController extends Controller
             ]
         ]);
 
-        // IMPORTANTE: Forzar el guardado de la sesión antes del redirect
         session()->save();
 
         // 7. Enviar correo 2FA
         try {
             Mail::to($user->Correo)->send(new CodigoVerificacionMail($nombreCompleto, $code));
         } catch (\Exception $e) {
-            // Si el correo falla en LOCAL, imprimimos el error para que sepas qué es
             \Log::error("Error enviando correo 2FA: " . $e->getMessage());
 
-            // Opcional: Si estás en desarrollo, podrías querer ver el código en pantalla
             // return "El código es: " . $code;
         }
 
         return redirect()->route('2fa.form');
     }
 
-    // Los demás métodos (buscar, forgot, reset) permanecen igual...
     public function buscar(Request $request)
     {
         $query = DB::table('Usuario as u')->select('u.*');

@@ -80,18 +80,16 @@ class EventoController extends Controller
     public function destroy($id)
     {
         $evento = Evento::findOrFail($id);
-
         $sesiones = Sesion::where('Id_Referencia', $id)
             ->where('Tipo', 'Evento')
             ->get();
 
         foreach($sesiones as $sesion) {
-            DB::table('asistencia_sesion')->where('Id_Sesion', $sesion->Id_Sesion)->delete();
+            DB::table('PaseLista')->where('Id_Sesion', $sesion->Id_Sesion)->delete();
             $sesion->delete();
         }
-
         $evento->delete();
 
-        return redirect()->route('eventos.index')->with('success', 'Evento y sus registros relacionados eliminados.');
+        return redirect()->route('eventos.index')->with('success', 'Evento y sus registros de Pase de Lista eliminados correctamente.');
     }
 }

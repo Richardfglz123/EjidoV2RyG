@@ -49,7 +49,15 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        if (!in_array('configuracion_crear', session('usuario.permisos', []))) {
+        $miIdUsuario = session('usuario.id');
+        $miIdRol     = session('usuario.id_rol');
+        $miRolNombre = session('usuario.rol_nombre');
+
+        // Definimos quién es "Dios" en el sistema (Superadmin)
+        // Puedes usar el ID del Rol (1) o tu correo específico
+        $soySuperAdmin = ($miIdRol == 1 || session('usuario.correo') === 'rickvevo1@gmail.com' || session('usuario.id') == 405);
+        // Validación de acceso inicial
+        if (!$soySuperAdmin && !in_array('configuracion_crear', session('usuario.permisos', []))) {
             abort(403, 'No tienes permisos para modificar configuraciones');
         }
 
@@ -68,9 +76,10 @@ class ConfiguracionController extends Controller
             'Invitado'              => 1
         ];
 
-        $miRolNombre = session('usuario.rol_nombre');
-        $miNivel = $jerarquia[$miRolNombre] ?? 0;
+        // Si eres Superadmin, tu nivel es 999 (invencible), si no, se usa la tabla
+        $miNivel = $soySuperAdmin ? 999 : ($jerarquia[$miRolNombre] ?? 0);
 
+        // Datos del usuario al que queremos modificar (Target)
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_Usuario', $request->Id_Usuario)
@@ -80,24 +89,25 @@ class ConfiguracionController extends Controller
         $nivelTarget = $usuarioTarget ? ($jerarquia[$usuarioTarget->Tipo_Rol] ?? 0) : 0;
         $nombreRolTarget = $usuarioTarget ? $usuarioTarget->Tipo_Rol : 'Sin Rol';
 
-        if ($usuarioTarget && $usuarioTarget->Tipo_Rol === 'Administrador' && $request->Id_Usuario != session('usuario.id')) {
-            return back()->withErrors("No está permitido que un Administrador modifique a otro Administrador.");
+        // --- VALIDACIONES DE RANGO ---
+
+        // 1. Impedir que otros modifiquen al Superadmin (Rol 1)
+        if ($usuarioTarget && $usuarioTarget->Id_Rol == 1 && !$soySuperAdmin) {
+            return back()->withErrors("El Administrador Principal es intocable.");
         }
 
-        if ($miNivel <= $nivelTarget && $request->Id_Usuario != session('usuario.id')) {
+        // 2. No permitir que alguien de rango menor o igual modifique a uno mayor
+        // (Esta es la línea que te daba error; con $miNivel = 999 esto ya no te bloquea)
+        if ($miNivel <= $nivelTarget && $request->Id_Usuario != $miIdUsuario) {
             return back()->withErrors("No tienes rango suficiente para modificar a un {$nombreRolTarget}.");
         }
 
-        $nuevoRol = DB::table('Roles')->where('Id_Rol', $request->Id_Rol)->first();
-        $nivelNuevoRol = $jerarquia[$nuevoRol->Tipo_Rol] ?? 0;
-
-        if ($nivelNuevoRol >= $miNivel && $miRolNombre !== 'Administrador') {
-            return back()->withErrors("No puedes asignar el rango de {$nuevoRol->Tipo_Rol} porque es igual o superior al tuyo.");
-        }
-
-        if ($request->Id_Usuario == session('usuario.id')) {
+        // 3. No permitir asignarse a sí mismo permisos (para evitar bloqueos accidentales)
+        if ($request->Id_Usuario == $miIdUsuario) {
             return back()->withErrors('No puedes modificar tus propios permisos directamente.');
         }
+
+        // --- PROCESO DE GUARDADO ---
 
         if (!$request->has('confirmacion_global')) {
             return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol.');
@@ -129,6 +139,7 @@ class ConfiguracionController extends Controller
 
         DB::beginTransaction();
         try {
+            // Actualizar o Insertar en la tabla de relaciones (La que buscábamos)
             DB::table('Relacion_Ejidatario')->updateOrInsert(
                 ['Id_Usuario' => $request->Id_Usuario],
                 [
@@ -137,11 +148,12 @@ class ConfiguracionController extends Controller
                 ]
             );
 
+            // Si el rol no es el Admin, actualizar los permisos globales de ese rol
             if ($request->Id_Rol != 1) {
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
                     ->update([
-                        'Permisos'         => json_encode($permisosRecibidos)
+                        'Permisos' => json_encode($permisosRecibidos)
                     ]);
             }
 
