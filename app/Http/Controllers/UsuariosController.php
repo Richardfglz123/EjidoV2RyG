@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
 
-class usuariosController extends Controller
+class UsuariosController extends Controller
 {
     private function validationMessages()
     {
