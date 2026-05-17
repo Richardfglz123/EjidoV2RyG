@@ -176,8 +176,11 @@ class UsuariosController extends Controller
             $data['Correo'] = $request->Correo;
         }
 
+        // Actualización directa usando la clave primaria explícita
         DB::table('usuario')->where('Id_Usuario', $id)->update($data);
-        return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado con éxito.');
+
+        // SOLUCIÓN AL 404: Redirección directa por URL física en minúsculas (No depende del caché de nombres)
+        return redirect('/admon/usuarios')->with('success', 'Usuario actualizado con éxito.');
     }
 
     public function destroy($id)

@@ -8,14 +8,22 @@
             <i class="fas fa-user-edit me-2"></i> Editar usuario
         </div>
 
-        <form action="{{ url('/admon/Usuarios/'.$fila->Id_Usuario) }}" method="POST">
+        {{-- CORREGIDO: Ahora usa el helper seguro apuntando a la ruta 'usuarios.update' con minúsculas --}}
+        <form action="{{ route('usuarios.update', $fila->Id_Usuario) }}" method="POST">
             @csrf
             @method('PUT')
 
             @php
-                // Definimos la lógica de permisos una sola vez para reutilizarla
-                $rolNombre = session('usuario.rol_nombre') ?? session('usuario.rol');
-                $esAdmin = ($rolNombre === 'Administrador');
+                // CORREGIDO: Lectura blindada para Hostinger tanto si es objeto como array
+                $sesionActual = session('usuario', session('2fa_user', []));
+                if (is_object($sesionActual)) {
+                    $sesionArray = (array) $sesionActual;
+                } else {
+                    $sesionArray = $sesionActual ?? [];
+                }
+
+                $miRol = strtolower(trim($sesionArray['rol'] ?? ''));
+                $esAdmin = ($miRol === 'administrador' || ($sesionArray['id_rol'] ?? null) == 1);
             @endphp
 
             <div class="card-body">
@@ -111,7 +119,8 @@
                 </div>
 
                 <div class="text-end">
-                    <a href="{{ route('Usuarios.index') }}" class="btn btn-secondary">Cancelar</a>
+                    {{-- CORREGIDO: El botón de cancelar también unificado a minúsculas --}}
+                    <a href="{{ route('usuarios.index') }}" class="btn btn-secondary">Cancelar</a>
                     <button type="submit" class="btn btn-ejidal">
                         <i class="fas fa-save me-1"></i> Guardar cambios
                     </button>
