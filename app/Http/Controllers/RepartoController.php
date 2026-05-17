@@ -80,7 +80,7 @@ class RepartoController extends Controller
             ->withSum('abonos as total_abonado', 'Monto') // <-- Crucial: añade esto
             ->paginate(10);
 
-        return view('cpanel.repartos.primer-reparto', compact(
+        return view('cpanel.Repartos.primer-reparto', compact(
             'prestamos', 'montoReparto1', 'deadlinePasada', 'reparto1'
         ));
     }
