@@ -51,57 +51,50 @@ class RespaldoController extends Controller
         }
 
         $fullPath = $backupDirectory . DIRECTORY_SEPARATOR . $filename;
-        $dbHost = config('database.connections.mysql.host') == 'localhost' ? '127.0.0.1' : config('database.connections.mysql.host');
-        $dbUser = config('database.connections.mysql.username');
-        $dbPass = config('database.connections.mysql.password');
-        $dbName = config('database.connections.mysql.database');
 
-        $mysqldump = match (true) {
-            file_exists('/usr/bin/mysqldump')          => '/usr/bin/mysqldump',
-            file_exists('/opt/homebrew/bin/mysqldump') => '/opt/homebrew/bin/mysqldump',
-            file_exists('/usr/local/bin/mysqldump')    => '/usr/local/bin/mysqldump',
-            default                                    => 'mysqldump',
-        };
-
-        $passArg = !empty($dbPass) ? "--password=" . escapeshellarg($dbPass) : "";
-        $errorLog = storage_path('logs/backup_error.log');
-
-        $command = sprintf(
-            '%s --no-defaults --host=%s --user=%s %s %s > %s 2> %s',
-            $mysqldump,
-            escapeshellarg($dbHost),
-            escapeshellarg($dbUser),
-            $passArg,
-            escapeshellarg($dbName),
-            escapeshellarg($fullPath),
-            escapeshellarg($errorLog)
-        );
-
-        $output = [];
-        $resultCode = null;
-
-        // PROTECCIÓN PARA HOSTINGER:
-        // Usamos \exec con barra invertida y lo metemos en un try-catch para que no tumbe la app
         try {
-            if (function_exists('exec')) {
-                \exec($command, $output, $resultCode);
-            } else {
-                return back()->withErrors(['error' => 'La función "exec" está deshabilitada en Hostinger. No se puede crear el respaldo desde aquí.']);
+            // 1. Obtener todas las tablas de la base de datos
+            $tables = \DB::select('SHOW TABLES');
+            $dbNameAttr = "Tables_in_" . config('database.connections.mysql.database');
+
+            $sqlScript = "-- Respaldo generado manualmente desde Hostinger\n";
+            $sqlScript .= "-- Fecha: " . date('Y-m-d H:i:s') . "\n\n";
+
+            foreach ($tables as $table) {
+                $tableName = $table->$dbNameAttr;
+
+                // 2. Obtener la estructura de la tabla (CREATE TABLE)
+                $createTableStructure = \DB::select('SHOW CREATE TABLE ' . $tableName);
+                $sqlScript .= $createTableStructure[0]->{"Create Table"} . ";\n\n";
+
+                // 3. Obtener los datos de la tabla
+                $rows = \DB::table($tableName)->get();
+                foreach ($rows as $row) {
+                    $rowArray = (array)$row;
+                    $columns = array_keys($rowArray);
+                    $values = array_values($rowArray);
+
+                    // Escapar los valores para evitar errores de SQL
+                    $escapedValues = array_map(function($value) {
+                        if (is_null($value)) return 'NULL';
+                        return "'" . addslashes($value) . "'";
+                    }, $values);
+
+                    $sqlScript .= "INSERT INTO `$tableName` (`" . implode("`, `", $columns) . "`) VALUES (" . implode(", ", $escapedValues) . ");\n";
+                }
+                $sqlScript .= "\n\n";
             }
-        } catch (Throwable $e) {
-            return back()->withErrors(['error' => 'El servidor bloqueó la ejecución del respaldo: ' . $e->getMessage()]);
-        }
 
-        if ($resultCode === 0 && file_exists($fullPath) && filesize($fullPath) > 0) {
-            return back()->with('success', 'Respaldo generado con éxito: ' . $filename);
-        } else {
-            $errorDetail = file_exists($errorLog) ? file_get_contents($errorLog) : 'Error desconocido o comando mysqldump denegado por el hosting.';
+            // 4. Guardar el archivo generado en el disco
+            file_put_contents($fullPath, $sqlScript);
 
+            return back()->with('success', 'Respaldo generado con éxito (Modo Compatible): ' . $filename);
+
+        } catch (\Throwable $e) {
             if (file_exists($fullPath)) {
                 unlink($fullPath);
             }
-
-            return back()->withErrors(['error' => 'Error de MySQL: ' . $errorDetail]);
+            return back()->withErrors(['error' => 'Error al generar el respaldo compatible: ' . $e->getMessage()]);
         }
     }
 
