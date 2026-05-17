@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
+use App\Models\Usuario; // Asegúrate de tener tu modelo en esta ruta
 
 class UsuariosController extends Controller
 {
@@ -61,6 +62,10 @@ class UsuariosController extends Controller
             abort(403, 'No tienes permiso para realizar esta acción.');
         }
     }
+
+    // ==========================================
+    //   VISTAS DEL PANEL WEB (WEB BLADE ROUTES)
+    // ==========================================
 
     public function index(Request $request)
     {
@@ -132,7 +137,6 @@ class UsuariosController extends Controller
     {
         $this->checkPermission('usuarios_editar');
 
-        // Forzamos a buscar por la variable exacta mapeada desde la ruta
         $fila = DB::table('usuario')->where('Id_Usuario', $id)->first();
 
         if (!$fila) {
@@ -176,10 +180,8 @@ class UsuariosController extends Controller
             $data['Correo'] = $request->Correo;
         }
 
-        // Actualización directa usando la clave primaria explícita
         DB::table('usuario')->where('Id_Usuario', $id)->update($data);
 
-        // SOLUCIÓN AL 404: Redirección directa por URL física en minúsculas (No depende del caché de nombres)
         return redirect('/admon/usuarios')->with('success', 'Usuario actualizado con éxito.');
     }
 
@@ -213,6 +215,11 @@ class UsuariosController extends Controller
 
         return back()->with('success', 'Usuario eliminado correctamente.');
     }
+
+    // ==========================================
+    //          MÉTODOS DE AUTENTICACIÓN
+    // ==========================================
+
     public function login(Request $request)
     {
         $request->validate([
@@ -240,7 +247,6 @@ class UsuariosController extends Controller
             ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
             ->first();
 
-        // Generar código 2FA
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim(($user->Nombres ?? '') . ' ' . ($user->Apellido_Paterno ?? ''));
@@ -327,5 +333,88 @@ class UsuariosController extends Controller
         DB::table('password_resets')->where('email', session('reset_email'))->delete();
         session()->forget('reset_email');
         return redirect()->route('login')->with('success', '¡Contraseña actualizada con éxito!');
+    }
+
+    // ==========================================
+    //      MÉTODOS ENDPOINTS API (PARA IOS)
+    // ==========================================
+
+    /**
+     * GET /api/usuarios
+     * Muestra la lista de usuarios en formato JSON para el iPhone.
+     */
+    public function apiIndex() {
+        // Obtenemos todos los registros usando Query Builder para asegurar el mapeo correcto
+        $usuarios = DB::table('usuario')->whereNull('fecha_eliminado')->get();
+        return response()->json($usuarios, 200);
+    }
+
+    /**
+     * POST /api/usuarios
+     * Guarda un usuario desde la aplicación móvil.
+     */
+    public function apiStore(Request $request) {
+        // Adaptamos el mapeo de claves desde los CodingKeys estructurados en Swift (Mayúsculas iniciales)
+        $idusuario = DB::table('usuario')->insertGetId([
+            'Nombres'          => $request->input('Nombres'),
+            'Apellido_Paterno' => $request->input('Apellido_Paterno'),
+            'Apellido_Materno' => $request->input('Apellido_Materno'),
+            'Usuario'          => $request->input('Usuario'),
+            'Correo'           => $request->input('Correo'),
+            'Contraseña'       => Hash::make($request->input('Contraseña', 'Ejido123*')), // Contraseña por defecto si viene nulo
+            'Telefono'         => $request->input('Telefono'),
+            'Fecha_Creo'       => now(),
+        ]);
+
+        // Asignación de Rol por defecto (Ejidatario)
+        $rol = DB::table('Roles')->where('Tipo_Rol', 'Ejidatario')->first();
+        $rolId = $rol ? $rol->Id_Rol : 1;
+
+        DB::table('Relacion_Ejidatario')->insert([
+            'Id_Rol'     => $rolId,
+            'Id_usuario' => $idusuario,
+            'Fecha_Creo' => now()
+        ]);
+
+        return response()->json(['success' => true, 'id' => $idusuario], 201);
+    }
+
+    /**
+     * PUT /api/usuarios/{id}
+     * Edita un usuario existente desde la aplicación móvil.
+     */
+    public function apiUpdate(Request $request, $id) {
+        $data = [
+            'Nombres'          => $request->input('Nombres'),
+            'Apellido_Paterno' => $request->input('Apellido_Paterno'),
+            'Apellido_Materno' => $request->input('Apellido_Materno'),
+            'Telefono'         => $request->input('Telefono'),
+            'Fecha_Modificado' => now()
+        ];
+
+        // Solo actualizar contraseña o correo si el JSON de iOS los provee expresamente
+        if ($request->filled('Correo')) {
+            $data['Correo'] = $request->input('Correo');
+        }
+        if ($request->filled('Contraseña')) {
+            $data['Contraseña'] = Hash::make($request->input('Contraseña'));
+        }
+
+        $actualizado = DB::table('usuario')->where('Id_Usuario', $id)->update($data);
+
+        return response()->json(['success' => true], 200);
+    }
+
+    /**
+     * DELETE /api/usuarios/{id}
+     * Elimina un usuario desde la aplicación móvil.
+     */
+    public function apiDestroy($id) {
+        DB::transaction(function () use ($id) {
+            DB::table('Relacion_Ejidatario')->where('Id_usuario', $id)->delete();
+            DB::table('usuario')->where('Id_Usuario', $id)->delete();
+        });
+
+        return response()->json(['success' => true], 200);
     }
 }
