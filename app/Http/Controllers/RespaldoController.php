@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class RespaldoController extends Controller
 {
@@ -71,19 +72,30 @@ class RespaldoController extends Controller
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
             $passArg,
-            escapeshellarg($dbName),
+            escapesisons($dbName),
             escapeshellarg($fullPath),
             escapeshellarg($errorLog)
         );
 
         $output = [];
         $resultCode = null;
-        exec($command, $output, $resultCode);
+
+        // PROTECCIÓN PARA HOSTINGER:
+        // Usamos \exec con barra invertida y lo metemos en un try-catch para que no tumbe la app
+        try {
+            if (function_exists('exec')) {
+                \exec($command, $output, $resultCode);
+            } else {
+                return back()->withErrors(['error' => 'La función "exec" está deshabilitada en Hostinger. No se puede crear el respaldo desde aquí.']);
+            }
+        } catch (Throwable $e) {
+            return back()->withErrors(['error' => 'El servidor bloqueó la ejecución del respaldo: ' . $e->getMessage()]);
+        }
 
         if ($resultCode === 0 && file_exists($fullPath) && filesize($fullPath) > 0) {
             return back()->with('success', 'Respaldo generado con éxito: ' . $filename);
         } else {
-            $errorDetail = file_exists($errorLog) ? file_get_contents($errorLog) : 'Error desconocido en la ejecución.';
+            $errorDetail = file_exists($errorLog) ? file_get_contents($errorLog) : 'Error desconocido o comando mysqldump denegado por el hosting.';
 
             if (file_exists($fullPath)) {
                 unlink($fullPath);
