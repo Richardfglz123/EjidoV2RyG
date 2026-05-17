@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Documentousuario extends Model
 {
-    protected $table = 'Documentos_usuario';
+    protected $table = 'documentos_usuario';
+
+    protected $primaryKey = 'Id_documento';
+
+    public $timestamps = false;
+
     protected $fillable = ['Id_usuario', 'nombre_documento', 'ruta_archivo', 'validado'];
 
     public function usuario()
