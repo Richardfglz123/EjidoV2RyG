@@ -85,6 +85,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::middleware(['permiso:usuarios_ver'])->group(function () {
             Route::get('/buscar', [UsuariosController::class, 'buscar'])->name('usuarios.buscar');
             Route::get('/', [UsuariosController::class, 'index'])->name('Usuarios.index');
+            Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
         });
 
         Route::middleware(['permiso:usuarios_crear'])->group(function () {
