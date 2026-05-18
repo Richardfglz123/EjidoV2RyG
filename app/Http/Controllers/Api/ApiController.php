@@ -69,30 +69,38 @@ class ApiController extends Controller
     public function verifyCode(Request $request)
     {
         $request->validate(['email' => 'required|email', 'code' => 'required']);
-        $email = strtolower(trim($request->email));
-        $codigoRecibido = trim($request->code);
 
-        // Buscamos en la base de datos
+        $email = strtolower(trim($request->email));
+        // Forzamos a que el código sea tratado como una cadena de texto plana
+        $codigoRecibido = strval(trim($request->code));
+
+        // LOG PARA DEPURAR (Búscalo en storage/logs/laravel.log)
+        \Log::info("Intento de validación - Email: $email | Código Recibido: '$codigoRecibido'");
+
         $registro = DB::table('codigos_verificacion')
             ->where('correo', $email)
-            ->where('codigo', $codigoRecibido)
-            ->where('created_at', '>=', now()->subMinutes(15)) // Expira en 15 min
+            ->where('codigo', $codigoRecibido) // La BD lo comparará como texto
+            ->where('created_at', '>=', now()->subMinutes(15))
             ->first();
 
         if (!$registro) {
-            return response()->json(['ok' => false, 'error' => 'Código incorrecto o expirado'], 401);
+            // Si no lo encuentra, buscamos si el email existe para dar un error más claro
+            $existeEmail = DB::table('codigos_verificacion')->where('correo', $email)->exists();
+            $errorMsg = $existeEmail ? 'Código incorrecto' : 'El código expiró o no se generó';
+
+            return response()->json(['ok' => false, 'error' => $errorMsg], 401);
         }
 
         $usuario = Usuario::where('Correo', $email)->first();
         $token = $usuario->createToken('ios-device')->plainTextToken;
 
-        // Limpiamos la tabla
+        // Limpiamos solo tras el éxito
         DB::table('codigos_verificacion')->where('correo', $email)->delete();
 
         return response()->json([
             'ok' => true,
             'token' => $token,
-            'user' => ['nombre' => $usuario->Nombres]
+            'user' => ['id' => $usuario->Id_usuario, 'nombre' => $usuario->Nombres]
         ]);
     }
 }
