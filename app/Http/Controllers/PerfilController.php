@@ -85,21 +85,29 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // Usamos el middleware 'auth:sanctum', así que el usuario ya viene en el request
-        $usuario = $request->user();
+        $userId = session('usuario.id') ?? $request->user()?->Id_usuario;
 
-        if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+        if (!$userId) {
+            return response()->json(['ok' => false, 'error' => 'No autorizado. Sesión inválida.'], 401);
         }
 
-        // Devolvemos solo los datos que Swift necesita pintar en la pantalla
+        $usuario = DB::table('usuario')
+            ->where('Id_usuario', $userId)
+            ->first();
+
+        if (!$usuario) {
+            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+        }
+
+        $nombreCompleto = $usuario->usuario ?? 'Usuario';
+
         return response()->json([
             'ok' => true,
             'usuario' => [
-                'nombre'   => $usuario->Nombres . ' ' . $usuario->Apellido_Paterno,
-                'correo'   => $usuario->Correo,
-                'telefono' => $usuario->Telefono,
-                'foto_url' => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
+                'nombre'   => $nombreCompleto,
+                'correo'   => $usuario->Correo ?? '',
+                'telefono' => $usuario->Telefono ?? '',
+                'foto_url' => isset($usuario->foto) && $usuario->foto ? asset('storage/' . $usuario->foto) : null,
             ]
         ]);
     }

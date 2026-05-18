@@ -22,13 +22,11 @@ Route::get('/eventos', function () {
     return response()->json(Evento::all());
 });
 // Ruta de Lectura (Ya la tenías)
-Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
 
-// NUEVAS RUTAS PARA INTEGRACIÓN CON SWIFTUI:
+Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
 Route::post('/usuarios', [UsuariosController::class, 'apiStore']);
 Route::put('/usuarios/{id}', [UsuariosController::class, 'apiUpdate']);
 Route::delete('/usuarios/{id}', [UsuariosController::class, 'apiDestroy']);
-
 // RUTAS PROTEGIDAS (Requieren Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
