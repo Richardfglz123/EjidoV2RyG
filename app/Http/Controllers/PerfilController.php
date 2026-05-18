@@ -83,34 +83,41 @@ class PerfilController extends Controller
     }
     public function getPerfilApi(Request $request)
     {
-        // El 'token' que manda el iPhone es el ID que tiene guardado
-        $userId = $request->bearerToken();
+        // Obtenemos el valor de la cabecera Authorization
+        $authHeader = $request->header('Authorization');
 
-        if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+        // Limpiamos la palabra 'Bearer ' para quedarnos SOLO con el número 404
+        $userId = str_replace('Bearer ', '', $authHeader);
+
+        // Si por alguna razón el iPhone no mandó nada, detenemos todo
+        if (!$userId || $userId == "" || $userId == "null") {
+            return response()->json(['ok' => false, 'error' => 'ID de usuario no recibido'], 401);
         }
 
-        // Buscamos al usuario por ID, pero forzamos que traiga los datos de Ricardo
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
-            ->where('u.Id_usuario', $userId)
+            ->where('u.Id_usuario', '=', $userId) // <--- FILTRO ESTRICTO
+            ->select('u.*', 'e.Num_Ejidatario')
             ->first();
 
         if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+            return response()->json([
+                'ok' => false,
+                'error' => "El usuario con ID $userId no existe en la BD"
+            ], 404);
         }
 
-        // Unimos Nombres + Apellidos
-        $nombreReal = trim("{$usuario->Nombres} {$usuario->Apellido_Paterno} {$usuario->Apellido_Materno}");
+        // Concatenamos el nombre correctamente
+        $nombreCompleto = trim($usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno);
 
         return response()->json([
             'ok' => true,
             'usuario' => [
-                'nombre'   => $nombreReal,
-                'correo'   => $usuario->Correo,
-                'telefono' => (string)$usuario->Telefono, // IMPORTANTE: Forzar String
-                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'), // IMPORTANTE: Forzar String
-                'foto_url' => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
+                'nombre'         => $nombreCompleto ?: 'Nombre no disponible',
+                'correo'         => $usuario->Correo,
+                'telefono'       => (string)$usuario->Telefono,
+                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'),
+                'foto_url'       => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
             ]
         ]);
     }
