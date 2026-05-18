@@ -85,38 +85,46 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // 1. Extraemos el token "Bearer XXXX" que manda el iPhone
+        // 1. Obtener ID del token
         $token = $request->bearerToken();
-
-        // Si tu app guarda el ID del usuario directamente en el "userToken" de UserDefaults:
         $userId = $token;
 
-        // Si usas tokens reales de Sanctum en tu ruta, mantén esto:
-        // $userId = $request->user()?->Id_usuario;
-
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado. Token ausente.'], 401);
+            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
         }
 
-        // 2. Buscamos al usuario en la base de datos usando el ID obtenido del token
-        $usuario = DB::table('usuario')
-            ->where('Id_usuario', $userId)
+        // 2. Buscamos al usuario uniendo con la tabla Ejidatario para tener TODO
+        $usuario = DB::table('usuario as u')
+            ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
+            ->where('u.Id_usuario', $userId)
+            ->select(
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno',
+                'u.Correo',
+                'u.Telefono',
+                'u.foto',
+                'e.Num_Ejidatario', // Dato extra de ejidatario
+                'e.Id_Ejidatario'
+            )
             ->first();
 
         if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado con el token proporcionado.'], 404);
+            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
 
-        // 3. Retornamos los datos limpios para Swift
-        $nombreCompleto = $usuario->usuario ?? 'Usuario Ejidal';
+        // 3. Construimos el nombre real (no el alias de login)
+        $nombreReal = trim("{$usuario->Nombres} {$usuario->Apellido_Paterno} {$usuario->Apellido_Materno}");
+        if (empty($nombreReal)) { $nombreReal = "Usuario Sin Nombre"; }
 
         return response()->json([
             'ok' => true,
             'usuario' => [
-                'nombre'   => $nombreCompleto,
+                'nombre'   => $nombreReal,
                 'correo'   => $usuario->Correo ?? '',
                 'telefono' => $usuario->Telefono ?? '',
-                'foto_url' => isset($usuario->foto) && $usuario->foto ? asset('storage/' . $usuario->foto) : null,
+                'num_ejidatario' => $usuario->Num_Ejidatario ?? 'N/A', // Nuevo dato
+                'foto_url' => ($usuario->foto) ? asset('storage/' . $usuario->foto) : null,
             ]
         ]);
     }
