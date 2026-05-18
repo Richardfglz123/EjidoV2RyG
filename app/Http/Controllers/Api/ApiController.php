@@ -68,48 +68,52 @@ class ApiController extends Controller
 
     public function verifyCode(Request $request)
     {
-        // 1. Validar la entrada
         $request->validate([
             'email' => 'required|email',
             'code'  => 'required|numeric'
         ]);
 
-        // 2. Buscar al usuario por correo
+        // 1. Buscar al usuario
         $user = \App\Models\Usuario::where('Correo', $request->email)->first();
 
-        // 3. Verificar si el usuario existe
         if (!$user) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Usuario no encontrado.'
             ], 404);
         }
 
-        // 4. Lógica de verificación del código (ajusta según donde guardes el código)
-        // Supongamos que lo guardas en una tabla de verificación o sesión
-        // Por ahora, validamos contra lo que enviaste en el debug de Xcode
-        $isValid = ($request->code == 513342); // Aquí va tu lógica real: DB::table('verificaciones')->...
+        // 2. BUSCAR EL CÓDIGO (Ajusta 'password_resets' o la tabla que uses)
+        // Según tu UsuariosController anterior, usas la tabla 'password_resets'
+        $record = \Illuminate\Support\Facades\DB::table('password_resets')
+            ->where('email', $request->email)
+            ->where('token', $request->code)
+            ->where('expires_at', '>=', now())
+            ->first();
 
-        if ($isValid) {
-            // 5. Generar el Token de Sanctum
-            // Al tener $primaryKey = 'Id_usuario' en el modelo, Sanctum ya debería tomarlo
-            $token = $user->createToken('ios-device')->plainTextToken;
-
+        if (!$record) {
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Código verificado correctamente.',
-                'token'   => $token,
-                'user'    => [
-                    'id'     => $user->Id_usuario,
-                    'nombre' => $user->Nombres,
-                    'email'  => $user->Correo
-                ]
-            ], 200);
+                'status' => 'error',
+                'message' => 'El código de verificación es incorrecto o ha expirado.'
+            ], 401);
         }
 
+        // 3. Si el código es válido, generar Token
+        // Al usar tu modelo Usuario con $primaryKey = 'Id_usuario', esto funcionará bien
+        $token = $user->createToken('ios-device')->plainTextToken;
+
+        // 4. Limpiar el código usado para que no se use dos veces
+        \Illuminate\Support\Facades\DB::table('password_resets')
+            ->where('email', $request->email)
+            ->delete();
+
         return response()->json([
-            'status'  => 'error',
-            'message' => 'El código de verificación es incorrecto o ha expirado.'
-        ], 401);
+            'status' => 'success',
+            'token'  => $token,
+            'user'   => [
+                'id'     => $user->Id_usuario,
+                'nombre' => $user->Nombres
+            ]
+        ], 200);
     }
 }
