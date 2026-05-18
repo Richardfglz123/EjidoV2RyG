@@ -26,6 +26,7 @@
             flex-direction: column;
         }
 
+        /* HEADER SUPERIOR */
         .navbar-ejidal {
             background-color: #1a1d20 !important;
             padding: 0.7rem 1rem;
@@ -33,28 +34,19 @@
             border-bottom: 4px solid var(--primary-green);
         }
 
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            font-weight: 800;
-            color: #fff !important;
-            text-transform: uppercase;
-            font-size: 1rem;
-        }
-
         .main-content {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem 1rem;
+            padding: 2rem 1rem;
         }
 
         .login-card {
             width: 100%;
             max-width: 420px;
             background: #ffffff;
-            padding: 2rem 2.2rem;
+            padding: 2.5rem;
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.08);
             border: 1px solid rgba(0,0,0,0.05);
@@ -75,11 +67,7 @@
             font-size: 0.85rem;
         }
 
-        .input-group-password {
-            position: relative;
-            display: block;
-        }
-
+        .input-group-password { position: relative; display: block; }
         .input-group-password input {
             width: 100%;
             padding: 0.75rem 1rem;
@@ -104,12 +92,8 @@
             transform: translateY(-50%);
             cursor: pointer;
             color: #a0aec0;
-            transition: color 0.2s;
             z-index: 5;
-            padding: 5px;
         }
-
-        .toggle-password:hover { color: var(--primary-green); }
 
         .btn-ejidal {
             width: 100%;
@@ -132,12 +116,11 @@
         .divider {
             display: flex;
             align-items: center;
-            margin: 1.2rem 0;
+            margin: 1.5rem 0;
             color: #b2bec3;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
         .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #ebf0f5; }
         .divider:not(:empty)::before { margin-right: 1rem; }
@@ -156,46 +139,44 @@
             color: #4a5568;
             text-decoration: none;
             font-weight: 600;
-            margin-bottom: 10px;
             transition: all 0.2s;
-            font-size: 0.9rem;
         }
 
-        .error-list {
-            background-color: #fff5f5;
-            border-left: 4px solid #ff7675;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            list-style: none;
-            font-size: 0.8rem;
-            color: #d63031;
+        .social-btn:hover { background: #f8fafc; border-color: #cbd5e0; }
+
+        /* FOOTER */
+        .footer-ejidal {
+            background-color: #1a1d20;
+            color: #adb5bd;
+            padding: 1.5rem 0;
+            font-size: 0.85rem;
+            text-align: center;
+            border-top: 3px solid var(--primary-green);
         }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark">
-    <div class="col-md-4 text-center text-md-start">
-        <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
-        <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
-        <small class="text-secondary">v1.4.1</small>
+<nav class="navbar navbar-ejidal navbar-dark">
+    <div class="container justify-content-center justify-content-md-start">
+        <a class="navbar-brand m-0" href="/">
+            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="40" class="me-2">
+            <span class="d-none d-sm-inline">Sistema Ejidal San Rafael</span>
+        </a>
     </div>
 </nav>
 
 <div class="main-content">
     <div class="login-card">
 
-        <!-- MENSAJE DE ÉXITO -->
         @if (session('success'))
-            <div class="alert alert-success border-0 shadow-sm text-center mb-3 py-2" role="alert" style="border-radius: 10px; font-size: 0.9rem;">
+            <div class="alert alert-success border-0 shadow-sm text-center mb-3 py-2" style="border-radius: 10px; font-size: 0.9rem;">
                 <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
             </div>
         @endif
 
-        <!-- MENSAJE DE ERROR (Google o Validación) -->
         @if (session('error'))
-            <div class="alert alert-danger border-0 shadow-sm text-center mb-3 py-2" role="alert" style="border-radius: 10px; font-size: 0.85rem;">
+            <div class="alert alert-danger border-0 shadow-sm text-center mb-3 py-2" style="border-radius: 10px; font-size: 0.85rem;">
                 <i class="fas fa-exclamation-triangle me-1"></i> {{ session('error') }}
             </div>
         @endif
@@ -206,11 +187,13 @@
             <h2>Iniciar Sesión</h2>
 
             @if ($errors->any())
-                <ul class="error-list shadow-sm">
-                    @foreach ($errors->all() as $error)
-                        <li><i class="fas fa-exclamation-circle me-2"></i>{{ $error }}</li>
-                    @endforeach
-                </ul>
+                <div class="alert alert-danger py-2" style="border-radius: 10px; font-size: 0.8rem;">
+                    <ul class="mb-0 ps-3">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
             <form method="POST" action="{{ route('login') }}">
@@ -230,35 +213,27 @@
                     </div>
                 </div>
 
-                <div class="text-end mb-3">
-                    <a href="{{ route('password.forgot') }}" class="text-decoration-none small" style="color: var(--primary-green); font-weight: 600; font-size: 0.75rem;">¿Olvidaste tu contraseña?</a>
+                <div class="text-end mb-4">
+                    <a href="{{ route('password.forgot') }}" class="text-decoration-none small" style="color: var(--primary-green); font-weight: 600;">¿Olvidaste tu contraseña?</a>
                 </div>
 
-                <button type="submit" class="btn-ejidal">Acceder</button>
+                <button type="submit" class="btn-ejidal">Entrar al Sistema</button>
             </form>
 
-            <div class="divider">Continuar con</div>
-            <div class="social-auth">
-                <a href="{{ route('google.redirect') }}" class="social-btn shadow-sm" style="text-decoration: none; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; background: #fff;">
-                    <i class="fab fa-google me-2" style="color: #DB4437; font-size: 1.2rem;"></i>
-                    <span style="color: #5f6368; font-weight: 600;">Google</span>
-                </a>
-            </div>
+            <div class="divider">O entrar con</div>
+
+            <a href="{{ route('google.redirect') }}" class="social-btn shadow-sm">
+                <i class="fab fa-google" style="color: #DB4437; font-size: 1.1rem;"></i>
+                <span>Google Account</span>
+            </a>
         @endif
     </div>
 </div>
 
-<footer class="footer bg-dark text-light py-4 border-top border-primary">
-
-    <div class="d-flex align-items-center gap-2">
-        <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
-            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-            <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
-        </a>
+<footer class="footer-ejidal">
+    <div class="container">
+        <p class="mb-1 fw-bold text-white">Ejido San Rafael Ixtapalucan</p>
+        <p class="mb-0">© {{ date('Y') }} - Sistema de Gestión Ejidal v1.4.1</p>
     </div>
 </footer>
 
