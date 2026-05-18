@@ -59,7 +59,6 @@ class EjidatariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
-        // 1. Validación (Usamos Id_Usuario con U mayúscula como está en tu Blade)
         $request->validate([
             'Calle'              => 'required|string|max:100',
             'Num_Exterior'       => 'required|string|max:10',
@@ -73,10 +72,9 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario', // <--- Sincronizado con Blade
+            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario',
         ]);
 
-        // 2. Número de Ejidatario automático
         $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
         $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
 
@@ -91,10 +89,9 @@ class EjidatariosController extends Controller
         $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
         try {
-            // 4. Inserción usando los nombres EXACTOS de tu base de datos
             DB::table('Ejidatario')->insert([
                 'Num_Ejidatario'   => $nuevoNum,
-                'Id_Usuario'       => $request->Id_Usuario, // <--- Sincronizado con DB
+                'Id_Usuario'       => $request->Id_Usuario,
                 'qr_payload'       => $payloadQR,
                 'Calle'            => $request->Calle,
                 'Num_Exterior'     => $request->Num_Exterior,

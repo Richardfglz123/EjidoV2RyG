@@ -135,13 +135,13 @@
         </div>
     </div>
 
-    {{-- Modales de Galería --}}
+    {{-- Modales de Galería  --}}
     @foreach($registros as $r)
         @if($r->Evidencia)
             <div class="modal fade" id="modalGaleria{{ $r->Id_DatosH }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header card-header-ejidal text-white">
+                        <div class="modal-header card-header-ejidal text-white" style="background-color: #198754;">
                             <h5 class="modal-title"><i class="fas fa-folder-open me-2"></i> Evidencia: {{ $r->Titulo }}</h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
@@ -150,20 +150,27 @@
                                 @php
                                     $datosM = json_decode($r->Evidencia, true);
                                     $fotosM = (json_last_error() !== JSON_ERROR_NONE) ? [$r->Evidencia] : $datosM;
+                                    $fotosM = is_array($fotosM) ? array_filter($fotosM) : [];
                                 @endphp
+
                                 @foreach($fotosM as $foto)
                                     <div class="col-md-4 col-6">
-                                        <div class="card h-100 shadow-sm border-ejidal text-center p-2">
+                                        <div class="card h-100 shadow-sm text-center p-2">
                                             @if(\Illuminate\Support\Str::endsWith(strtolower($foto), '.pdf'))
                                                 <div class="d-flex flex-column align-items-center justify-content-center" style="height: 150px;">
                                                     <i class="fas fa-file-pdf fa-4x text-danger mb-2"></i>
-                                                    <a href="{{ asset('storage/' . $foto) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                                    {{-- SE USA URL VER-ARCHIVO --}}
+                                                    <a href="{{ url('ver-archivo/' . $foto) }}" target="_blank" class="btn btn-sm btn-outline-danger">
                                                         Abrir PDF
                                                     </a>
                                                 </div>
                                             @else
-                                                <a href="{{ asset('storage/' . $foto) }}" target="_blank">
-                                                    <img src="{{ asset('storage/' . $foto) }}" class="card-img-top img-fluid" style="height: 150px; object-fit: cover;">
+                                                {{-- SE USA URL VER-ARCHIVO PARA IMÁGENES --}}
+                                                <a href="{{ url('ver-archivo/' . $foto) }}" target="_blank">
+                                                    <img src="{{ url('ver-archivo/' . $foto) }}"
+                                                         class="card-img-top img-fluid rounded"
+                                                         style="height: 150px; object-fit: cover;"
+                                                         onerror="this.src='https://placehold.co/150?text=Error+Carga'">
                                                 </a>
                                             @endif
                                         </div>

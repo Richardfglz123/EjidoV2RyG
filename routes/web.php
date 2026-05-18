@@ -202,7 +202,19 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: DATOS HISTÓRICOS ---
+// --- RUTA GLOBAL PARA VER ARCHIVOS (Indispensable para Hostinger) ---
+    Route::get('ver-archivo/{path}', function ($path) {
+        $path = urldecode($path);
+        $cleanPath = str_replace('storage/', '', $path);
+
+        if (!Illuminate\Support\Facades\Storage::disk('public')->exists($cleanPath)) {
+            abort(404, 'Archivo no encontrado: ' . $cleanPath);
+        }
+
+        return Illuminate\Support\Facades\Storage::disk('public')->response($cleanPath);
+    })->where('path', '.*')->name('ver.archivo');
+
+// --- MÓDULO: DATOS HISTÓRICOS ---
     Route::middleware(['permiso:historicos_ver'])->prefix('admon/DatosHistoricos')->group(function () {
         Route::get('/reportes/pdf', [DatosHistoricosController::class, 'reportePDF'])->name('datos_historicos.reporte.pdf');
         Route::get('/reportes/excel', [DatosHistoricosController::class, 'reporteExcel'])->name('datos_historicos.reporte.excel');
