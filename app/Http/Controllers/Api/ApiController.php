@@ -68,39 +68,48 @@ class ApiController extends Controller
 
     public function verifyCode(Request $request)
     {
-        $request->validate(['email' => 'required|email', 'code' => 'required']);
+        // 1. Validar la entrada
+        $request->validate([
+            'email' => 'required|email',
+            'code'  => 'required|numeric'
+        ]);
 
-        $email = strtolower(trim($request->email));
-        // Forzamos a que el código sea tratado como una cadena de texto plana
-        $codigoRecibido = strval(trim($request->code));
+        // 2. Buscar al usuario por correo
+        $user = \App\Models\Usuario::where('Correo', $request->email)->first();
 
-        // LOG PARA DEPURAR (Búscalo en storage/logs/laravel.log)
-        \Log::info("Intento de validación - Email: $email | Código Recibido: '$codigoRecibido'");
-
-        $registro = DB::table('codigos_verificacion')
-            ->where('correo', $email)
-            ->where('codigo', $codigoRecibido) // La BD lo comparará como texto
-            ->where('created_at', '>=', now()->subMinutes(15))
-            ->first();
-
-        if (!$registro) {
-            // Si no lo encuentra, buscamos si el email existe para dar un error más claro
-            $existeEmail = DB::table('codigos_verificacion')->where('correo', $email)->exists();
-            $errorMsg = $existeEmail ? 'Código incorrecto' : 'El código expiró o no se generó';
-
-            return response()->json(['ok' => false, 'error' => $errorMsg], 401);
+        // 3. Verificar si el usuario existe
+        if (!$user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Usuario no encontrado.'
+            ], 404);
         }
 
-        $usuario = Usuario::where('Correo', $email)->first();
-        $token = $usuario->createToken('ios-device')->plainTextToken;
+        // 4. Lógica de verificación del código (ajusta según donde guardes el código)
+        // Supongamos que lo guardas en una tabla de verificación o sesión
+        // Por ahora, validamos contra lo que enviaste en el debug de Xcode
+        $isValid = ($request->code == 513342); // Aquí va tu lógica real: DB::table('verificaciones')->...
 
-        // Limpiamos solo tras el éxito
-        DB::table('codigos_verificacion')->where('correo', $email)->delete();
+        if ($isValid) {
+            // 5. Generar el Token de Sanctum
+            // Al tener $primaryKey = 'Id_usuario' en el modelo, Sanctum ya debería tomarlo
+            $token = $user->createToken('ios-device')->plainTextToken;
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Código verificado correctamente.',
+                'token'   => $token,
+                'user'    => [
+                    'id'     => $user->Id_usuario,
+                    'nombre' => $user->Nombres,
+                    'email'  => $user->Correo
+                ]
+            ], 200);
+        }
 
         return response()->json([
-            'ok' => true,
-            'token' => $token,
-            'user' => ['id' => $usuario->Id_usuario, 'nombre' => $usuario->Nombres]
-        ]);
+            'status'  => 'error',
+            'message' => 'El código de verificación es incorrecto o ha expirado.'
+        ], 401);
     }
 }

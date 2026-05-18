@@ -30,4 +30,8 @@ class Usuario extends Authenticatable
     {
         return $this->hasMany(\App\Models\Documentousuario::class, 'Id_Usuario', 'Id_Usuario');
     }
+    public function getKeyName()
+    {
+        return 'Id_usuario';
+    }
 }
