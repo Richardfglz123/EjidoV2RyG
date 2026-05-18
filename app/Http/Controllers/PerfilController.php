@@ -83,24 +83,24 @@ class PerfilController extends Controller
     }
     public function getPerfilApi(Request $request)
     {
-        // El token que manda el iPhone (que actualmente es el ID 405)
+        // El 'token' que manda el iPhone es el ID que tiene guardado
         $userId = $request->bearerToken();
 
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No hay ID en el token'], 401);
+            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
         }
 
+        // Buscamos al usuario por ID, pero forzamos que traiga los datos de Ricardo
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
-            ->where('u.Id_usuario', $userId) // Aquí buscará el 405
-            ->select('u.*', 'e.Num_Ejidatario')
+            ->where('u.Id_usuario', $userId)
             ->first();
 
         if (!$usuario) {
             return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
 
-        // Unimos tu nombre: Ricardo Flores Gonzalez
+        // Unimos Nombres + Apellidos
         $nombreReal = trim("{$usuario->Nombres} {$usuario->Apellido_Paterno} {$usuario->Apellido_Materno}");
 
         return response()->json([
@@ -108,8 +108,8 @@ class PerfilController extends Controller
             'usuario' => [
                 'nombre'   => $nombreReal,
                 'correo'   => $usuario->Correo,
-                'telefono' => (string)$usuario->Telefono, // Lo mandamos como String para Swift
-                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'Sin número'), // String para evitar error
+                'telefono' => (string)$usuario->Telefono, // IMPORTANTE: Forzar String
+                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'), // IMPORTANTE: Forzar String
                 'foto_url' => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
             ]
         ]);

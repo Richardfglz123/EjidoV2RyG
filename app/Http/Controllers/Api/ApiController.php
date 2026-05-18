@@ -82,7 +82,6 @@ class ApiController extends Controller
 
         $emailLimpio = strtolower(trim($request->email));
 
-        // Buscar el código en password_resets
         $record = DB::table('password_resets')
             ->where('email', $emailLimpio)
             ->where('token', $request->code)
@@ -93,25 +92,20 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'Código inválido o expirado'], 401);
         }
 
-        // BUSCAR USANDO EL MODELO (Importante para que funcione createToken)
         $user = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$user) {
             return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
-
-        // Ahora esto NO fallará porque ya definimos primaryKey en el modelo
-        $token = $user->createToken('ios-device')->plainTextToken;
-
-        // Limpiar código
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
         return response()->json([
             'ok' => true,
-            'token'  => $token,
+            'token'  => (string)$user->Id_Usuario,
             'user'   => [
                 'id'     => $user->Id_Usuario,
-                'nombre' => $user->Nombres
+                'nombre' => $user->Nombres,
+                'correo' => $user->Correo
             ]
         ], 200);
     }
