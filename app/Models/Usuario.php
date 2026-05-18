@@ -28,7 +28,7 @@ class Usuario extends Authenticatable
 
     public function documentos()
     {
-        return $this->hasMany(\App\Models\Documentousuario::class, 'Id_Usuario', 'Id_Usuario');
+        return $this->hasMany(\App\Models\Documentousuario::class, 'Id_usuario', 'Id_usuario');
     }
     public function getKeyName()
     {
