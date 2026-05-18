@@ -27,6 +27,8 @@ Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
 Route::post('/usuarios', [UsuariosController::class, 'apiStore']);
 Route::put('/usuarios/{id}', [UsuariosController::class, 'apiUpdate']);
 Route::delete('/usuarios/{id}', [UsuariosController::class, 'apiDestroy']);
+Route::middleware('auth:sanctum')->get('/user-profile', [PerfilController::class, 'getPerfilApi']);
+
 // RUTAS PROTEGIDAS (Requieren Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
