@@ -75,38 +75,37 @@ class ApiController extends Controller
     }
     public function verifyCode(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'code'  => 'required'
-        ]);
-
         $emailLimpio = strtolower(trim($request->email));
+        $codigoIngresado = trim($request->code);
 
+        // 1. Validamos el código vinculado al correo
         $record = DB::table('password_resets')
             ->where('email', $emailLimpio)
-            ->where('token', $request->code)
-            ->where('expires_at', '>=', now())
+            ->where('token', $codigoIngresado)
             ->first();
 
         if (!$record) {
-            return response()->json(['ok' => false, 'error' => 'Código inválido o expirado'], 401);
+            return response()->json(['ok' => false, 'error' => 'Código inválido para este correo'], 401);
         }
 
-        $user = Usuario::where('Correo', $emailLimpio)->first();
+        // 2. BUSQUEDA REAL: Aquí es donde se decide quién eres
+        $user = DB::table('usuario')->where('Correo', $emailLimpio)->first();
 
         if (!$user) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+            return response()->json(['ok' => false, 'error' => 'No existe un usuario con ese correo'], 404);
         }
+
+        // Limpiamos el código para que no se use de nuevo
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
+        // 3. RESPUESTA DINÁMICA
         return response()->json([
             'ok' => true,
-            'token'  => (string)$user->Id_Usuario,
-            'user'   => [
-                'id'     => $user->Id_Usuario,
+            'token' => (string)$user->Id_Usuario, // Si entraste con ricvevo1, AQUÍ DEBE IR EL 405
+            'user' => [
                 'nombre' => $user->Nombres,
-                'correo' => $user->Correo
+                'email' => $user->Correo
             ]
-        ], 200);
+        ]);
     }
 }
