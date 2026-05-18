@@ -81,50 +81,36 @@ class PerfilController extends Controller
 
         return back()->with('success', 'Perfil actualizado correctamente');
     }
-    // Dentro de PerfilController.php
-
     public function getPerfilApi(Request $request)
     {
-        // 1. Obtener ID del token
-        $token = $request->bearerToken();
-        $userId = $token;
+        // El token que manda el iPhone (que actualmente es el ID 405)
+        $userId = $request->bearerToken();
 
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+            return response()->json(['ok' => false, 'error' => 'No hay ID en el token'], 401);
         }
 
-        // 2. Buscamos al usuario uniendo con la tabla Ejidatario para tener TODO
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
-            ->where('u.Id_usuario', $userId)
-            ->select(
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno',
-                'u.Correo',
-                'u.Telefono',
-                'u.foto',
-                'e.Num_Ejidatario', // Dato extra de ejidatario
-                'e.Id_Ejidatario'
-            )
+            ->where('u.Id_usuario', $userId) // Aquí buscará el 405
+            ->select('u.*', 'e.Num_Ejidatario')
             ->first();
 
         if (!$usuario) {
             return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
 
-        // 3. Construimos el nombre real (no el alias de login)
+        // Unimos tu nombre: Ricardo Flores Gonzalez
         $nombreReal = trim("{$usuario->Nombres} {$usuario->Apellido_Paterno} {$usuario->Apellido_Materno}");
-        if (empty($nombreReal)) { $nombreReal = "Usuario Sin Nombre"; }
 
         return response()->json([
             'ok' => true,
             'usuario' => [
                 'nombre'   => $nombreReal,
-                'correo'   => $usuario->Correo ?? '',
-                'telefono' => $usuario->Telefono ?? '',
-                'num_ejidatario' => $usuario->Num_Ejidatario ?? 'N/A', // Nuevo dato
-                'foto_url' => ($usuario->foto) ? asset('storage/' . $usuario->foto) : null,
+                'correo'   => $usuario->Correo,
+                'telefono' => (string)$usuario->Telefono, // Lo mandamos como String para Swift
+                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'Sin número'), // String para evitar error
+                'foto_url' => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
             ]
         ]);
     }
