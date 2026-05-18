@@ -8,14 +8,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use App\Models\usuario;
+use App\Models\Usuario; // IMPORTANTE: U mayúscula igual que tu modelo
 use Exception;
 
 class ApiController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. Validamos los datos. 'password' ya no es obligatorio si viene de un login biométrico
+        // 1. Validación flexible para permitir Face ID (sin password)
         $request->validate([
             'email' => 'required|email',
             'password' => 'required_unless:login_biometrico,true'
@@ -23,8 +23,8 @@ class ApiController extends Controller
 
         $emailLimpio = strtolower(trim($request->email));
 
-        // 2. Buscamos al usuario por su columna 'Correo'
-        $usuario = usuario::where('Correo', $emailLimpio)->first();
+        // 2. Buscamos al usuario usando el modelo correcto
+        $usuario = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$usuario) {
             return response()->json([
@@ -33,26 +33,19 @@ class ApiController extends Controller
             ], 401);
         }
 
-        // ==========================================
-        // CASO A: INICIO DE SESIÓN CON FACE ID
-        // ==========================================
+        // --- CASO A: INICIO DE SESIÓN CON FACE ID ---
         if ($request->login_biometrico === 'true') {
-            // El usuario ya se autenticó localmente en su iPhone.
-            // Generamos directamente su Token de Sanctum para saltar el 2FA.
+            // Generamos token directo (Sanctum)
             $token = $usuario->createToken('ios-device-biometric')->plainTextToken;
-
-            \Log::info("Login Biométrico exitoso por Face ID para: {$usuario->Correo}");
 
             return response()->json([
                 'ok' => true,
-                'two_factor' => false, // Bypass de 2FA directo a la app principal
+                'two_factor' => false,
                 'token' => $token
             ]);
         }
 
-        // ==========================================
-        // CASO B: INICIO DE SESIÓN TRADICIONAL (Contraseña)
-        // ==========================================
+        // --- CASO B: INICIO DE SESIÓN TRADICIONAL ---
         if (!Hash::check($request->password, $usuario->Contraseña)) {
             return response()->json([
                 'ok' => false,
@@ -60,12 +53,9 @@ class ApiController extends Controller
             ], 401);
         }
 
-        // Generamos el código numérico para el segundo factor
+        // Generamos código 2FA
         $code = rand(100000, 999999);
-
-        // Registro en Log por si falla el envío de correo en Hostinger
-        Log::info("Código generado para {$usuario->Correo}: {$code}");
-
+        Log::info("Código 2FA para {$usuario->Correo}: {$code}");
         Cache::put('2fa_'.$usuario->Correo, $code, now()->addMinutes(10));
 
         try {
@@ -73,12 +63,12 @@ class ApiController extends Controller
                 $mail->to($usuario->Correo)->subject('Código de acceso');
             });
         } catch (Exception $e) {
-            Log::error("Error SMTP al enviar 2FA: " . $e->getMessage());
+            Log::error("Error SMTP: " . $e->getMessage());
         }
 
         return response()->json([
             'ok' => true,
-            'two_factor' => true, // Avisa a Swift que muestre la pantalla del código
+            'two_factor' => true,
             'token' => null
         ]);
     }
@@ -93,32 +83,24 @@ class ApiController extends Controller
         $email = strtolower(trim($request->email));
         $stored = Cache::get('2fa_'.$email);
 
-        Log::info("Intento 2FA - Email: $email | Enviado: {$request->code} | En Cache: $stored");
-
         if (!$stored || $stored != $request->code) {
-            return response()->json([
-                'ok' => false,
-                'error' => 'Código inválido o expirado'
-            ], 401);
+            return response()->json(['ok' => false, 'error' => 'Código inválido'], 401);
         }
 
-        $usuario = usuario::where('Correo', $email)->first();
+        $usuario = Usuario::where('Correo', $email)->first();
 
         if (!$usuario) {
             return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
 
-        // Generación de Token tras validar exitosamente el código de correo
         $token = $usuario->createToken('ios-device')->plainTextToken;
-
-        // Limpiamos el caché para que el código expire inmediatamente tras usarse
         Cache::forget('2fa_'.$email);
 
         return response()->json([
             'ok' => true,
             'token' => $token,
             'user' => [
-                'id' => $usuario->getKey(),
+                'id' => $usuario->Id_usuario,
                 'nombre' => $usuario->Nombres,
                 'email' => $usuario->Correo
             ]
