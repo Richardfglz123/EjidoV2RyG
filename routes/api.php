@@ -8,28 +8,18 @@ use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\EventoController;
 use App\Models\Evento;
 
-// RUTAS PÚBLICAS (Sin autenticación para pruebas rápidas)
-Route::get('/ping', function () {
-    return response()->json(['ok' => true]);
-});
-
+// RUTAS PÚBLICAS
+Route::get('/ping', function () { return response()->json(['ok' => true]); });
 Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
-
-// Esta es la que necesitamos para tu lista
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
-Route::get('/eventos', function () {
-    return response()->json(Evento::all());
-});
-// Ruta de Lectura (Ya la tenías)
+Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
 
-Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
-Route::post('/usuarios', [UsuariosController::class, 'apiStore']);
-Route::put('/usuarios/{id}', [UsuariosController::class, 'apiUpdate']);
-Route::delete('/usuarios/{id}', [UsuariosController::class, 'apiDestroy']);
-Route::middleware('auth:sanctum')->get('/user-profile', [PerfilController::class, 'getPerfilApi']);
-
-// RUTAS PROTEGIDAS (Requieren Token)
+// RUTAS PROTEGIDAS (Requieren obligatoriamente el Token que guardamos en UserDefaults)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
+    Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
+    Route::post('/usuarios', [UsuariosController::class, 'apiStore']);
+    Route::put('/usuarios/{id}', [UsuariosController::class, 'apiUpdate']);
+    Route::delete('/usuarios/{id}', [UsuariosController::class, 'apiDestroy']);
 });
