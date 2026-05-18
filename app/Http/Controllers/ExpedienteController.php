@@ -61,15 +61,17 @@ class ExpedienteController extends Controller
             if ($request->hasFile($input)) {
                 $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
 
+                $idParaInsertar = $usuario->Id_Usuario ?? $usuario->Id_usuario ?? $usuario->id;
+
                 DocumentoUsuario::updateOrCreate(
                     [
-                        'Id_usuario' => $usuario->Id_usuario,
+                        'Id_Usuario'       => $idParaInsertar,
                         'nombre_documento' => $nombreDoc
                     ],
                     [
-                        'ruta_archivo' => $path,
-                        'Id_Creo' => session('usuario.id'),
-                        'Fecha_Creo' => now()
+                        'ruta_archivo'     => $path,
+                        'Id_Creo'          => session('usuario.id'),
+                        'Id_Modificado'    => session('usuario.id'),
                     ]
                 );
             }
