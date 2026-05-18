@@ -308,20 +308,16 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    
 
-// --- RUTA DE VISUALIZACIÓN (FUERA DEL PREFIJO PARA EVITAR ERRORES) ---
+// --- MÓDULO: EXPEDIENTES
 Route::get('ver-expediente/{path}', function ($path) {
     // 1. Limpiamos la ruta por si viene con 'storage/' o caracteres raros
     $path = urldecode($path);
     $cleanPath = str_replace('storage/', '', $path);
-
-    // 2. Verificamos si el archivo existe en la carpeta privada de Laravel
     if (!Storage::disk('public')->exists($cleanPath)) {
         abort(404, 'El archivo físico no existe en: storage/app/public/' . $cleanPath);
     }
 
-    // 3. Servimos el archivo al navegador
     return Storage::disk('public')->response($cleanPath);
 })->where('path', '.*')->name('ver.expediente');
 

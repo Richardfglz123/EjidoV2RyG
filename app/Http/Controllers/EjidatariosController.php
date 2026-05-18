@@ -60,7 +60,6 @@ class EjidatariosController extends Controller
         $this->checkPermission('usuarios_crear');
 
         $request->validate([
-            // Quitamos la validación 'required' de Num_Ejidatario porque lo haremos automático
             'Calle'              => 'required|string|max:100',
             'Num_Exterior'       => 'required|string|max:10',
             'Colonia'            => 'required|string|max:100',
@@ -73,43 +72,47 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_usuario'         => 'required|exists:usuario,Id_usuario',
+            'Id_usuario'         => 'required|exists:usuario,Id_usuario'
         ]);
 
-        // 1. GENERAR NÚMERO DE EJIDATARIO AUTOMÁTICO
         $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
         $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
 
-        // 2. PREPARAR DATOS PARA EL QR (QR PAYLOAD)
-        // Obtenemos el nombre del usuario seleccionado para que el QR sea legible
-        $user = DB::table('usuario')->where('Id_usuario', $request->Id_usuario)->first();
+        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_usuario)->first();
 
-        // Formato: NOMBRE APELLIDOP APELLIDOM (Todo en mayúsculas y sin saltos)
+        if (!$user) {
+            return back()->withErrors('El usuario seleccionado no existe.');
+        }
+
         $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
-        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR); // Limpia espacios dobles
+        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
-        DB::table('Ejidatario')->insert([
-            'Num_Ejidatario'   => $nuevoNum, // Asignado automáticamente
-            'Id_usuario'       => $request->Id_usuario,
-            'qr_payload'       => $payloadQR, // Guardamos el texto que leerá el escáner
-            'Calle'            => $request->Calle,
-            'Num_Exterior'     => $request->Num_Exterior,
-            'Num_Interior'     => $request->Num_Interior,
-            'Colonia'          => $request->Colonia,
-            'Municipio'        => $request->Municipio,
-            'Estado'           => $request->Estado,
-            'Codigo_Postal'    => $request->Codigo_Postal,
-            'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
-            'CURP'             => $request->CURP,
-            'RFC'              => $request->RFC,
-            'Clave_Elector'    => $request->Clave_Elector,
-            'Fecha_Ingreso'    => $request->Fecha_Ingreso,
-            'Id_Estatus'       => $request->Id_Estatus,
-            'Fecha_Creo'       => now(),
-            'Id_Creo'          => session('usuario.username', 'admin')
-        ]);
+        try {
+            DB::table('Ejidatario')->insert([
+                'Num_Ejidatario'   => $nuevoNum,
+                'Id_usuario'       => $request->Id_usuario,
+                'qr_payload'       => $payloadQR,
+                'Calle'            => $request->Calle,
+                'Num_Exterior'     => $request->Num_Exterior,
+                'Num_Interior'     => $request->Num_Interior,
+                'Colonia'          => $request->Colonia,
+                'Municipio'        => $request->Municipio,
+                'Estado'           => $request->Estado,
+                'Codigo_Postal'    => $request->Codigo_Postal,
+                'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
+                'CURP'             => $request->CURP,
+                'RFC'              => $request->RFC,
+                'Clave_Elector'    => $request->Clave_Elector,
+                'Fecha_Ingreso'    => $request->Fecha_Ingreso,
+                'Id_Estatus'       => $request->Id_Estatus,
+                'Fecha_Creo'       => now(),
+                'Id_Creo'          => session('usuario.id', 1)
+            ]);
 
-        return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado con éxito.");
+            return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado.");
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors('Error en BD: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
