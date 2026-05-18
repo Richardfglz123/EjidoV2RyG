@@ -405,18 +405,25 @@ Route::prefix('admon/expedientes')->group(function () {
             Route::get('/pdf', [Reparto2Controller::class, 'generarPDF'])->name('reparto.segundo.pdf');
             Route::post('/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
             Route::get('/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
+
+            // NUEVA: Ruta para posponer la deuda al siguiente año (pasa el ID del ejidatario)
+            Route::post('/posponer/{id}', [Reparto2Controller::class, 'posponerSiguienteAnio'])->name('reparto.segundo.posponer');
+
+            // NUEVA: Ruta para el Ticket PDF en el segundo reparto (pasa el ID del ejidatario)
+            Route::get('/ticket/{id}', [Reparto2Controller::class, 'generarTicketPDFSegundo'])->name('reparto.segundo.ticket');
         });
 
         Route::prefix('prestamo2')->group(function () {
             Route::post('/agregar', [Reparto2Controller::class, 'agregarPrestamo'])->name('prestamo2.agregar');
             Route::patch('/actualizar/{id}', [Reparto2Controller::class, 'actualizarPrestamo'])->name('prestamo2.actualizar');
             Route::delete('/eliminar/{id}', [Reparto2Controller::class, 'eliminarPrestamo'])->name('prestamo2.eliminar');
-            Route::post('/abonar/{id}', [Reparto2Controller::class, 'agregarAbono'])->name('prestamo2.abonar');
+
+            // CORREGIDO: Apuntar al método 'abonarPrestamo' que lee $request->monto y actualiza la tabla
+            Route::post('/abonar/{id}', [Reparto2Controller::class, 'abonarPrestamo'])->name('prestamo2.abonar');
         });
 
         Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar_segundo');
     });
-
 
     // --- RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
     Route::resource('eventos', EventoController::class);

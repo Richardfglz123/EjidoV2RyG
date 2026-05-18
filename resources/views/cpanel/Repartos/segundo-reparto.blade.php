@@ -1,127 +1,195 @@
 @extends('cpanel/plantilla')
-@section('title', 'Segundo Reparto - San Rafael Ixtapalucan')
+@section('title', 'Segundo Reparto')
 
 @section('content')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
-        .text-header-main { color: #000000 !important; font-weight: normal !important; }
-        .pagination .page-item.active .page-link { background-color: #198754 !important; border-color: #198754 !important; color: #ffffff !important; }
-        .pagination .page-link { color: #198754 !important; }
-        .search-container { position: relative; }
-        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6c757d; }
-        .search-input { padding-left: 35px !important; }
+        /* Sincronización estricta con tus clases ejidales */
+        .pagination .page-item.active .page-link { background-color: #1b4b36 !important; border-color: #1b4b36 !important; color: #ffffff !important; }
+        .pagination .page-link { color: #1b4b36 !important; }
         .pagination svg { width: 20px; height: 20px; }
-
-        .repro-input-row { background-color: #f8f9fa; border-left: 4px solid #198754; }
+        .repro-input-row { background-color: #f8f9fa; border-left: 4px solid #1b4b36; }
     </style>
 
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2 text-header-main">
-            <i class="fas fa-file-invoice-dollar me-2"></i> Segundo Reparto
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-ejidal fw-normal">
+            <i class="fas fa-file-invoice-dollar me-2"></i> Segundo Reparto — Año {{ now()->year }}
         </h1>
-    </div>
-
-    {{-- Buscador Global --}}
-    <div class="card card-ejidal mb-4 shadow-sm">
-        <div class="card-header card-header-ejidal">
-            <i class="fas fa-search me-2"></i> Búsqueda Global de Ejidatarios
-        </div>
-        <div class="card-body">
-            <form action="{{ route('reparto.segundo') }}" method="GET" id="formBuscador">
-                <div class="row">
-                    <div class="col-md-12 search-container">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" name="query" id="inputBuscadorGlobal" class="form-control search-input"
-                               placeholder="Escriba nombre o apellido..."
-                               value="{{ request('query') }}" autocomplete="off">
-                    </div>
+        <div class="d-flex gap-2">
+            {{-- Buscador integrado idéntico al R1 --}}
+            <form action="{{ route('reparto.segundo') }}" method="GET" id="formBuscador" class="d-flex gap-2 mb-0">
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="query" id="inputBuscadorGlobal" class="form-control border-start-0"
+                           placeholder="Buscar por nombre o apellido..." value="{{ request('query') }}" autocomplete="off">
                 </div>
+                @if(request('query'))
+                    <a href="{{ route('reparto.segundo') }}" class="btn btn-sm btn-outline-danger d-flex align-items-center">
+                        <i class="fas fa-times"></i>
+                    </a>
+                @endif
             </form>
         </div>
     </div>
 
-    {{-- Tabla Principal --}}
-    <div class="card card-ejidal shadow-sm">
-        <div class="card-header card-header-ejidal d-flex justify-content-between">
-            <span><i class="fas fa-list-ol me-2"></i> Resumen de Liquidación</span>
-            @if(request('query'))
-                <a href="{{ route('reparto.segundo') }}" class="badge bg-danger text-decoration-none">
-                    <i class="fas fa-times"></i> Limpiar búsqueda
-                </a>
-            @endif
+    {{-- Notificaciones del Sistema --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm fw-normal" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm fw-normal" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover table-striped align-middle mb-0">
-                <thead class="table-light">
-                <tr class="small text-uppercase">
-                    <th class="ps-3 text-center" style="width: 60px;">No.</th>
-                    <th>Datos del Ejidatario</th>
-                    <th class="text-center">Desc. Asamblea</th>
-                    <th class="text-center">Desc. Faenas</th>
-                    <th class="text-center">Préstamos (R1)</th>
-                    <th class="text-center">2Do Reparto</th>
-                    <th class="text-center bg-light fw-bold text-dark">Total a Pagar</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($ejidatarios as $ejidatario)
-                    <tr>
-                        <td class="ps-3 text-center text-muted small">
-                            {{ ($ejidatarios->currentPage() - 1) * $ejidatarios->perPage() + $loop->iteration }}
-                        </td>
-                        {{-- Busca este bloque en tu tabla --}}
-                        <td>
-                            <div class="text-dark fw-bold">
-                                {{-- CAMBIO AQUÍ: Sin el "usuario?->" --}}
-                                {{ $ejidatario->Nombres }}
-                            </div>
-                            <div class="small text-muted text-uppercase">
-                                {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
-                            </div>
-                        </td>
-
-                        <td class="text-center">
-                            @if($ejidatario->total_asambleas > 0)
-                                <button type="button" class="btn btn-sm btn-danger py-0 px-2 fw-bold shadow-sm"
-                                        onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'asambleas')">
-                                    -${{ number_format($ejidatario->total_asambleas, 2) }}
-                                </button>
-                            @else
-                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-normal">
-                                    <i class="fas fa-check-circle"></i> Al corriente
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="text-center">
-                            @if($ejidatario->total_faenas > 0)
-                                <button type="button" class="btn btn-sm btn-danger py-0 px-2 fw-bold shadow-sm"
-                                        onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'faenas')">
-                                    -${{ number_format($ejidatario->total_faenas, 2) }}
-                                </button>
-                            @else
-                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-normal">
-                                    <i class="fas fa-check-circle"></i> Al corriente
-                                </span>
-                            @endif
-                        </td>
-
-                        <td class="text-center text-danger fw-bold">${{ number_format($ejidatario->deuda_arrastrada_r1, 2) }}</td>
-                        <td class="text-center text-muted small">${{ number_format($montoFijoR2, 2) }}</td>
-                        <td class="text-center bg-light fw-bold text-dark fs-6">${{ number_format($ejidatario->total_a_pagar, 2) }}</td>
-                        <td class="text-center">
-                            <span class="badge bg-light text-success border fw-normal shadow-sm">
-                                <i class="fas fa-check"></i> Pagado
-                            </span>
-                        </td>
+    {{-- Tabla Principal Estilo R1 --}}
+    <div class="card card-ejidal shadow-sm border-0">
+        <div class="card-header card-header-ejidal py-3 fw-normal">
+            <i class="fas fa-list-ol me-2"></i> Resumen de Liquidación de Ejidatarios
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tabla-segundo-reparto">
+                    <thead>
+                    <tr class="bg-light fw-normal" style="font-size: 0.9rem;">
+                        <th class="ps-3 text-muted fw-normal" width="50">#</th>
+                        <th class="fw-normal">EJIDATARIO</th>
+                        <th class="text-center fw-normal">DESC. ASAMBLEA</th>
+                        <th class="text-center fw-normal">DESC. FAENAS</th>
+                        <th class="text-center fw-normal">PRÉSTAMOS PENDIENTES (R1)</th>
+                        <th class="text-center fw-normal">MONTO R2</th>
+                        <th class="text-center fw-normal">TOTAL FINAL</th>
+                        <th class="text-center fw-normal" width="160">ESTADO</th>
+                        <th class="text-center fw-normal" width="140">ACCIONES</th>
                     </tr>
-                @empty
-                    <tr><td colspan="8" class="text-center py-5">No se encontraron resultados.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="fw-normal">
+                    @forelse($ejidatarios as $ejidatario)
+                        <tr>
+                            <td class="ps-3 text-muted small">
+                                {{ ($ejidatarios->currentPage() - 1) * $ejidatarios->perPage() + $loop->iteration }}
+                            </td>
+                            <td class="text-dark">
+                                <span class="fw-bold">{{ $ejidatario->Nombres }}</span>
+                                <div class="small text-muted text-uppercase" style="font-size: 0.75rem;">
+                                    {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
+                                </div>
+                            </td>
+
+                            {{-- Descuento Asambleas --}}
+                            <td class="text-center">
+                                @if($ejidatario->total_asambleas > 0)
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 fw-normal" style="font-size: 0.85rem;"
+                                            onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'asambleas')">
+                                        ${{ number_format($ejidatario->total_asambleas, 2) }}
+                                    </button>
+                                @else
+                                    <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4; font-size: 0.8rem;">
+                                        <i class="fas fa-check text-success me-1"></i> Limpio
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Descuento Faenas --}}
+                            <td class="text-center">
+                                @if($ejidatario->total_faenas > 0)
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 fw-normal" style="font-size: 0.85rem;"
+                                            onclick="verDetalle({{ $ejidatario->Id_Ejidatario }}, 'faenas')">
+                                        ${{ number_format($ejidatario->total_faenas, 2) }}
+                                    </button>
+                                @else
+                                    <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4; font-size: 0.8rem;">
+                                        <i class="fas fa-check text-success me-1"></i> Limpio
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Préstamos --}}
+                            <td class="text-center text-danger fw-normal">
+                                ${{ number_format($ejidatario->deuda_arrastrada_r1, 2) }}
+                            </td>
+
+                            {{-- Monto base segundo reparto --}}
+                            <td class="text-center text-muted small">${{ number_format($montoFijoR2, 2) }}</td>
+
+                            {{-- Total Final Dinámico --}}
+                            <td class="text-center fw-normal">
+                                @if($ejidatario->total_a_pagar >= 0)
+                                    <span class="text-ejidal">${{ number_format($ejidatario->total_a_pagar, 2) }}</span>
+                                @else
+                                    <span class="text-danger">${{ number_format(abs($ejidatario->total_a_pagar), 2) }}</span>
+                                @endif
+                            </td>
+
+                            {{-- Columna de Estado Limpia --}}
+                            <td class="text-center">
+                                @if($ejidatario->total_a_pagar > 0)
+                                    <span class="badge border border-success text-dark fw-normal d-block py-1" style="background-color: #f0fdf4;">
+                                        <i class="fas fa-hand-holding-usd text-success me-1"></i> Saldo a Favor
+                                    </span>
+                                @elseif($ejidatario->total_a_pagar == 0)
+                                    <span class="badge bg-light text-dark border fw-normal d-block py-1">
+                                        <i class="fas fa-check-circle text-success me-1"></i> Liquidado
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-normal d-block py-1">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Adeudo Caja
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Columna de Acciones Horizontal Tipo R1 --}}
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    {{-- Ticket --}}
+                                    <a href="{{ route('reparto.segundo.ticket', $ejidatario->Id_Ejidatario) }}"
+                                       class="btn btn-outline-primary"
+                                       target="_blank"
+                                       title="Imprimir Ticket">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+
+                                    @if($ejidatario->total_a_pagar < 0)
+                                        {{-- Botón Abonar --}}
+                                        <button type="button" class="btn btn-outline-success"
+                                                style="border: 1px solid #1b4b36 !important;"
+                                                onclick="abrirModalAbono({{ $ejidatario->Id_Ejidatario }}, '{{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }}', {{ abs($ejidatario->total_a_pagar) }})"
+                                                title="Registrar Abono">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+
+                                        {{-- Botón Aplazar Deuda --}}
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                onclick="if(confirm('¿Seguro que desea pasar esta deuda al siguiente año para liberar su Segundo Reparto actual?')) { document.getElementById('form-posponer-{{ $ejidatario->Id_Ejidatario }}').submit(); }"
+                                                title="Aplazar Deuda al Siguiente Año">
+                                            <i class="fas fa-clock"></i>
+                                        </button>
+
+                                        <form action="{{ route('reparto.segundo.posponer', $ejidatario->Id_Ejidatario) }}"
+                                              method="POST"
+                                              id="form-posponer-{{ $ejidatario->Id_Ejidatario }}"
+                                              class="d-none">
+                                            @csrf
+                                        </form>
+                                    @else
+                                        <span class="badge bg-light text-muted fw-normal border ms-1 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron ejidatarios.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="card-footer bg-light border-top d-flex justify-content-between align-items-center">
             <div class="small text-muted">Mostrando <b>{{ $ejidatarios->firstItem() }}</b> al <b>{{ $ejidatarios->lastItem() }}</b></div>
@@ -129,32 +197,65 @@
         </div>
     </div>
 
+    {{-- MODAL INTERACTIVO PARA REALIZAR ABONOS CON ESTILOS R1 --}}
+    <div class="modal fade" id="modalAbonarDeuda" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow text-center">
+                <div class="modal-header card-header-ejidal">
+                    <h5 class="modal-title mx-auto text-white fw-normal"><i class="fas fa-cash-register me-2"></i>Registrar Abono</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="" method="POST" id="formAbonoDinamico">
+                    @csrf
+                    <div class="modal-body p-4 fw-normal">
+                        <h6 id="modalAbonoNombre" class="mb-3 text-dark fw-normal">Cargando...</h6>
+
+                        <div class="alert alert-warning py-2 border-0 shadow-sm fw-normal">
+                            Deuda actual en caja: <span id="labelDeudaMax" class="text-danger fw-normal">$0.00</span>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="text-muted small text-uppercase mb-2">Monto a Recibir ($)</label>
+                            <input type="number" name="monto" id="monto_abono_input" class="form-control form-control-lg text-center text-ejidal fw-normal" step="0.01" min="0.01" required placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-center bg-light">
+                        <button type="button" class="btn btn-secondary px-4 fw-normal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-ejidal px-4 shadow-sm fw-normal">Confirmar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- MODAL DE DETALLES CON REPROGRAMACIÓN --}}
     <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header card-header-ejidal text-white">
-                    <h5 class="modal-title fs-6" id="tituloDetalle">Detalle de Faltas</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header card-header-ejidal">
+                    <h5 class="modal-title text-white fw-normal" id="tituloDetalle">Detalle de Faltas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                        <tr class="small">
-                            <th class="ps-3">Concepto / Fecha</th>
-                            <th>Monto</th>
-                            <th class="text-center">Opciones</th>
+                        <tr class="small fw-normal">
+                            <th class="ps-3 fw-normal">Concepto / Fecha</th>
+                            <th class="fw-normal">Monto</th>
+                            <th class="text-center fw-normal">Opciones</th>
                         </tr>
                         </thead>
-                        <tbody id="cuerpoDetalle"></tbody>
+                        <tbody id="cuerpoDetalle" class="fw-normal"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- SCRIPTS --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         let timer;
         document.getElementById('inputBuscadorGlobal').addEventListener('input', function() {
@@ -166,11 +267,36 @@
             }, 800);
         });
 
+        function abrirModalAbono(id, nombreCompleto, deudaMaxima) {
+            $('#formAbonoDinamico').attr('action', "{{ url('prestamo2/abonar') }}/" + id);
+            $('#modalAbonoNombre').text(nombreCompleto);
+            $('#labelDeudaMax').text("$" + parseFloat(deudaMaxima).toLocaleString('en-US', { minimumFractionDigits: 2 }));
+            $('#monto_abono_input').val(parseFloat(deudaMaxima).toFixed(2)).attr('max', parseFloat(deudaMaxima).toFixed(2));
+            $('#modalAbonarDeuda').modal('show');
+        }
+
+        $('#formAbonoDinamico').on('submit', function(e) {
+            const abono = parseFloat($('#monto_abono_input').val());
+            const maximoString = $('#labelDeudaMax').text().replace('$', '').replace(/,/g, '');
+            const deudaMaxima = parseFloat(maximoString);
+
+            if (abono <= 0) {
+                e.preventDefault();
+                alert('El monto del abono debe ser mayor a 0.');
+                return false;
+            }
+            if (abono > deudaMaxima) {
+                e.preventDefault();
+                alert('Error: No puedes abonar más de la deuda actual ($' + deudaMaxima.toLocaleString('en-US') + ')');
+                return false;
+            }
+        });
+
         function verDetalle(id, tipo) {
             const baseUrl = tipo === 'asambleas' ? "{{ url('detalle-asambleas') }}" : "{{ url('detalle-faenas') }}";
             const url = `${baseUrl}/${id}`;
 
-            $('#tituloDetalle').text(tipo === 'asambleas' ? 'FALTAS EN ASAMBLEAS' : 'FALTAS EN FAENAS');
+            $('#tituloDetalle').text(tipo === 'asambleas' ? 'Faltas en Asambleas' : 'Faltas en Faenas');
             $('#cuerpoDetalle').html('<tr><td colspan="3" class="text-center py-3">Buscando registros...</td></tr>');
             $('#modalDetalle').modal('show');
 
@@ -180,10 +306,10 @@
                     data.forEach((d, index) => {
                         html += `
                         <tr class="align-middle">
-                            <td class="ps-3 small text-uppercase fw-bold">${d.tipo}</td>
-                            <td class="text-danger fw-bold">-$${parseFloat(d.Descuento).toFixed(2)}</td>
+                            <td class="ps-3 small text-uppercase fw-normal">${d.tipo}</td>
+                            <td class="text-danger fw-normal">$${parseFloat(d.Descuento).toFixed(2)}</td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-success shadow-sm fw-bold px-3" onclick="mostrarRepro(${index})">
+                                <button class="btn btn-sm btn-outline-success fw-normal px-3" style="border: 1px solid #1b4b36 !important;" onclick="mostrarRepro(${index})">
                                     <i class="fas fa-calendar-alt"></i> Reprogramar
                                 </button>
                             </td>
@@ -191,13 +317,13 @@
                         <tr id="repro_form_${index}" style="display:none;" class="repro-input-row">
                             <td colspan="3" class="p-3 border-bottom">
                                 <div class="d-flex align-items-center justify-content-center gap-3">
-                                    <label class="small fw-bold mb-0">NUEVA FECHA:</label>
+                                    <label class="small fw-normal mb-0 text-ejidal">NUEVA FECHA:</label>
                                     <input type="date" id="date_${index}" class="form-control form-control-sm w-auto shadow-sm">
-                                    <button class="btn btn-sm btn-primary px-3 shadow-sm" onclick="confirmarReprogramacion(${id}, '${d.tipo}', ${index})">
-                                        CONFIRMAR
+                                    <button class="btn btn-sm btn-ejidal px-3 shadow-sm fw-normal" onclick="confirmarReprogramacion(${id}, '${d.tipo}', ${index})">
+                                        Confirmar
                                     </button>
-                                    <button class="btn btn-sm btn-light border" onclick="mostrarRepro(${index})">
-                                        CANCELAR
+                                    <button class="btn btn-sm btn-secondary" onclick="mostrarRepro(${index})">
+                                        Cancelar
                                     </button>
                                 </div>
                             </td>
@@ -207,8 +333,7 @@
                     html = '<tr><td colspan="3" class="text-center py-4 text-muted small">Sin faltas pendientes en este ciclo.</td></tr>';
                 }
                 $('#cuerpoDetalle').html(html);
-            }).fail(function(jqXHR) {
-                console.error("Error detallado:", jqXHR.responseText);
+            }).fail(function() {
                 $('#cuerpoDetalle').html('<tr><td colspan="3" class="text-center py-3 text-danger">Error de comunicación con el servidor.</td></tr>');
             });
         }
@@ -220,7 +345,6 @@
         function confirmarReprogramacion(idEjidatario, tipoEvento, index) {
             const inputFecha = $(`#date_${index}`);
             const fecha = inputFecha.val();
-
             const hoy = new Date().toISOString().split('T')[0];
 
             if(!fecha) {
@@ -257,10 +381,8 @@
                         errorMsg = xhr.responseJSON.message;
                     }
                     alert("Error crítico: " + errorMsg);
-                    console.error(xhr.responseText);
                 }
             });
         }
     </script>
-
 @endsection

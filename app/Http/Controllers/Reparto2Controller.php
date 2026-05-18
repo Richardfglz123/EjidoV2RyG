@@ -63,10 +63,30 @@ class Reparto2Controller extends Controller
 
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena) {
 
-            $ejidatario->deuda_arrastrada_r1 = DB::table('Prestamo')
+            // =========================================================================
+            // CORRECCIÓN AQUÍ: Calcular saldo real del Reparto 1 (Préstamos menos Abonos)
+            // =========================================================================
+
+            // 1. Obtener el total prestado en el primer reparto (omitir si el estatus fuera 'Siguiente Año')
+            $totalPrestamoR1 = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                // ->where('Estatus', '!=', 'Siguiente Año') // <- Descomenta si agregas la columna
                 ->sum('Cantidad') ?? 0;
+
+            // 2. Obtener los abonos realizados a esos préstamos específicos
+            $totalAbonosR1 = DB::table('Abono')
+                ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
+                ->where('Prestamo.Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
+                ->sum('Abono.Monto') ?? 0; // Nota: En tu controller usas 'Monto' en un lado y 'Cantidad' en otro, verifica cuál es el campo real en Abonos.
+
+            // 3. La deuda arrastrada real es la resta. Si ya pagó todo, será 0.
+            $deudaRealRestante = max(0, $totalPrestamoR1 - $totalAbonosR1);
+
+            $ejidatario->deuda_arrastrada_r1 = $deudaRealRestante;
+
+            // =========================================================================
 
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
@@ -96,13 +116,33 @@ class Reparto2Controller extends Controller
             $ejidatario->total_asambleas = max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
             $ejidatario->total_faenas = max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
 
-            // 5. TOTAL FINAL
+            // 5. TOTAL FINAL (Ahora sí reflejará el dinero correcto a favor o en contra)
             $ejidatario->total_a_pagar = $montoFijoR2 - ($ejidatario->deuda_arrastrada_r1 + $ejidatario->total_asambleas + $ejidatario->total_faenas);
 
             return $ejidatario;
         });
 
         return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
+    }
+    public function posponerSiguienteAnio($id)
+    {
+        try {
+            // Opción segura: Buscamos los préstamos del R1 de este ejidatario y los desvinculamos del flujo actual
+            // cambiando su Id_Utilidad a un estado de resguardo (ej. 99) o actualizando una columna Estatus
+            $actualizados = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $id)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->update([
+                    'Id_Utilidad' => 99 // O la lógica/columna que decidas para "Siguiente Año"
+                ]);
+
+            if ($actualizados > 0) {
+                return redirect()->back()->with('success', 'La deuda pendiente se ha congelado y trasladado al siguiente año.');
+            }
+            return redirect()->back()->with('error', 'No se encontraron préstamos pendientes para trasladar.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al reprogramar: ' . $e->getMessage());
+        }
     }
 
 
@@ -156,22 +196,28 @@ class Reparto2Controller extends Controller
 
     public function abonarPrestamo(Request $request, $id)
     {
+        $request->validate(['monto' => 'required|numeric|min:0.01']);
         try {
-            $prestamo = DB::table('Prestamos')->where('Id_Prestamo', $id)->first();
+            // Buscamos el préstamo activo del primer reparto de este ejidatario
+            $prestamo = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $id)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->first();
+
             if ($prestamo) {
-                DB::table('Abonos')->insert([
-                    'Id_Prestamo' => $id,
-                    'Cantidad'    => $request->monto,
-                    'Fecha_Creo'  => now(),
-                    'Id_Creo'     => session('usuario.nombre') ?? 'Sistema'
+                // Insertar historial de abonos
+                DB::table('Abono')->insert([
+                    'Id_Prestamo' => $prestamo->Id_Prestamo,
+                    'Monto'       => $request->monto, // Asegúrate si tu tabla usa 'Monto' o 'Cantidad'
+                    'Fecha'       => now()
                 ]);
-                DB::table('Prestamos')->where('Id_Prestamo', $id)
-                    ->update(['Cantidad' => DB::raw("Cantidad - " . $request->monto)]);
-                return redirect()->back()->with('success', 'Pago realizado con éxito');
+
+                return redirect()->back()->with('success', 'Abono registrado con éxito en el Préstamo del R1.');
             }
-            return redirect()->back()->with('error', 'No se encontró el préstamo');
+
+            return redirect()->back()->with('error', 'El ejidatario no tiene un préstamo activo en el Primer Reparto para abonar.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al procesar el pago: ' . $e->getMessage());
         }
     }
 
@@ -236,5 +282,103 @@ class Reparto2Controller extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+    public function generarTicketPDFSegundo($id)
+    {
+        $ejidatario = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->where('e.Id_Ejidatario', $id)
+            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->first();
+
+        if (!$ejidatario) { return abort(404); }
+
+        $reparto2 = Utilidad::find($this->idUtilidadReparto2);
+        $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
+        $anoActual = now()->year;
+
+        $precios = CatalogoMulta::where('Año', $anoActual)->get();
+        $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
+        $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
+
+        $sesionesAsambleasIds = DB::table('Sesion')
+            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
+            ->where('Sesion.Tipo', 'Evento')
+            ->pluck('Sesion.Id_Sesion')->toArray();
+
+        $sesionesFaenasIds = DB::table('Sesion')
+            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', '!=', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
+            ->where('Sesion.Tipo', 'Evento')
+            ->pluck('Sesion.Id_Sesion')->toArray();
+
+        $asistenciasEjidatario = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNotNull('Id_Sesion')
+            ->pluck('Id_Sesion')
+            ->toArray();
+
+        $reprosAsambleas = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNull('Id_Sesion')
+            ->where('Id_Actividad', 1)
+            ->count();
+
+        $reprosFaenas = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNull('Id_Sesion')
+            ->where('Id_Actividad', 2)
+            ->count();
+
+        $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
+        $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
+
+        $totalAsambleas = max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
+        $totalFaenas = max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
+
+        $totalPrestamoR1 = DB::table('Prestamo')
+            ->where('Id_Ejidatario', $id)
+            ->where('Id_Utilidad', $this->idUtilidadReparto1)
+            ->sum('Cantidad') ?? 0;
+
+        $totalAbonosR1 = DB::table('Abono')
+            ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
+            ->where('Prestamo.Id_Ejidatario', $id)
+            ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
+            ->sum('Abono.Monto') ?? 0;
+
+        $deudaArrastrada = max(0, $totalPrestamoR1 - $totalAbonosR1);
+
+        $idPrestamos = DB::table('Prestamo')
+            ->where('Id_Ejidatario', $id)
+            ->where('Id_Utilidad', $this->idUtilidadReparto1)
+            ->pluck('Id_Prestamo');
+
+        $historialAbonos = DB::table('Abono')
+            ->whereIn('Id_Prestamo', $idPrestamos)
+            ->orderBy('Fecha', 'asc')
+            ->get();
+
+        $totalDeducciones = $totalAsambleas + $totalFaenas + $deudaArrastrada;
+        $totalAPagar = $montoFijoR2 - $totalDeducciones;
+
+        return \PDF::loadView('cpanel.repartos.ticket-general-reparto2', [
+            'ejidatario'      => $ejidatario,
+            'montoFijoR2'     => $montoFijoR2,
+            'totalAsambleas'  => $totalAsambleas,
+            'totalFaenas'     => $totalFaenas,
+            'deudaArrastrada' => $deudaArrastrada,
+            'historialAbonos' => $historialAbonos,
+            'totalAbonosR1'   => $totalAbonosR1,
+            'totalPrestamoR1' => $totalPrestamoR1,
+            'totalDeducciones'=> $totalDeducciones,
+            'totalAPagar'     => $totalAPagar
+        ])->stream('ticket-segundo-reparto-'.$id.'.pdf');
     }
 }
