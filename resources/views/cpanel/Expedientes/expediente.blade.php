@@ -159,7 +159,7 @@
             const status = document.getElementById('status-' + tipo);
 
             if (ruta && ruta !== '') {
-                btn.href = "{{ asset('') }}" + ruta;
+                btn.href = "{{ url('ver-expediente') }}/" + ruta;
                 btn.classList.remove('d-none');
                 status.className = "badge bg-success mb-2";
                 status.textContent = "Cargado";

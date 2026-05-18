@@ -314,11 +314,13 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
         Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
         Route::get('ver-expediente/{path}', function ($path) {
-            if (!Storage::disk('public')->exists($path)) {
-                abort(404);
+            $cleanPath = str_replace('storage/', '', $path);
+
+            if (!Storage::disk('public')->exists($cleanPath)) {
+                abort(404, 'Archivo no encontrado.');
             }
 
-            return Storage::disk('public')->response($path);
+            return Storage::disk('public')->response($cleanPath);
         })->where('path', '.*')->name('ver.expediente');
         Route::middleware(['permiso:expedientes_crear'])->group(function () {
             Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
