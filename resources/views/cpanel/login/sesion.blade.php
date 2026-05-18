@@ -176,11 +176,10 @@
 <body>
 
 <nav class="navbar navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('inicio') }}">
-            <img src="/snRafael.png" alt="Logo" height="35" style="object-fit: contain;">
-            <span class="fw-bold">Sistema Ejidal San Rafael Ixtapalucan</span>
-        </a>
+    <div class="col-md-4 text-center text-md-start">
+        <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
+        <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+        <small class="text-secondary">v1.4.1</small>
     </div>
 </nav>
 
@@ -253,7 +252,7 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-4 text-center text-md-start">
-                <img src="/snRafael.png" alt="Logo" height="50" class="mb-2">
+                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
                 <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
                 <small class="text-secondary">v1.4.1</small>
             </div>

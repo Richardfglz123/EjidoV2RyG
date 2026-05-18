@@ -17,7 +17,6 @@
             <i class="fas fa-file-invoice-dollar me-2"></i> Segundo Reparto — Año {{ now()->year }}
         </h1>
         <div class="d-flex gap-2">
-            {{-- Buscador integrado idéntico al R1 --}}
             <form action="{{ route('reparto.segundo') }}" method="GET" id="formBuscador" class="d-flex gap-2 mb-0">
                 <div class="input-group input-group-sm" style="width: 250px;">
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
@@ -33,7 +32,6 @@
         </div>
     </div>
 
-    {{-- Notificaciones del Sistema --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm fw-normal" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
@@ -47,7 +45,6 @@
         </div>
     @endif
 
-    {{-- Tabla Principal Estilo R1 --}}
     <div class="card card-ejidal shadow-sm border-0">
         <div class="card-header card-header-ejidal py-3 fw-normal">
             <i class="fas fa-list-ol me-2"></i> Resumen de Liquidación de Ejidatarios
@@ -81,7 +78,6 @@
                                 </div>
                             </td>
 
-                            {{-- Descuento Asambleas --}}
                             <td class="text-center">
                                 @if($ejidatario->total_asambleas > 0)
                                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 fw-normal" style="font-size: 0.85rem;"
@@ -95,7 +91,6 @@
                                 @endif
                             </td>
 
-                            {{-- Descuento Faenas --}}
                             <td class="text-center">
                                 @if($ejidatario->total_faenas > 0)
                                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 fw-normal" style="font-size: 0.85rem;"
@@ -109,15 +104,12 @@
                                 @endif
                             </td>
 
-                            {{-- Préstamos --}}
                             <td class="text-center text-danger fw-normal">
                                 ${{ number_format($ejidatario->deuda_arrastrada_r1, 2) }}
                             </td>
 
-                            {{-- Monto base segundo reparto --}}
                             <td class="text-center text-muted small">${{ number_format($montoFijoR2, 2) }}</td>
 
-                            {{-- Total Final Dinámico --}}
                             <td class="text-center fw-normal">
                                 @if($ejidatario->total_a_pagar >= 0)
                                     <span class="text-ejidal">${{ number_format($ejidatario->total_a_pagar, 2) }}</span>
@@ -126,7 +118,6 @@
                                 @endif
                             </td>
 
-                            {{-- Columna de Estado Limpia --}}
                             <td class="text-center">
                                 @if($ejidatario->total_a_pagar > 0)
                                     <span class="badge border border-success text-dark fw-normal d-block py-1" style="background-color: #f0fdf4;">
@@ -143,10 +134,8 @@
                                 @endif
                             </td>
 
-                            {{-- Columna de Acciones Horizontal Tipo R1 --}}
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    {{-- Ticket --}}
                                     <a href="{{ route('reparto.segundo.ticket', $ejidatario->Id_Ejidatario) }}"
                                        class="btn btn-outline-primary"
                                        target="_blank"
@@ -155,7 +144,6 @@
                                     </a>
 
                                     @if($ejidatario->total_a_pagar < 0)
-                                        {{-- Botón Abonar --}}
                                         <button type="button" class="btn btn-outline-success"
                                                 style="border: 1px solid #1b4b36 !important;"
                                                 onclick="abrirModalAbono({{ $ejidatario->Id_Ejidatario }}, '{{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }}', {{ abs($ejidatario->total_a_pagar) }})"
@@ -163,7 +151,6 @@
                                             <i class="fas fa-money-bill-wave"></i>
                                         </button>
 
-                                        {{-- Botón Aplazar Deuda --}}
                                         <button type="button" class="btn btn-outline-secondary"
                                                 onclick="if(confirm('¿Seguro que desea pasar esta deuda al siguiente año para liberar su Segundo Reparto actual?')) { document.getElementById('form-posponer-{{ $ejidatario->Id_Ejidatario }}').submit(); }"
                                                 title="Aplazar Deuda al Siguiente Año">
@@ -197,7 +184,7 @@
         </div>
     </div>
 
-    {{-- MODAL INTERACTIVO PARA REALIZAR ABONOS CON ESTILOS R1 --}}
+    {{-- MODAL ABONOS --}}
     <div class="modal fade" id="modalAbonarDeuda" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow text-center">
@@ -209,11 +196,9 @@
                     @csrf
                     <div class="modal-body p-4 fw-normal">
                         <h6 id="modalAbonoNombre" class="mb-3 text-dark fw-normal">Cargando...</h6>
-
                         <div class="alert alert-warning py-2 border-0 shadow-sm fw-normal">
                             Deuda actual en caja: <span id="labelDeudaMax" class="text-danger fw-normal">$0.00</span>
                         </div>
-
                         <div class="mb-0">
                             <label class="text-muted small text-uppercase mb-2">Monto a Recibir ($)</label>
                             <input type="number" name="monto" id="monto_abono_input" class="form-control form-control-lg text-center text-ejidal fw-normal" step="0.01" min="0.01" required placeholder="0.00">
@@ -228,7 +213,7 @@
         </div>
     </div>
 
-    {{-- MODAL DE DETALLES CON REPROGRAMACIÓN --}}
+    {{-- MODAL DETALLES --}}
     <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow">
@@ -253,7 +238,6 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
@@ -268,7 +252,10 @@
         });
 
         function abrirModalAbono(id, nombreCompleto, deudaMaxima) {
-            $('#formAbonoDinamico').attr('action', "{{ url('prestamo2/abonar') }}/" + id);
+            // CORRECCIÓN: Usar la ruta prestamo2.abonar definida en web.php
+            let urlAction = "{{ route('prestamo2.abonar', ':id') }}".replace(':id', id);
+            $('#formAbonoDinamico').attr('action', urlAction);
+
             $('#modalAbonoNombre').text(nombreCompleto);
             $('#labelDeudaMax').text("$" + parseFloat(deudaMaxima).toLocaleString('en-US', { minimumFractionDigits: 2 }));
             $('#monto_abono_input').val(parseFloat(deudaMaxima).toFixed(2)).attr('max', parseFloat(deudaMaxima).toFixed(2));
@@ -285,15 +272,10 @@
                 alert('El monto del abono debe ser mayor a 0.');
                 return false;
             }
-            if (abono > deudaMaxima) {
-                e.preventDefault();
-                alert('Error: No puedes abonar más de la deuda actual ($' + deudaMaxima.toLocaleString('en-US') + ')');
-                return false;
-            }
         });
 
         function verDetalle(id, tipo) {
-            const baseUrl = tipo === 'asambleas' ? "{{ url('detalle-asambleas') }}" : "{{ url('detalle-faenas') }}";
+            const baseUrl = tipo === 'asambleas' ? "{{ url('admon/finanzas/segundo-reparto/detalle-asambleas') }}" : "{{ url('admon/finanzas/segundo-reparto/detalle-faenas') }}";
             const url = `${baseUrl}/${id}`;
 
             $('#tituloDetalle').text(tipo === 'asambleas' ? 'Faltas en Asambleas' : 'Faltas en Faenas');
@@ -334,7 +316,7 @@
                 }
                 $('#cuerpoDetalle').html(html);
             }).fail(function() {
-                $('#cuerpoDetalle').html('<tr><td colspan="3" class="text-center py-3 text-danger">Error de comunicación con el servidor.</td></tr>');
+                $('#cuerpoDetalle').html('<tr><td colspan="3" class="text-center py-3 text-danger">Error de comunicación.</td></tr>');
             });
         }
 
@@ -347,19 +329,11 @@
             const fecha = inputFecha.val();
             const hoy = new Date().toISOString().split('T')[0];
 
-            if(!fecha) {
-                alert("Por favor seleccione una fecha.");
-                return;
-            }
-
-            if(fecha < hoy) {
-                alert("No se puede programar una fecha anterior al día de hoy.");
-                inputFecha.addClass('is-invalid');
-                return;
-            }
+            if(!fecha) { alert("Por favor seleccione una fecha."); return; }
+            if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
 
             $.ajax({
-                url: "{{ url('reprográmr-falta') }}",
+                url: "{{ url('admon/finanzas/segundo-reparto/reprográmr-falta') }}",
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
@@ -375,13 +349,7 @@
                         alert("Atención: " + res.message);
                     }
                 },
-                error: function(xhr) {
-                    let errorMsg = "Error desconocido";
-                    if(xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    alert("Error crítico: " + errorMsg);
-                }
+                error: function() { alert("Error crítico al procesar."); }
             });
         }
     </script>
