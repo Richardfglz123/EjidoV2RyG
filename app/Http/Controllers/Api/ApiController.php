@@ -73,7 +73,6 @@ class ApiController extends Controller
 
         return response()->json(['ok' => true, 'two_factor' => true]);
     }
-
     public function verifyCode(Request $request)
     {
         $request->validate([
@@ -83,7 +82,7 @@ class ApiController extends Controller
 
         $emailLimpio = strtolower(trim($request->email));
 
-        // 1. Buscar el código en la MISMA tabla que el login (password_resets)
+        // 1. Buscar el código
         $record = DB::table('password_resets')
             ->where('email', $emailLimpio)
             ->where('token', $request->code)
@@ -97,7 +96,7 @@ class ApiController extends Controller
             ], 401);
         }
 
-        // 2. Obtener al usuario
+        // 2. Obtener al usuario - IMPORTANTE: Usar el nombre de columna correcto 'Correo'
         $user = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$user) {
@@ -105,6 +104,8 @@ class ApiController extends Controller
         }
 
         // 3. Generar token de Sanctum
+        // Al haber puesto 'protected $primaryKey = "Id_usuario"' en el modelo,
+        // ahora $user->createToken ya sabrá qué ID usar.
         $token = $user->createToken('ios-device')->plainTextToken;
 
         // 4. Limpiar el código usado
@@ -114,7 +115,7 @@ class ApiController extends Controller
             'status' => 'success',
             'token'  => $token,
             'user'   => [
-                'id'     => $user->Id_usuario,
+                'id'     => $user->Id_usuario, // Usamos tu columna real
                 'nombre' => $user->Nombres
             ]
         ], 200);
