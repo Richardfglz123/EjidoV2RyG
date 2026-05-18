@@ -82,7 +82,7 @@ class ApiController extends Controller
 
         $emailLimpio = strtolower(trim($request->email));
 
-        // 1. Buscar el código
+        // Buscar el código en password_resets
         $record = DB::table('password_resets')
             ->where('email', $emailLimpio)
             ->where('token', $request->code)
@@ -90,32 +90,27 @@ class ApiController extends Controller
             ->first();
 
         if (!$record) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'El código es incorrecto o ha expirado.'
-            ], 401);
+            return response()->json(['ok' => false, 'error' => 'Código inválido o expirado'], 401);
         }
 
-        // 2. Obtener al usuario - IMPORTANTE: Usar el nombre de columna correcto 'Correo'
+        // BUSCAR USANDO EL MODELO (Importante para que funcione createToken)
         $user = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado'], 404);
+            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
         }
 
-        // 3. Generar token de Sanctum
-        // Al haber puesto 'protected $primaryKey = "Id_usuario"' en el modelo,
-        // ahora $user->createToken ya sabrá qué ID usar.
+        // Ahora esto NO fallará porque ya definimos primaryKey en el modelo
         $token = $user->createToken('ios-device')->plainTextToken;
 
-        // 4. Limpiar el código usado
+        // Limpiar código
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
         return response()->json([
-            'status' => 'success',
+            'ok' => true,
             'token'  => $token,
             'user'   => [
-                'id'     => $user->Id_usuario, // Usamos tu columna real
+                'id'     => $user->Id_Usuario,
                 'nombre' => $user->Nombres
             ]
         ], 200);

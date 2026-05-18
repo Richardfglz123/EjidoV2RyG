@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
-use App\Models\Usuario; // Asegúrate de tener tu modelo en esta ruta
+use App\Models\Usuario;
 
 class UsuariosController extends Controller
 {
