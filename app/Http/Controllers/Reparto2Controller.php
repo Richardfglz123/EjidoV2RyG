@@ -63,30 +63,21 @@ class Reparto2Controller extends Controller
 
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena) {
 
-            // =========================================================================
-            // CORRECCIÓN AQUÍ: Calcular saldo real del Reparto 1 (Préstamos menos Abonos)
-            // =========================================================================
-
-            // 1. Obtener el total prestado en el primer reparto (omitir si el estatus fuera 'Siguiente Año')
             $totalPrestamoR1 = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
                 // ->where('Estatus', '!=', 'Siguiente Año') // <- Descomenta si agregas la columna
                 ->sum('Cantidad') ?? 0;
 
-            // 2. Obtener los abonos realizados a esos préstamos específicos
             $totalAbonosR1 = DB::table('Abono')
                 ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
                 ->where('Prestamo.Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
                 ->sum('Abono.Monto') ?? 0; // Nota: En tu controller usas 'Monto' en un lado y 'Cantidad' en otro, verifica cuál es el campo real en Abonos.
 
-            // 3. La deuda arrastrada real es la resta. Si ya pagó todo, será 0.
             $deudaRealRestante = max(0, $totalPrestamoR1 - $totalAbonosR1);
 
             $ejidatario->deuda_arrastrada_r1 = $deudaRealRestante;
-
-            // =========================================================================
 
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
@@ -109,14 +100,12 @@ class Reparto2Controller extends Controller
                 ->where('Id_Actividad', 2)
                 ->count();
 
-            // 4. Cálculo de Faltas
             $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
             $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
 
             $ejidatario->total_asambleas = max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
             $ejidatario->total_faenas = max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
 
-            // 5. TOTAL FINAL (Ahora sí reflejará el dinero correcto a favor o en contra)
             $ejidatario->total_a_pagar = $montoFijoR2 - ($ejidatario->deuda_arrastrada_r1 + $ejidatario->total_asambleas + $ejidatario->total_faenas);
 
             return $ejidatario;
@@ -198,7 +187,6 @@ class Reparto2Controller extends Controller
     {
         $request->validate(['monto' => 'required|numeric|min:0.01']);
         try {
-            // Buscamos el préstamo activo del primer reparto de este ejidatario
             $prestamo = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $id)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
@@ -208,7 +196,7 @@ class Reparto2Controller extends Controller
                 // Insertar historial de abonos
                 DB::table('Abono')->insert([
                     'Id_Prestamo' => $prestamo->Id_Prestamo,
-                    'Monto'       => $request->monto, // Asegúrate si tu tabla usa 'Monto' o 'Cantidad'
+                    'Monto'       => $request->monto,
                     'Fecha'       => now()
                 ]);
 

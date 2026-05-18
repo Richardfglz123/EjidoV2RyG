@@ -105,7 +105,6 @@
         </span>
     </div>
 
-    <!-- BALANCE PRINCIPAL DEL SEGUNDO REPARTO -->
     <table class="table">
         <thead>
         <tr>
@@ -119,7 +118,6 @@
             <td style="text-align: right;" class="text-success">+${{ number_format($montoFijoR2, 2) }}</td>
         </tr>
 
-        <!-- Penalizaciones por Faltas (Asambleas) -->
         <tr>
             <td>(-) Retención Faltas Asambleas</td>
             <td style="text-align: right;" class="{{ $totalAsambleas > 0 ? 'text-danger' : '' }}">
@@ -127,7 +125,6 @@
             </td>
         </tr>
 
-        <!-- Penalizaciones por Faltas (Faenas) -->
         <tr>
             <td>(-) Retención Faltas Faenas</td>
             <td style="text-align: right;" class="{{ $totalFaenas > 0 ? 'text-danger' : '' }}">
@@ -135,7 +132,6 @@
             </td>
         </tr>
 
-        <!-- Saldo de Deuda Neto de Préstamos R1 -->
         @if($deudaArrastrada > 0)
             <tr>
                 <td>
@@ -150,7 +146,6 @@
 
     <hr style="border: none; border-top: 1px dashed #ccc; margin: 12px 0;">
 
-    <!-- HISTORIAL DE ABONOS REGISTRADOS -->
     <div class="fw-bold" style="font-size: 10px; margin-bottom: 5px; text-transform: uppercase;">Desglose de Abonos Realizados (R1):</div>
     <table class="table" style="margin-top: 0;">
         <tbody>

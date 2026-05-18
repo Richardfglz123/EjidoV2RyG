@@ -158,10 +158,14 @@
 <body>
 
 <nav class="navbar navbar-ejidal navbar-dark">
-    <div class="container justify-content-center justify-content-md-start">
-        <a class="navbar-brand m-0" href="/">
-            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="40" class="me-2">
-            <span class="d-none d-sm-inline">Sistema Ejidal San Rafael</span>
+    <div class="d-flex align-items-center gap-2">
+        <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
+            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
+            <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
         </a>
     </div>
 </nav>
@@ -230,10 +234,41 @@
     </div>
 </div>
 
-<footer class="footer-ejidal">
+
+<footer class="footer bg-dark text-light py-4 border-top border-primary">
     <div class="container">
-        <p class="mb-1 fw-bold text-white">Ejido San Rafael Ixtapalucan</p>
-        <p class="mb-0">© {{ date('Y') }} - Sistema de Gestión Ejidal v1.4.1</p>
+        <div class="row align-items-center">
+
+            <div class="col-md-4 text-center text-md-start">
+                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
+                <h6 class="text-uppercase fw-bold mb-0">Sistema Ejidal San </h6>
+            </div>
+
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <p class="mb-2 small text-secondary">Síguenos en:</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4 text-center text-md-end">
+                <div style="font-size: 0.7rem;" class="text-secondary">
+                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
+                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
+                </div>
+            </div>
+
+        </div>
     </div>
 </footer>
 

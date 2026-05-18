@@ -5,7 +5,6 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
-        /* Sincronización estricta con tus clases ejidales */
         .pagination .page-item.active .page-link { background-color: #1b4b36 !important; border-color: #1b4b36 !important; color: #ffffff !important; }
         .pagination .page-link { color: #1b4b36 !important; }
         .pagination svg { width: 20px; height: 20px; }
@@ -252,7 +251,6 @@
         });
 
         function abrirModalAbono(id, nombreCompleto, deudaMaxima) {
-            // CORRECCIÓN: Usar la ruta prestamo2.abonar definida en web.php
             let urlAction = "{{ route('prestamo2.abonar', ':id') }}".replace(':id', id);
             $('#formAbonoDinamico').attr('action', urlAction);
 

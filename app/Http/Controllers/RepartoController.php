@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Prestamo;
 use App\Models\Utilidad;
-use App\Models\Usuario; // CORREGIDO: 'Usuario' con U mayúscula
+use App\Models\Usuario;
 use App\Models\Ejidatario;
 use App\Models\CatalogoMulta;
 use App\Models\Abono;
