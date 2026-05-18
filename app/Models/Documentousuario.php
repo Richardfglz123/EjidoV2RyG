@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Documentousuario extends Model
+class DocumentoUsuario extends Model
 {
     protected $table = 'Documentos_Usuario';
 
@@ -13,9 +13,15 @@ class Documentousuario extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'Id_Usuario', 'nombre_documento', 'ruta_archivo',
-        'Id_Elimino', 'Id_Modificado', 'Id_Creo',
-        'Fecha_Eliminado', 'Fecha_Modificado', 'Fecha_Creo'
+        'Id_Usuario',
+        'nombre_documento',
+        'ruta_archivo',
+        'Id_Elimino',
+        'Id_Modificado',
+        'Id_Creo',
+        'Fecha_Eliminado',
+        'Fecha_Modificado',
+        'Fecha_Creo'
     ];
 
     public function usuario()
