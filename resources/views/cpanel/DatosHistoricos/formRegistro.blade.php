@@ -52,7 +52,7 @@
                 $evidencias = is_array($evidencias) ? array_filter($evidencias) : [];
             @endphp
 
-            @if(count($evidencias) > 0)
+            @if(isset($evidencias) && count($evidencias) > 0)
                 <div class="mt-3 p-2 border rounded bg-light">
                     <p class="small mb-2 text-primary fw-bold">Archivos cargados (haz clic en X para eliminar):</p>
                     <div class="d-flex flex-wrap gap-3">
@@ -61,14 +61,20 @@
                                 @if(Str::endsWith(strtolower($foto), '.pdf'))
                                     <div class="img-thumbnail d-flex flex-column align-items-center justify-content-center bg-white" style="width: 100px; height: 100px; border: 1px solid #dee2e6;">
                                         <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                                        <span class="small text-truncate w-100 px-1 text-center">PDF</span>
+                                        {{-- Enlace corregido para abrir el PDF existente --}}
+                                        <a href="{{ url('ver-archivo/' . $foto) }}" target="_blank" class="small text-truncate w-100 px-1 text-center text-decoration-none text-dark">
+                                            Ver PDF
+                                        </a>
                                     </div>
                                 @else
-                                    <img src="{{ asset('storage/' . $foto) }}"
+                                    {{-- Imagen corregida usando ver-archivo --}}
+                                    <img src="{{ url('ver-archivo/' . $foto) }}"
                                          class="img-thumbnail"
-                                         style="width: 100px; height: 100px; object-fit: cover;">
+                                         style="width: 100px; height: 100px; object-fit: cover;"
+                                         onerror="this.src='https://placehold.co/100?text=Error'">
                                 @endif
 
+                                {{-- Botón de eliminar (este se queda igual ya que apunta a una ruta de controlador) --}}
                                 <a href="{{ route('datos_historicos.foto.delete', [$registro->Id_DatosH, 'foto' => $foto]) }}"
                                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                                    onclick="return confirm('¿Eliminar este archivo de forma permanente?')">
