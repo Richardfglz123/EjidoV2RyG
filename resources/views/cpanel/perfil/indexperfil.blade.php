@@ -23,8 +23,8 @@
                     <div class="position-relative d-inline-block">
                         <div class="profile-img-container shadow-sm border border-3 border-white rounded-circle overflow-hidden" style="width: 150px; height: 150px; background-color: #e9ecef;">
                             @if(isset($usuario->foto) && $usuario->foto)
-                                <img id="previewImg" src="{{ asset('storage/'.$usuario->foto) }}?v={{ time() }}" alt="Foto de perfil" style="width: 100%; height: 100%; object-fit: cover;">
-                            @else
+                                {{-- Cambia asset por Storage::url --}}
+                                <img id="previewImg" src="{{ $usuario->foto ? Storage::url($usuario->foto) : 'https://ui-avatars.com/api/?name='.urlencode($usuario->Nombres).'...' }}" alt="Foto de perfil" style="width: 100%; height: 100%; object-fit: cover;">                            @else
                                 <img id="previewImg" src="https://ui-avatars.com/api/?name={{ urlencode($usuario->Nombres.' '.$usuario->Apellido_Paterno) }}&background=6c757d&color=fff&size=150" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                             @endif
                         </div>

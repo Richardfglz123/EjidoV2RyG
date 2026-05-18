@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\SocialController;
 use App\Models\Ejidatario;
@@ -415,6 +417,22 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::get('/test-qr', function () {
         $ejidatarios = \App\Models\Ejidatario::with('usuario')->get();
         return view('test_qr', compact('ejidatarios'));
+    });
+    // borrar despues
+    Route::get('storage/perfiles/{filename}', function ($filename) {
+        $path = 'perfiles/' . $filename;
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        $file = Storage::disk('public')->get($path);
+        $type = Storage::disk('public')->mimeType($path);
+
+        $response = Response::make($file, 200);
+        $response->header("Content-Type", $type);
+
+        return $response;
     });
 
     Route::get('/debug-auth', function () {

@@ -33,60 +33,39 @@ class PerfilController extends Controller
     {
         $userId = session('usuario.id');
 
-        // 1. Validación sin límite de tamaño (quitamos max:2048)
         $request->validate([
-            'usuario'    => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
+            // Cambiamos a 'Usuario' con mayúscula para que coincida con tu Blade
+            'Usuario'    => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
             'Correo'     => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono'   => 'required|numeric',
-            'foto'       => 'nullable|image|mimes:jpg,jpeg,png', // Sin límite de peso
-            'Contraseña' => [
-                'nullable',
-                'confirmed',
-                'min:8',
-            ],
+            'foto'       => 'nullable|image',
         ]);
 
         $data = [
-            'usuario'          => $request->usuario,
+            'usuario'          => $request->Usuario, // Coincide con el input del Blade
             'Correo'           => $request->Correo,
             'Telefono'         => $request->Telefono,
             'Fecha_Modificado' => now(),
         ];
 
-        // 2. Manejo de la Foto
         if ($request->hasFile('foto')) {
             $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
-
-            // Borrar foto física anterior para no llenar el servidor de basura
-            if ($userRecord && !empty($userRecord->foto)) {
+            if ($userRecord && $userRecord->foto) {
                 Storage::disk('public')->delete($userRecord->foto);
             }
 
-            // Guardar con un nombre único basado en tiempo para evitar conflictos de caché
-            $file = $request->file('foto');
-            $nombreFoto = time() . '_' . $file->getClientOriginalName();
-
-            // Guardamos en la carpeta 'perfiles' dentro del disco 'public'
-            $path = $file->storeAs('perfiles', $nombreFoto, 'public');
-
+            // Guardamos y actualizamos sesión
+            $path = $request->file('foto')->store('perfiles', 'public');
             $data['foto'] = $path;
-
-            // Actualizar la sesión para que el cambio sea instantáneo en la interfaz
             session(['usuario.foto' => $path]);
         }
 
-        // 3. Manejo de Contraseña
         if ($request->filled('Contraseña')) {
-            $data['Contraseña'] = Hash::make($request->Contraseña);
+            $data['Contraseña'] = \Hash::make($request->Contraseña);
         }
 
-        // 4. Actualización en Base de Datos
-        DB::table('usuario')
-            ->where('Id_usuario', $userId)
-            ->update($data);
-
-        session(['usuario.nombre_completo' => $request->usuario]);
-        $request->session()->save();
+        DB::table('usuario')->where('Id_usuario', $userId)->update($data);
+        session(['usuario.nombre_completo' => $request->Usuario]);
 
         return back()->with('success', 'Perfil actualizado correctamente');
     }
