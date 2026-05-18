@@ -83,8 +83,8 @@
 
 <div class="ticket-wrapper">
     <div class="header">
-        <h1>EJIDO {{ env('APP_NAME', 'SISTEMA DE CONTROL') }}</h1>
-        <p><strong>ESTADO DE CUENTA Y PRÉSTAMO</strong><br>
+        <h1>Sistema Ejidal San Rafael Ixtapalucan</h1>
+        <p><strong>ESTADO DE CUENTA Y PRÉSTAMO 1ER REPARTO</strong><br>
             Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
     </div>
 
@@ -93,10 +93,11 @@
             <span class="label">Fecha Inicial:</span>
             <span>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y H:i') }}</span>
         </div>
-        <div class="info-row">
-            <span class="label">Ejidatario:</span><br>
-            <span class="fw-bold">{{ $prestamo->ejidatario->usuario->Nombres }} {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}</span>
-        </div>
+        <!-- CÓDIGO CORREGIDO -->
+        <span class="fw-bold">
+    {{ $prestamo->ejidatario?->usuario?->Nombres ?? 'Ejidatario' }}
+            {{ $prestamo->ejidatario?->usuario?->Apellido_Paterno ?? '' }}
+</span>
     </div>
 
     <!-- SECCIÓN DE DETALLE ORIGINAL -->

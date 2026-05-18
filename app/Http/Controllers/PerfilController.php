@@ -12,7 +12,7 @@ class PerfilController extends Controller
     public function index()
     {
         $usuario = DB::table('usuario')
-        ->leftJoin('Ejidatario', 'usuario.Id_usuario', '=', 'Ejidatario.Id_usuario')
+            ->leftJoin('Ejidatario', 'usuario.Id_usuario', '=', 'Ejidatario.Id_usuario')
             ->where('usuario.Id_usuario', session('usuario.id'))
             ->select('usuario.*', 'Ejidatario.Id_Ejidatario', 'Ejidatario.Num_Ejidatario')
             ->first();
@@ -33,17 +33,16 @@ class PerfilController extends Controller
     {
         $userId = session('usuario.id');
 
+        // 1. Validación sin límite de tamaño (quitamos max:2048)
         $request->validate([
             'usuario'    => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
             'Correo'     => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono'   => 'required|numeric',
-            'foto'       => 'nullable|image|mimes:jpg,jpeg|max:2048',
+            'foto'       => 'nullable|image|mimes:jpg,jpeg,png', // Sin límite de peso
             'Contraseña' => [
                 'nullable',
                 'confirmed',
                 'min:8',
-                'regex:/[A-Z]/',
-                'regex:/[0-9]/',
             ],
         ]);
 
@@ -54,49 +53,67 @@ class PerfilController extends Controller
             'Fecha_Modificado' => now(),
         ];
 
+        // 2. Manejo de la Foto
         if ($request->hasFile('foto')) {
             $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
 
-            if ($userRecord && isset($userRecord->foto) && $userRecord->foto) {
+            // Borrar foto física anterior para no llenar el servidor de basura
+            if ($userRecord && !empty($userRecord->foto)) {
                 Storage::disk('public')->delete($userRecord->foto);
             }
 
-            $path = $request->file('foto')->store('perfiles', 'public');
+            // Guardar con un nombre único basado en tiempo para evitar conflictos de caché
+            $file = $request->file('foto');
+            $nombreFoto = time() . '_' . $file->getClientOriginalName();
+
+            // Guardamos en la carpeta 'perfiles' dentro del disco 'public'
+            $path = $file->storeAs('perfiles', $nombreFoto, 'public');
+
             $data['foto'] = $path;
 
+            // Actualizar la sesión para que el cambio sea instantáneo en la interfaz
             session(['usuario.foto' => $path]);
         }
 
+        // 3. Manejo de Contraseña
         if ($request->filled('Contraseña')) {
             $data['Contraseña'] = Hash::make($request->Contraseña);
         }
 
+        // 4. Actualización en Base de Datos
         DB::table('usuario')
             ->where('Id_usuario', $userId)
             ->update($data);
 
         session(['usuario.nombre_completo' => $request->usuario]);
-
         $request->session()->save();
 
         return back()->with('success', 'Perfil actualizado correctamente');
     }
+
     public function getPerfilApi(Request $request)
     {
-        // Obtenemos el valor de la cabecera Authorization
+        // Obtenemos la cabecera Authorization
         $authHeader = $request->header('Authorization');
 
-        // Limpiamos la palabra 'Bearer ' para quedarnos SOLO con el número 404
-        $userId = str_replace('Bearer ', '', $authHeader);
+        if (!$authHeader) {
+            return response()->json(['ok' => false, 'error' => 'Cabecera Authorization ausente'], 401);
+        }
 
-        // Si por alguna razón el iPhone no mandó nada, detenemos todo
-        if (!$userId || $userId == "" || $userId == "null") {
-            return response()->json(['ok' => false, 'error' => 'ID de usuario no recibido'], 401);
+        // Limpiamos la palabra 'Bearer ' y removemos cualquier espacio en blanco o salto de línea residual
+        $cleanId = trim(str_replace('Bearer ', '', $authHeader));
+
+        // Forzamos que sea un número entero para evitar que la base de datos se confunda o devuelva registros incorrectos
+        $userId = intval($cleanId);
+
+        // Si el iPhone mandó un ID vacío, nulo o que tras la conversión no es un número válido válido mayor a 0
+        if ($userId <= 0) {
+            return response()->json(['ok' => false, 'error' => 'ID de usuario no válido o no recibido'], 401);
         }
 
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
-            ->where('u.Id_usuario', '=', $userId) // <--- FILTRO ESTRICTO
+            ->where('u.Id_usuario', '=', $userId) // <--- FILTRO ESTRICTO SEGURO
             ->select('u.*', 'e.Num_Ejidatario')
             ->first();
 
@@ -107,8 +124,10 @@ class PerfilController extends Controller
             ], 404);
         }
 
-        // Concatenamos el nombre correctamente
         $nombreCompleto = trim($usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno);
+
+        // Usamos Storage::url() que es más consistente para resolver las rutas públicas configuradas en producción
+        $fotoUrl = $usuario->foto ? asset(Storage::url($usuario->foto)) : null;
 
         return response()->json([
             'ok' => true,
@@ -117,7 +136,7 @@ class PerfilController extends Controller
                 'correo'         => $usuario->Correo,
                 'telefono'       => (string)$usuario->Telefono,
                 'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'),
-                'foto_url'       => $usuario->foto ? asset('storage/' . $usuario->foto) : null,
+                'foto_url'       => $fotoUrl,
             ]
         ]);
     }

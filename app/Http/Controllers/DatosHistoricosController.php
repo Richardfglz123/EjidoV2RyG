@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DatosHistoricosExport;
-use Illuminate\Support\Str; // Importante para detectar extensiones
+use Illuminate\Support\Str;
 
 class DatosHistoricosController extends Controller
 {
@@ -121,7 +121,7 @@ class DatosHistoricosController extends Controller
             ->where('Id_DatosH', $id)
             ->update(['Evidencia' => json_encode(array_values($fotos))]);
 
-        return back()->with('success', 'Archivo eliminado correctamente.');
+        return back()->with('success', 'Archivo eliminado correctamente');
     }
 
     public function edit($id)
