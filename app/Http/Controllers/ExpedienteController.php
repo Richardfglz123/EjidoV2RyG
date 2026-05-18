@@ -8,6 +8,7 @@ use App\Models\Documentousuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+
 class ExpedienteController extends Controller
 
 {
@@ -42,9 +43,9 @@ class ExpedienteController extends Controller
         );
     }
 
+
     public function store(Request $request)
     {
-        // Validación básica
         $request->validate([
             'id_usuario' => 'required',
             'doc_ine' => 'nullable|file|mimes:pdf|max:5000',
@@ -52,7 +53,7 @@ class ExpedienteController extends Controller
             'doc_comprobante' => 'nullable|file|mimes:pdf|max:5000',
         ]);
 
-        $usuario = usuario::findOrFail($request->id_usuario);
+        $usuario = Usuario::findOrFail($request->id_usuario);
         $slugusuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_usuario);
         $rutaBase = "expedientes/{$slugusuario}";
 
@@ -64,17 +65,16 @@ class ExpedienteController extends Controller
 
         foreach ($tipos as $input => $nombreDoc) {
             if ($request->hasFile($input)) {
-                // Guardamos en storage/app/public/expedientes/...
                 $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
 
-                Documentousuario::updateOrCreate(
+                DocumentoUsuario::updateOrCreate(
                     ['Id_usuario' => $usuario->Id_usuario, 'nombre_documento' => $nombreDoc],
-                    ['ruta_archivo' => 'storage/' . $path]
+                    ['ruta_archivo' => $path]
                 );
             }
         }
 
-        return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado correctamente.');
+        return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado.');
     }
 
     public function guardarMio(Request $request)

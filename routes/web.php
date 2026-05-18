@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Laravel\Socialite\Facades\Socialite;
@@ -314,7 +313,13 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::prefix('admon/expedientes')->group(function () {
         Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
         Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
+        Route::get('ver-expediente/{path}', function ($path) {
+            if (!Storage::disk('public')->exists($path)) {
+                abort(404);
+            }
 
+            return Storage::disk('public')->response($path);
+        })->where('path', '.*')->name('ver.expediente');
         Route::middleware(['permiso:expedientes_crear'])->group(function () {
             Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
             Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
