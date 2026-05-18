@@ -43,7 +43,15 @@
             <i class="fas fa-user-edit me-2"></i>
             {{ isset($fila) ? 'Editar Ejidatario' : 'Registrar Nuevo Ejidatario' }}
         </div>
-
+        @if ($errors->any())
+            <div class="alert alert-danger shadow-sm">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <form action="{{ isset($fila) ? route('Ejidatarios.update', $fila->Id_Ejidatario) : route('Ejidatarios.store') }}" method="POST" id="formEjidatario">
             @csrf
             @if(isset($fila)) @method('PUT') @endif

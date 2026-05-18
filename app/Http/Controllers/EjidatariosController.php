@@ -59,7 +59,7 @@ class EjidatariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
-        // 1. Validamos (Asegúrate de que los nombres coincidan con el <select> de tu vista)
+        // 1. Validación (Usamos Id_Usuario con U mayúscula como está en tu Blade)
         $request->validate([
             'Calle'              => 'required|string|max:100',
             'Num_Exterior'       => 'required|string|max:10',
@@ -73,28 +73,28 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_usuario'         => 'required', // Este es el nombre del input en el formulario
+            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario', // <--- Sincronizado con Blade
         ]);
 
-        // 2. Generar Número de Ejidatario automático
+        // 2. Número de Ejidatario automático
         $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
         $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
 
-        // 3. Preparar QR (Buscamos al usuario usando Id_Usuario con U mayúscula)
-        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_usuario)->first();
+        // 3. Preparar QR
+        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
 
         if (!$user) {
-            return back()->withErrors('El usuario seleccionado no existe en la tabla usuarios.');
+            return back()->withInput()->withErrors('El usuario seleccionado no existe.');
         }
 
         $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
         $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
         try {
-            // 4. Inserción (Usando los nombres EXACTOS de tu estructura de tabla)
+            // 4. Inserción usando los nombres EXACTOS de tu base de datos
             DB::table('Ejidatario')->insert([
                 'Num_Ejidatario'   => $nuevoNum,
-                'Id_Usuario'       => $request->Id_usuario, // CORREGIDO: U mayúscula
+                'Id_Usuario'       => $request->Id_Usuario, // <--- Sincronizado con DB
                 'qr_payload'       => $payloadQR,
                 'Calle'            => $request->Calle,
                 'Num_Exterior'     => $request->Num_Exterior,
@@ -109,15 +109,14 @@ class EjidatariosController extends Controller
                 'Clave_Elector'    => $request->Clave_Elector,
                 'Fecha_Ingreso'    => $request->Fecha_Ingreso,
                 'Id_Estatus'       => $request->Id_Estatus,
-                'Fecha_Creo'       => now()->format('Y-m-d'), // Tu tabla pide DATE, no DATETIME
+                'Fecha_Creo'       => now()->format('Y-m-d'),
                 'Id_Creo'          => session('usuario.id', '1')
             ]);
 
-            return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado con éxito.");
+            return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado.");
 
         } catch (\Exception $e) {
-            // Esto te mostrará el error real en pantalla si algo falla
-            return back()->withInput()->withErrors('Error al insertar: ' . $e->getMessage());
+            return back()->withInput()->withErrors('Error en base de datos: ' . $e->getMessage());
         }
     }
 
