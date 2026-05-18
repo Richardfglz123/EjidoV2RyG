@@ -4,45 +4,40 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Usuario;
-use App\Models\Documentousuario;
+use App\Models\DocumentoUsuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 
 class ExpedienteController extends Controller
-
 {
     public function index()
     {
         $permisos = session('usuario.permisos', []);
         $usuarioId = session('usuario.id');
 
-        // Si tiene permiso puede ver todos los usuarios
         if (in_array('expedientes_ver', $permisos)) {
-
-            $usuarios = usuario::whereNull('fecha_eliminado')
+            // CORREGIDO: Usuario con U mayúscula (por estándar de Laravel)
+            $usuarios = Usuario::whereNull('fecha_eliminado')
                 ->with('documentos')
                 ->orderBy('Apellido_Paterno', 'asc')
                 ->get();
-
         } else {
-
-            // Si NO tiene permiso solo ve su propio expediente
-            $usuarios = usuario::where('Id_usuario', $usuarioId)
+            $usuarios = Usuario::where('Id_usuario', $usuarioId)
                 ->whereNull('fecha_eliminado')
                 ->with('documentos')
                 ->get();
         }
 
         $total_usuarios = $usuarios->count();
-        $total_con_expediente = Documentousuario::distinct('Id_usuario')->count('Id_usuario');
+        $total_con_expediente = DocumentoUsuario::distinct('Id_usuario')
+            ->count('Id_usuario');
 
         return view(
             'cpanel.Expedientes.expediente',
             compact('usuarios', 'total_usuarios', 'total_con_expediente')
         );
     }
-
 
     public function store(Request $request)
     {
@@ -74,7 +69,7 @@ class ExpedienteController extends Controller
             }
         }
 
-        return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado.');
+        return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado correctamente.');
     }
 
     public function guardarMio(Request $request)
