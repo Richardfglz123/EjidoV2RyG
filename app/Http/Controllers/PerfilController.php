@@ -85,21 +85,30 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        $userId = session('usuario.id') ?? $request->user()?->Id_usuario;
+        // 1. Extraemos el token "Bearer XXXX" que manda el iPhone
+        $token = $request->bearerToken();
+
+        // Si tu app guarda el ID del usuario directamente en el "userToken" de UserDefaults:
+        $userId = $token;
+
+        // Si usas tokens reales de Sanctum en tu ruta, mantén esto:
+        // $userId = $request->user()?->Id_usuario;
 
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado. Sesión inválida.'], 401);
+            return response()->json(['ok' => false, 'error' => 'No autorizado. Token ausente.'], 401);
         }
 
+        // 2. Buscamos al usuario en la base de datos usando el ID obtenido del token
         $usuario = DB::table('usuario')
             ->where('Id_usuario', $userId)
             ->first();
 
         if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
+            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado con el token proporcionado.'], 404);
         }
 
-        $nombreCompleto = $usuario->usuario ?? 'Usuario';
+        // 3. Retornamos los datos limpios para Swift
+        $nombreCompleto = $usuario->usuario ?? 'Usuario Ejidal';
 
         return response()->json([
             'ok' => true,
