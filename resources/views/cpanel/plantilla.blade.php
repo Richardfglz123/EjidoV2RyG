@@ -261,6 +261,19 @@
                         </div>
                     </li>
 
+                    {{-- Datos historicos --}}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#historicosMenu">
+                            <i class="fas fa-scroll"></i> Datos Históricos <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse" id="historicosMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.create') }}"><i class="fas fa-plus-circle"></i> Nuevo registro</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.index') }}"><i class="fas fa-list"></i> Listado</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
                     {{-- MULTAS --}}
                     <li class="nav-item">
                         <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
