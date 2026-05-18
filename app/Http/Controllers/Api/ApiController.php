@@ -8,102 +8,79 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use App\Models\Usuario; // IMPORTANTE: U mayúscula igual que tu modelo
+use App\Models\Usuario;
 use Exception;
 
 class ApiController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. Validación flexible para permitir Face ID (sin password)
         $request->validate([
             'email' => 'required|email',
             'password' => 'required_unless:login_biometrico,true'
         ]);
 
         $emailLimpio = strtolower(trim($request->email));
-
-        // 2. Buscamos al usuario usando el modelo correcto
         $usuario = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$usuario) {
-            return response()->json([
-                'ok' => false,
-                'error' => 'El usuario no existe'
-            ], 401);
+            return response()->json(['ok' => false, 'error' => 'El usuario no existe'], 401);
         }
 
-        // --- CASO A: INICIO DE SESIÓN CON FACE ID ---
         if ($request->login_biometrico === 'true') {
-            // Generamos token directo (Sanctum)
             $token = $usuario->createToken('ios-device-biometric')->plainTextToken;
-
-            return response()->json([
-                'ok' => true,
-                'two_factor' => false,
-                'token' => $token
-            ]);
+            return response()->json(['ok' => true, 'two_factor' => false, 'token' => $token]);
         }
 
-        // --- CASO B: INICIO DE SESIÓN TRADICIONAL ---
         if (!Hash::check($request->password, $usuario->Contraseña)) {
-            return response()->json([
-                'ok' => false,
-                'error' => 'Credenciales incorrectas'
-            ], 401);
+            return response()->json(['ok' => false, 'error' => 'Credenciales incorrectas'], 401);
         }
 
-        // Generamos código 2FA
         $code = rand(100000, 999999);
-        Log::info("Código 2FA para {$usuario->Correo}: {$code}");
-        Cache::put('2fa_'.$usuario->Correo, $code, now()->addMinutes(10));
+        Cache::put('2fa_'.$emailLimpio, $code, now()->addMinutes(10));
 
         try {
-            Mail::raw("Tu código de acceso al Sistema Ejidal es: {$code}", function ($mail) use ($usuario) {
-                $mail->to($usuario->Correo)->subject('Código de acceso');
+            $html = "
+            <div style='background-color: #000; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; text-align: center;'>
+                <div style='max-width: 450px; margin: 0 auto; background-color: #1c1c1e; padding: 40px; border-radius: 20px; border: 1px solid #38383a;'>
+                    <h1 style='color: #fff; font-size: 24px; font-weight: 600; margin-bottom: 10px;'>Verificación</h1>
+                    <p style='color: #8e8e93; font-size: 15px; margin-bottom: 30px;'>Hola, {$usuario->Nombres}. Usa este código para acceder de forma segura.</p>
+                    <div style='background-color: #2c2c2e; border-radius: 12px; padding: 20px; margin-bottom: 30px;'>
+                        <span style='color: #0a84ff; font-size: 38px; font-weight: 700; letter-spacing: 10px;'>{$code}</span>
+                    </div>
+                    <p style='color: #48484a; font-size: 12px;'>Este código expira en 10 minutos. Si no solicitaste esto, ignora el mensaje.</p>
+                </div>
+                <p style='color: #48484a; font-size: 11px; margin-top: 20px;'>SISTEMA EJIDAL SAN RAFAEL IXTAPALUCAN 2026</p>
+            </div>";
+
+            Mail::html($html, function ($mail) use ($usuario) {
+                $mail->to($usuario->Correo)->subject($usuario->Nombres . ', tu código de seguridad');
             });
         } catch (Exception $e) {
             Log::error("Error SMTP: " . $e->getMessage());
         }
 
-        return response()->json([
-            'ok' => true,
-            'two_factor' => true,
-            'token' => null
-        ]);
+        return response()->json(['ok' => true, 'two_factor' => true]);
     }
 
     public function verifyCode(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'code' => 'required'
-        ]);
-
+        $request->validate(['email' => 'required|email', 'code' => 'required']);
         $email = strtolower(trim($request->email));
         $stored = Cache::get('2fa_'.$email);
 
         if (!$stored || $stored != $request->code) {
-            return response()->json(['ok' => false, 'error' => 'Código inválido'], 401);
+            return response()->json(['ok' => false, 'error' => 'Código inválido o expirado'], 401);
         }
 
         $usuario = Usuario::where('Correo', $email)->first();
-
-        if (!$usuario) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no encontrado'], 404);
-        }
-
         $token = $usuario->createToken('ios-device')->plainTextToken;
         Cache::forget('2fa_'.$email);
 
         return response()->json([
             'ok' => true,
             'token' => $token,
-            'user' => [
-                'id' => $usuario->Id_usuario,
-                'nombre' => $usuario->Nombres,
-                'email' => $usuario->Correo
-            ]
+            'user' => ['id' => $usuario->Id_usuario, 'nombre' => $usuario->Nombres]
         ]);
     }
 }
