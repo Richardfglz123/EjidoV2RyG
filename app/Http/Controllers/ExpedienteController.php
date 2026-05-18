@@ -17,7 +17,6 @@ class ExpedienteController extends Controller
         $usuarioId = session('usuario.id');
 
         if (in_array('expedientes_ver', $permisos)) {
-            // CORREGIDO: Usuario con U mayúscula (por estándar de Laravel)
             $usuarios = Usuario::whereNull('fecha_eliminado')
                 ->with('documentos')
                 ->orderBy('Apellido_Paterno', 'asc')
@@ -63,8 +62,15 @@ class ExpedienteController extends Controller
                 $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
 
                 DocumentoUsuario::updateOrCreate(
-                    ['Id_usuario' => $usuario->Id_usuario, 'nombre_documento' => $nombreDoc],
-                    ['ruta_archivo' => $path]
+                    [
+                        'Id_usuario' => $usuario->Id_usuario,
+                        'nombre_documento' => $nombreDoc
+                    ],
+                    [
+                        'ruta_archivo' => $path,
+                        'Id_Creo' => session('usuario.id'),
+                        'Fecha_Creo' => now()
+                    ]
                 );
             }
         }
