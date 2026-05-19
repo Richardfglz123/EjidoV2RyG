@@ -161,7 +161,7 @@
                 </tr>
             @endforeach
             <tr style="border-top: 1px solid #ccc;">
-                <td class="fw-bold" style="font-size: 10px;">Total Recuperado:</td>
+                <td class="fw-bold" style="font-size: 10px;">Total a pagar:</td>
                 <td class="fw-bold" style="text-align: right; font-size: 10px;">${{ number_format($totalAbonosR1, 2) }}</td>
             </tr>
         @else
@@ -174,7 +174,7 @@
 
     <!-- TOTALES FINALES CON CONTROL DE NEGATIVOS -->
     <div class="total-section">
-        <div style="font-size: 11px; color: #666;">Monto Bruto R2: ${{ number_format($montoFijoR2, 2) }}</div>
+        <div style="font-size: 11px; color: #666;">Monto total R2: ${{ number_format($montoFijoR2, 2) }}</div>
         <div style="font-size: 11px; color: #666;">Total Deducciones Aplicadas: -${{ number_format($totalDeducciones, 2) }}</div>
 
         <div class="fw-bold" style="font-size: 12px; margin-top: 4px; border-top: 1px dashed #000; padding-top: 4px;">
