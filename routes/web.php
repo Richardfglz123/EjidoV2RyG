@@ -418,7 +418,6 @@ Route::prefix('admon/expedientes')->group(function () {
             Route::patch('/actualizar/{id}', [Reparto2Controller::class, 'actualizarPrestamo'])->name('prestamo2.actualizar');
             Route::delete('/eliminar/{id}', [Reparto2Controller::class, 'eliminarPrestamo'])->name('prestamo2.eliminar');
 
-            // CORREGIDO: Apuntar al método 'abonarPrestamo' que lee $request->monto y actualiza la tabla
             Route::post('/abonar/{id}', [Reparto2Controller::class, 'abonarPrestamo'])->name('prestamo2.abonar');
         });
 

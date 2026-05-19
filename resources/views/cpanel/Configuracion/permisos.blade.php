@@ -106,13 +106,14 @@
                                 ['key'=>'ejidatarios','label'=>'Ejidatarios','icon'=>'fas fa-person-digging'],
                                 ['key'=>'actividades','label'=>'Actividades','icon'=>'fas fa-clipboard-check'],
                                 ['key'=>'gestion','label'=>'Gestión','icon'=>'fas fa-tasks'],
-
                                 ['key'=>'asistencia','label'=>'Pase de Lista','icon'=>'fas fa-list-check'],
+                                ['key'=>'eventos','label'=>'Eventos','icon'=>'fas fa-calendar-day'],
                                 ['key'=>'expedientes','label'=>'Expedientes','icon'=>'fas fa-folder-open'],
                                 ['key'=>'parcelas','label'=>'Parcelas','icon'=>'fas fa-map-marked-alt'],
                                 ['key'=>'utilidades','label'=>'Finanzas','icon'=>'fas fa-hand-holding-usd'],
                                 ['key'=>'gastos','label'=>'Gastos','icon'=>'fas fa-wallet'],
                                 ['key'=>'inventario','label'=>'Inventario','icon'=>'fas fa-warehouse'],
+                                ['key'=>'multas','label'=>'Multas','icon'=>'fas fa-file-invoice-dollar'],
                                 ['key'=>'apoyos','label'=>'Apoyos','icon'=>'fas fa-hands-helping'],
                                 ['key'=>'historicos','label'=>'Históricos','icon'=>'fas fa-scroll'],
                                 ['key'=>'respaldo','label'=>'Respaldo','icon'=>'fas fa-database'],
@@ -164,7 +165,7 @@
             <div class="form-check mt-3">
                 <input class="form-check-input" type="checkbox" name="confirmacion_global" required>
                 <label class="form-check-label fw-bold text-danger">
-                    Entiendo que estos cambios afectarán a TODOS los usuarios con este rol asignad
+                    Entiendo que estos cambios afectarán a TODOS los usuarios con este rol asignado
                 </label>
             </div>
 

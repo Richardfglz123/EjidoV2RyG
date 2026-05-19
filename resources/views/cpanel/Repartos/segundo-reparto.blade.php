@@ -57,9 +57,9 @@
                         <th class="fw-normal">EJIDATARIO</th>
                         <th class="text-center fw-normal">DESC. ASAMBLEA</th>
                         <th class="text-center fw-normal">DESC. FAENAS</th>
-                        <th class="text-center fw-normal">PRÉSTAMOS PENDIENTES (R1)</th>
+                        <th class="text-center fw-normal">PRÉSTAMOS (Pri.Rep)</th>
                         <th class="text-center fw-normal">MONTO R2</th>
-                        <th class="text-center fw-normal">TOTAL FINAL</th>
+                        <th class="text-center fw-normal">TOTAL</th>
                         <th class="text-center fw-normal" width="160">ESTADO</th>
                         <th class="text-center fw-normal" width="140">ACCIONES</th>
                     </tr>
@@ -98,7 +98,7 @@
                                     </button>
                                 @else
                                     <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4; font-size: 0.8rem;">
-                                        <i class="fas fa-check text-success me-1"></i> Limpio
+                                        <i class="fas fa-check text-success me-1"></i> Sin registro
                                     </span>
                                 @endif
                             </td>
@@ -120,7 +120,7 @@
                             <td class="text-center">
                                 @if($ejidatario->total_a_pagar > 0)
                                     <span class="badge border border-success text-dark fw-normal d-block py-1" style="background-color: #f0fdf4;">
-                                        <i class="fas fa-hand-holding-usd text-success me-1"></i> Saldo a Favor
+                                        <i class="fas fa-hand-holding-usd text-success me-1"></i> Sin deuda
                                     </span>
                                 @elseif($ejidatario->total_a_pagar == 0)
                                     <span class="badge bg-light text-dark border fw-normal d-block py-1">
