@@ -16,6 +16,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        Paginator::useBootstrapFive(); // O useBootstrapFour();
+        if (!app()->isLocal()) {
+            URL::forceScheme('https');
+        }
+
+        Paginator::useBootstrapFive();
     }
 }
