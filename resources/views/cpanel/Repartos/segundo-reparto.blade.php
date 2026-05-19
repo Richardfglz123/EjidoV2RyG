@@ -85,7 +85,7 @@
                                     </button>
                                 @else
                                     <span class="badge border border-success text-dark fw-normal" style="background-color: #f0fdf4; font-size: 0.8rem;">
-                                        <i class="fas fa-check text-success me-1"></i> Limpio
+                                        <i class="fas fa-check text-success me-1"></i> Sin deuda
                                     </span>
                                 @endif
                             </td>
