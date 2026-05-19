@@ -356,7 +356,7 @@ class Reparto2Controller extends Controller
         $totalDeducciones = $totalAsambleas + $totalFaenas + $deudaArrastrada;
         $totalAPagar = $montoFijoR2 - $totalDeducciones;
 
-        return \PDF::loadView('cpanel.repartos.ticket-general-reparto2', [
+        return \PDF::loadView('cpanel.Repartos.ticket-general-reparto2', [
             'ejidatario'      => $ejidatario,
             'montoFijoR2'     => $montoFijoR2,
             'totalAsambleas'  => $totalAsambleas,
