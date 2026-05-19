@@ -95,7 +95,9 @@
         </div>
 
         <span class="fw-bold" style="text-transform: uppercase; font-size: 11px;">
-            {{ $prestamo->ejidatario->Nombres }} {{ $prestamo->ejidatario->Apellido_Paterno }} {{ $prestamo->ejidatario->Apellido_Materno }}
+            {{ $prestamo->ejidatario->usuario->Nombres }}
+            {{ $prestamo->ejidatario->usuario->Apellido_Paterno }}
+            {{ $prestamo->ejidatario->usuario->Apellido_Materno }}
         </span>
     </div>
 

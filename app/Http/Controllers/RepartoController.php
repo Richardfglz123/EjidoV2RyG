@@ -257,14 +257,38 @@ class RepartoController extends Controller
     }
 
     public function generarTicketPDF($id) {
-        $prestamo = Prestamo::with(['ejidatario.usuario', 'abonos'])->findOrFail($id);
+        // 1. Buscamos el préstamo aplicando los mismos Joins del listado para asegurar la compatibilidad con Linux
+        $prestamo = Prestamo::select(
+            'Prestamo.*',
+            'usuario.Nombres as usuario_nombres',
+            'usuario.Apellido_Paterno as usuario_paterno',
+            'usuario.Apellido_Materno as usuario_materno'
+        )
+            ->leftJoin('Ejidatario', 'Prestamo.Id_Ejidatario', '=', 'Ejidatario.Id_Ejidatario')
+            ->leftJoin('usuario', 'Ejidatario.Id_usuario', '=', 'usuario.Id_usuario')
+            ->with(['abonos'])
+            ->findOrFail($id);
 
+        // 2. Inyectamos de forma segura la estructura simulada para Blade
+        if (!$prestamo->ejidatario) {
+            $prestamo->setRelation('ejidatario', new \App\Models\Ejidatario());
+        }
+        if (!$prestamo->ejidatario->usuario) {
+            $prestamo->ejidatario->setRelation('usuario', new \App\Models\Usuario());
+        }
+
+        $prestamo->ejidatario->usuario->Nombres = $prestamo->usuario_nombres ?? 'Ejidatario';
+        $prestamo->ejidatario->usuario->Apellido_Paterno = $prestamo->usuario_paterno ?? '';
+        $prestamo->ejidatario->usuario->Apellido_Materno = $prestamo->usuario_materno ?? '';
+
+        // 3. Cálculos de totales
         $reparto = Utilidad::find(1);
         $montoReparto1 = $reparto?->Monto ?? 0;
 
         $totalAbonado = $prestamo->abonos->sum('Monto');
         $saldoRestante = max($prestamo->Cantidad - $totalAbonado, 0);
 
+        // 4. Generación del PDF
         $pdf = \PDF::loadView('cpanel.Repartos.primer-reparto-pdf', [
             'prestamo'      => $prestamo,
             'montoReparto1' => $montoReparto1,
