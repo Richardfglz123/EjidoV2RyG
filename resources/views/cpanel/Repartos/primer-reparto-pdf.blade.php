@@ -94,10 +94,9 @@
             <span>{{ \Carbon\Carbon::parse($prestamo->Fecha)->format('d/m/Y H:i') }}</span>
         </div>
 
-        <span class="fw-bold">
-    {{ $prestamo->ejidatario?->usuario?->Nombres ?? 'Ejidatario' }}
-            {{ $prestamo->ejidatario?->usuario?->Apellido_Paterno ?? '' }}
-</span>
+        <span class="fw-bold" style="text-transform: uppercase; font-size: 11px;">
+            {{ $prestamo->ejidatario->Nombres }} {{ $prestamo->ejidatario->Apellido_Paterno }} {{ $prestamo->ejidatario->Apellido_Materno }}
+        </span>
     </div>
 
     <!-- SECCIÓN DE DETALLE ORIGINAL -->
