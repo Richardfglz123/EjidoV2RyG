@@ -2,6 +2,32 @@
 @section('title', 'Panel de Control')
 @section('content')
 
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 15px; background-color: #dcfce7; color: #15803d;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block">¡Listo!</strong>
+                    <span class="small">{{ session('success') }}</span>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 15px; background-color: #fee2e2; color: #991b1b;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle me-3 fs-4"></i>
+                <div>
+                    <strong class="d-block">Hubo un errror</strong>
+                    <span class="small">{{ session('error') }}</span>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <style>
         .card-stats {
             background: #ffffff !important;
