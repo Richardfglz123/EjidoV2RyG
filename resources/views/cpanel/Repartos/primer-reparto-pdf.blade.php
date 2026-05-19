@@ -90,14 +90,17 @@
 
     <div class="info-section">
         <div class="info-row">
-            <p><strong></strong><br>
-                Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
-            </strong><br>
-            Año de Gestión: {{ now()->year }}</p>
+            <p>
+                <strong>Folio:</strong> #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}
+            </p>
+            <p>
+                <strong>Año de Gestión:</strong> {{ now()->year }}
+            </p>
         </div>
-        <span class="fw-bold" style="text-transform: uppercase; font-size: 11px;">
-            {{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
-        </span>
+
+        <span class="fw-bold" style="text-transform: uppercase; font-size: 11px; display: block; margin-top: 5px;">
+        {{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
+    </span>
     </div>
 
     <!-- SECCIÓN DE DETALLE ORIGINAL -->

@@ -85,17 +85,26 @@
 <div class="ticket-wrapper">
     <div class="header">
         <h1>Sistema Ejidal San Rafael Ixtapalucan</h1>
-        <p><strong>
+
+        <p>
+            <strong>
                 @if($totalAPagar >= 0)
                     LIQUIDACIÓN DE SEGUNDO REPARTO
                 @else
                     ESTADO DE ADEUDO — 2DO REPARTO
                 @endif
-                    <p><strong></strong><br>
-                        Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
-            </strong><br>
-            Año de Gestión: {{ now()->year }}</p>
+            </strong>
+        </p>
+
+        <p>
+            <strong>Folio:</strong> #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}
+        </p>
+
+        <p>
+            <strong>Año de Gestión:</strong> {{ now()->year }}
+        </p>
     </div>
+</div>
 
     <div class="info-section">
         <div class="info-row">
