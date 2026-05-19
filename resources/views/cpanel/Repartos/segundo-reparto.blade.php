@@ -128,7 +128,7 @@
                                     </span>
                                 @else
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-normal d-block py-1">
-                                        <i class="fas fa-exclamation-triangle me-1"></i> Adeudo Caja
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Adeudo
                                     </span>
                                 @endif
                             </td>
