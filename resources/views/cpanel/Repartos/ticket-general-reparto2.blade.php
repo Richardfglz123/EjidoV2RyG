@@ -91,8 +91,6 @@
                 @else
                     ESTADO DE ADEUDO — 2DO REPARTO
                 @endif
-                    <p><strong></strong><br>
-                        Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
             </strong><br>
             Año de Gestión: {{ now()->year }}</p>
     </div>
@@ -176,7 +174,7 @@
 
     <!-- TOTALES FINALES CON CONTROL DE NEGATIVOS -->
     <div class="total-section">
-        <div style="font-size: 11px; color: #666;">Monto total R2: ${{ number_format($montoFijoR2, 2) }}</div>
+        <div style="font-size: 11px; color: #666;">Monto Reparto 2: ${{ number_format($montoFijoR2, 2) }}</div>
         <div style="font-size: 11px; color: #666;">Total Deducciones Aplicadas: -${{ number_format($totalDeducciones, 2) }}</div>
 
         <div class="fw-bold" style="font-size: 12px; margin-top: 4px; border-top: 1px dashed #000; padding-top: 4px;">
