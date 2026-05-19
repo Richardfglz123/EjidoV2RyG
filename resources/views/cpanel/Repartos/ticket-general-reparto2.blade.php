@@ -9,7 +9,7 @@
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             color: #333;
             line-height: 1.4;
         }
@@ -22,27 +22,20 @@
             text-align: center;
             margin-bottom: 10px;
             border-bottom: 1px dashed #ccc;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
         }
         .header h1 {
-            font-size: 13px;
-            margin: 0 0 5px 0;
+            font-size: 14px;
+            margin: 0;
             text-transform: uppercase;
-        }
-        .header p {
-            margin: 3px 0;
         }
         .info-section {
             margin-bottom: 10px;
         }
-        /* Reemplazo de flexbox para máxima compatibilidad con PDF */
-        .info-table {
-            width: 100%;
-            margin-bottom: 5px;
-        }
-        .info-table td {
-            padding: 2px 0;
-            font-size: 11px;
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
         }
         .label {
             font-weight: bold;
@@ -58,12 +51,10 @@
             border-bottom: 1px solid #000;
             text-align: left;
             font-size: 11px;
-            padding-bottom: 3px;
         }
         .table td {
             padding: 5px 0;
             font-size: 11px;
-            vertical-align: top;
         }
         .total-section {
             margin-top: 10px;
@@ -72,19 +63,17 @@
             text-align: right;
         }
         .footer {
-            margin-top: 25px;
+            margin-top: 30px;
             text-align: center;
             font-size: 9px;
         }
         .signature-box {
-            margin-top: 35px;
+            margin-top: 40px;
             border-top: 1px solid #333;
             width: 80%;
             margin-left: auto;
             margin-right: auto;
             padding-top: 5px;
-            text-transform: uppercase;
-            font-weight: bold;
         }
         .fw-bold { font-weight: bold; }
         .text-danger { color: #dc3545; }
@@ -94,36 +83,30 @@
 <body>
 
 <div class="ticket-wrapper">
-    <!-- Encabezado corregido sin etiquetas anidadas erróneas -->
     <div class="header">
         <h1>Sistema Ejidal San Rafael Ixtapalucan</h1>
-        <p>
-            <strong>
+        <p><strong>
                 @if($totalAPagar >= 0)
                     LIQUIDACIÓN DE SEGUNDO REPARTO
                 @else
                     ESTADO DE ADEUDO — 2DO REPARTO
                 @endif
-            </strong>
-        </p>
-        <p><strong>Folio:</strong> #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
-        <p><strong>Año de Gestión:</strong> {{ now()->year }}</p>
+                    <p><strong></strong><br>
+                        Folio: #{{ str_pad($prestamo->Id_Prestamo, 5, '0', STR_PAD_LEFT) }}</p>
+            </strong><br>
+            Año de Gestión: {{ now()->year }}</p>
     </div>
 
-    <!-- Sección de Información optimizada para impresión -->
     <div class="info-section">
-        <table class="info-table">
-            <tr>
-                <td class="label">Fecha Impresión:</td>
-                <td style="text-align: right;">{{ date('d/m/Y H:i') }}</td>
-            </tr>
-        </table>
-        <div class="fw-bold" style="text-transform: uppercase; font-size: 11px; border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px;">
-            {{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
+        <div class="info-row">
+            <span class="label">Fecha Impresión:</span>
+            <span>{{ date('d/m/Y H:i') }}</span>
         </div>
+        <span class="fw-bold" style="text-transform: uppercase; font-size: 11px;">
+            {{ $ejidatario->Nombres }} {{ $ejidatario->Apellido_Paterno }} {{ $ejidatario->Apellido_Materno }}
+        </span>
     </div>
 
-    <!-- Tabla Principal de Conceptos -->
     <table class="table">
         <thead>
         <tr>
@@ -165,7 +148,6 @@
 
     <hr style="border: none; border-top: 1px dashed #ccc; margin: 12px 0;">
 
-    <!-- Desglose de Abonos -->
     <div class="fw-bold" style="font-size: 10px; margin-bottom: 5px; text-transform: uppercase;">Desglose de Abonos Realizados (R1):</div>
     <table class="table" style="margin-top: 0;">
         <tbody>
@@ -181,8 +163,8 @@
                 </tr>
             @endforeach
             <tr style="border-top: 1px solid #ccc;">
-                <td class="fw-bold" style="font-size: 10px; padding-top: 4px;">Total a pagar:</td>
-                <td class="fw-bold" style="text-align: right; font-size: 10px; padding-top: 4px;">${{ number_format($totalAbonosR1, 2) }}</td>
+                <td class="fw-bold" style="font-size: 10px;">Total a pagar:</td>
+                <td class="fw-bold" style="text-align: right; font-size: 10px;">${{ number_format($totalAbonosR1, 2) }}</td>
             </tr>
         @else
             <tr>
@@ -192,7 +174,7 @@
         </tbody>
     </table>
 
-    <!-- Totales Finales -->
+    <!-- TOTALES FINALES CON CONTROL DE NEGATIVOS -->
     <div class="total-section">
         <div style="font-size: 11px; color: #666;">Monto total R2: ${{ number_format($montoFijoR2, 2) }}</div>
         <div style="font-size: 11px; color: #666;">Total Deducciones Aplicadas: -${{ number_format($totalDeducciones, 2) }}</div>
@@ -206,7 +188,6 @@
         </div>
     </div>
 
-    <!-- Pie de página y Firma -->
     <div class="footer">
         <div class="signature-box">
             Firma de Conformidad
