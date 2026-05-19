@@ -159,7 +159,6 @@
         </div>
         <div class="info-row">
             <span class="fw-bold">Saldo Neto Restante en Reparto:</span>
-            <!-- Al fondo original le restamos lo que verdaderamente nos debe hoy -->
             <span class="fw-bold">${{ number_format($montoReparto1 - $saldoRestante, 2) }}</span>
         </div>
     </div>

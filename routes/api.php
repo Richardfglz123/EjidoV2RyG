@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\EjidatariosController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\EventoController;
+use App\Http\Controllers\PaseListaController;
+
 use App\Models\Evento;
 
 // RUTAS PÚBLICAS
@@ -14,6 +16,7 @@ Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
 Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
+Route::post('/asistencia/registrar', [PaseListaController::class, 'marcarAsistencia']);
 
 // RUTAS PROTEGIDAS (Requieren obligatoriamente el Token que guardamos en UserDefaults)
 Route::middleware('auth:sanctum')->group(function () {

@@ -19,12 +19,10 @@ class Reparto2Controller extends Controller
         $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
         $anoActual = now()->year;
 
-        // Precios de multas
         $precios = CatalogoMulta::where('Año', $anoActual)->get();
         $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
         $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
 
-        // Ids de Sesiones para cálculos
         $sesionesAsambleasIds = DB::table('Sesion')
             ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
             ->where('Evento.Id_Categoria_Evento', 1)
@@ -39,7 +37,6 @@ class Reparto2Controller extends Controller
             ->where('Sesion.Tipo', 'Evento')
             ->pluck('Sesion.Id_Sesion')->toArray();
 
-        // CONSULTA CON JOIN PARA ASEGURAR NOMBRES
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->select(
@@ -66,14 +63,13 @@ class Reparto2Controller extends Controller
             $totalPrestamoR1 = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
-                // ->where('Estatus', '!=', 'Siguiente Año') // <- Descomenta si agregas la columna
                 ->sum('Cantidad') ?? 0;
 
             $totalAbonosR1 = DB::table('Abono')
                 ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
                 ->where('Prestamo.Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
-                ->sum('Abono.Monto') ?? 0; // Nota: En tu controller usas 'Monto' en un lado y 'Cantidad' en otro, verifica cuál es el campo real en Abonos.
+                ->sum('Abono.Monto') ?? 0;
 
             $deudaRealRestante = max(0, $totalPrestamoR1 - $totalAbonosR1);
 
@@ -116,13 +112,11 @@ class Reparto2Controller extends Controller
     public function posponerSiguienteAnio($id)
     {
         try {
-            // Opción segura: Buscamos los préstamos del R1 de este ejidatario y los desvinculamos del flujo actual
-            // cambiando su Id_Utilidad a un estado de resguardo (ej. 99) o actualizando una columna Estatus
             $actualizados = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $id)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
                 ->update([
-                    'Id_Utilidad' => 99 // O la lógica/columna que decidas para "Siguiente Año"
+                    'Id_Utilidad' => 99
                 ]);
 
             if ($actualizados > 0) {

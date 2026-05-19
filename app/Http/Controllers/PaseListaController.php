@@ -74,7 +74,7 @@ class PaseListaController extends Controller
 
             // Limpieza del QR
             $raw = strtoupper($request->qr_data);
-            $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
+            $soloLetrasQR = preg_replace('/[^A-Z0-9ÁÉÍÓÚÑ\s]/', '', $raw);
 
             if (empty($soloLetrasQR)) {
                 return response()->json(['success' => false, 'message' => "QR ilegible o vacío"]);
