@@ -26,7 +26,6 @@ class SocialController extends Controller
                 ->orWhere('Correo', $googleUser->email)
                 ->first();
 
-            // --- RESPUESTA A TU PREGUNTA: Si no está registrado, mandamos el mensaje ---
             if (!$usuario) {
                 return redirect()->route('login.form')->with('error', 'El correo ' . $googleUser->email . ' no está registrado en el sistema Ejidal.');
             }
@@ -37,9 +36,8 @@ class SocialController extends Controller
                 ->select('r.Tipo_Rol', 'r.Permisos', 'r.Id_Rol')
                 ->first();
 
-            // IMPORTANTE: Creamos AMBAS llaves de sesión
             session([
-                'authenticated' => true, // Para tu Middleware CheckAuth
+                'authenticated' => true,
                 'usuario' => [
                     'id'              => $usuario->Id_usuario,
                     'username'        => $usuario->usuario,
@@ -52,7 +50,6 @@ class SocialController extends Controller
 
             session()->save();
 
-            // Antes de redirigir, verificamos si existe google_id, si no, lo actualizamos
             if (empty($usuario->google_id)) {
                 DB::table('usuario')->where('Id_usuario', $usuario->Id_usuario)->update(['google_id' => $googleUser->id]);
             }
