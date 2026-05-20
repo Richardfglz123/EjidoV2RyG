@@ -137,10 +137,21 @@ class EjidatariosController extends Controller
         $request->validate([
             'Num_Ejidatario'   => 'required|integer|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
             'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
+            'Id_usuario'       => 'required|exists:usuario,Id_Usuario', // Asegurar que venga el usuario
         ]);
+
+        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_usuario)->first();
+
+        if (!$user) {
+            return back()->withInput()->withErrors('El usuario seleccionado no existe.');
+        }
+
+        $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
+        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
         DB::table('Ejidatario')->where('Id_Ejidatario', $id)->update([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
+            'qr_payload'       => $payloadQR, // actulziacion del qr en caso de camios
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
             'Num_Interior'     => $request->Num_Interior,
@@ -159,7 +170,7 @@ class EjidatariosController extends Controller
             'Id_Modificado'    => session('usuario.username', 'admin')
         ]);
 
-        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado');
+        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado y QR regenerado con éxito.');
     }
 
     public function destroy($id)

@@ -92,9 +92,9 @@
                 <tr>
                     <th class="ps-3 text-center" style="width: 70px;">#</th>
                     <th>Datos del Ejidatario</th>
-                    <th>Identificación</th>
-                    <th class="text-center">Asistencia QR</th>
-                    <th class="text-center">Estado</th>
+                    <th class="d-none d-md-table-cell">Identificación</th>
+                    <th class="text-center d-none d-md-table-cell">Asistencia QR</th>
+                    <th class="text-center d-none d-md-table-cell">Estado</th>
                     <th class="text-center">Acciones</th>
                 </tr>
                 </thead>
@@ -110,12 +110,30 @@
                         <td class="ps-3 text-center fw-bold text-muted">{{ $fila->Num_Ejidatario }}</td>
                         <td>
                             <div class="text-dark fw-bold text-uppercase">{{ $nombreLimpio }}</div>
+
+                            {{-- Bloque visible ÚNICAMENTE en móviles --}}
+                            <div class="d-md-none mt-2">
+                                <div class="small text-muted mb-1"><strong>CURP:</strong> {{ $fila->CURP ?? 'N/A' }}</div>
+                                <div class="small text-muted mb-2"><strong>RFC:</strong> {{ $fila->RFC ?? 'N/A' }}</div>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span class="badge {{ $fila->NombreEstatus == 'Activo' ? 'bg-success' : 'bg-info' }}">
+                                        {{ strtoupper($fila->NombreEstatus) }}
+                                    </span>
+                                    @if(!empty($fila->qr_payload))
+                                        <button type="button" class="btn btn-xs btn-outline-dark py-0 px-2 small" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#modalQR{{ $fila->Id_Ejidatario }}">
+                                            <i class="fas fa-qrcode"></i> VER QR
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
-                        <td>
+
+                        {{-- Celdas ocultas en móvil, visibles desde tablets en adelante --}}
+                        <td class="d-none d-md-table-cell">
                             <div class="small"><strong>CURP:</strong> {{ $fila->CURP ?? 'N/A' }}</div>
                             <div class="small"><strong>RFC:</strong> {{ $fila->RFC ?? 'N/A' }}</div>
                         </td>
-                        <td class="text-center">
+                        <td class="text-center d-none d-md-table-cell">
                             @if(!empty($fila->qr_payload))
                                 <button type="button" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#modalQR{{ $fila->Id_Ejidatario }}">
                                     <i class="fas fa-qrcode"></i> VER QR
@@ -124,11 +142,12 @@
                                 <span class="text-muted small">Sin QR</span>
                             @endif
                         </td>
-                        <td class="text-center">
+                        <td class="text-center d-none d-md-table-cell">
                             <span class="badge {{ $fila->NombreEstatus == 'Activo' ? 'bg-success' : 'bg-info' }}">
                                 {{ strtoupper($fila->NombreEstatus) }}
                             </span>
                         </td>
+
                         <td class="text-center">
                             <div class="btn-group">
                                 @if($puedeEditar)
@@ -150,7 +169,7 @@
             </table>
         </div>
 
-        <div class="card-footer bg-light border-top d-flex justify-content-between align-items-center">
+        <div class="card-footer bg-light border-top d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
             <div>
                 <a href="{{ route('reportes.ejidatarios.pdf') }}" class="btn btn-outline-danger btn-sm me-2" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
                 <a href="{{ route('reportes.ejidatarios.excel') }}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel"></i> Excel</a>
@@ -169,7 +188,7 @@
                 $nombreCompletoModal = preg_replace('/\s+/', ' ', trim(str_ireplace(['\n', "\n", "\r"], ' ', implode(' ', array_filter($nombrePartes)))));
             @endphp
             <div class="modal fade" id="modalQR{{ $fila->Id_Ejidatario }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-dialog modal-dialog-centered modal-sm p-3">
                     <div class="modal-content shadow-lg border-0">
                         <div class="modal-header border-0 pb-0">
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
