@@ -23,8 +23,9 @@ Route::delete('/usuarios/{id}', [UsuariosController::class, 'apiDestroy']);
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
 Route::post('/eventos/nuevo', [EventoController::class, 'storeApi']);
 Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
-Route::match(['get', 'post'], '/asistencia/registrar', [PaseListaController::class, 'marcarAsistencia']);
 
+// CORRECCIÓN: Endpoint seguro para iOS que evita el conflicto "Evento Eliminado"
+Route::match(['get', 'post'], '/asistencia/registrar-movil', [PaseListaController::class, 'marcarAsistencia']);
 
 // RUTAS PROTEGIDAS
 Route::middleware('auth:sanctum')->group(function () {
