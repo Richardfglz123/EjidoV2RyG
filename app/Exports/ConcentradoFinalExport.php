@@ -15,23 +15,20 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     {
         $anoActual = now()->year;
 
-        // 1. Obtener Montos de Utilidades (del RepartoController)
         $montoR1 = DB::table('Utilidad')->where('Id_Utilidad', 1)->value('Monto') ?? 0;
         $montoR2 = DB::table('Utilidad')->where('Id_Utilidad', 2)->value('Monto') ?? 0;
         $montoSaneamiento = DB::table('Utilidad')->where('Tipo_Reparto', 'REPARTO FINIQUITO')->value('Monto') ?? 0;
         $montoFiniquitoU = DB::table('Utilidad')->where('Tipo_Reparto', 'FINIQUITO UTILIDADES')->value('Monto') ?? 0;
 
-        // 2. Obtener Costos de Multas
         $costoAsamblea = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Asamblea')->value('Costo') ?? 0;
         $costoFaena = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Faena')->value('Costo') ?? 0;
 
-        // 3. Obtener Sesiones de Asambleas (Categoría 1) ordenadas por fecha
         $sesionesAsambleas = DB::table('Sesion')
             ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
             ->where('Evento.Id_Categoria_Evento', 1)
             ->whereYear('Sesion.Fecha', $anoActual)
             ->orderBy('Sesion.Fecha', 'asc')
-            ->take(7) // Según tu captura hay espacio para 7
+            ->take(7)
             ->get();
 
         return DB::table('Ejidatario as e')
@@ -46,7 +43,6 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                     'Situacion' => ($ejid->Id_Estatus == 1) ? 'VIGENTE' : 'S/P',
                 ];
 
-                // 4. Lógica de Asistencias a Juntas (Columnas de fechas)
                 $totalFaltasJuntas = 0;
                 foreach ($sesionesAsambleas as $sesion) {
                     $asistio = DB::table('PaseLista')
@@ -55,22 +51,18 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                         ->where('Asistencia', 1)
                         ->exists();
 
-                    // Si no asistió, se marca el costo de la multa en la celda
                     $multa = $asistio ? 0 : $costoAsamblea;
                     $fila[] = $multa > 0 ? $multa : '';
                     if(!$asistio) $totalFaltasJuntas += $costoAsamblea;
                 }
 
-                // Rellenar espacios vacíos si hay menos de 7 sesiones
                 for ($i = count($sesionesAsambleas); $i < 7; $i++) { $fila[] = ''; }
 
-                // 5. Deuda de Préstamos R1 (Lógica de Reparto2Controller)
                 $prestamosR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
                 $abonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
                     ->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto');
                 $deudaArrastrada = max(0, $prestamosR1 - $abonosR1);
 
-                // 6. Faenas (Faltas)
                 $faltasFaenas = DB::table('Sesion')
                     ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
                     ->where('Evento.Id_Categoria_Evento', '!=', 1)
@@ -83,19 +75,16 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                     })->count();
                 $descFaenas = $faltasFaenas * $costoFaena;
 
-                // 7. Consolidación de montos
                 $fila['Saneamiento'] = $montoSaneamiento;
                 $fila['R1'] = $montoR1;
                 $fila['R2'] = $montoR2;
                 $fila['Finiquito'] = $montoFiniquitoU;
-                $fila['Faena_San'] = 0; // Campos informativos de la imagen
+                $fila['Faena_San'] = 0;
                 $fila['Faena_Apr'] = 0;
                 $fila['Total_Desc_Juntas'] = $totalFaltasJuntas;
                 $fila['Total_Desc_Faenas'] = $descFaenas;
 
-                // TOTAL A PAGAR = (Suma utilidades) - (Suma deudas y faltas)
                 $fila['Total_Pagar'] = ($montoR1 + $montoR2 + $montoSaneamiento + $montoFiniquitoU) - ($totalFaltasJuntas + $descFaenas + $deudaArrastrada);
-
                 return $fila;
             });
     }
@@ -103,7 +92,7 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     public function headings(): array
     {
         return [
-            ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS 2025'],
+            ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS 2026'],
             ['No.', 'NOMBRE DE EJIDATARIO', 'SITUACION', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'SANEAMIENTO', '1ER REPARTO', '2DO REPARTO', 'FINIQUITO', 'F. SAN', 'F. APR', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
         ];
     }
