@@ -29,8 +29,11 @@
                         <select name="id_referencia" class="form-select @error('id_referencia') is-invalid @enderror" required>
                             <option value="">-- Seleccionar --</option>
                             @foreach($eventos as $item)
+                                @php
+                                    $categoriaOption = $item->Nombre_Categoria ?? $item->categoria->Nombre_Categoria ?? null;
+                                @endphp
                                 <option value="{{ $item->Id_Evento }}" {{ old('id_referencia') == $item->Id_Evento ? 'selected' : '' }}>
-                                    {{ $item->Nombre_Evento }} [{{ $item->Nombre_Categoria ?? 'Sin Categoría' }}]
+                                    {{ $item->Nombre_Evento }} [{{ $categoriaOption ?? 'Sin Categoría' }}]
                                 </option>
                             @endforeach
                         </select>

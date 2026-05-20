@@ -15,7 +15,10 @@ class PaseListaController extends Controller
 {
     public function index()
     {
-        $eventos = Evento::with('categoria')->get();
+        // Usamos un join para asegurar que Nombre_Categoria se cargue directo en el objeto del Evento
+        $eventos = Evento::leftJoin('Categoria_Evento as c', 'Evento.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->select('Evento.*', 'c.Nombre_Categoria')
+            ->get();
 
         $totalEjidatarios = Ejidatario::count();
 
