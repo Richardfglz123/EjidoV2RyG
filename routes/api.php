@@ -15,6 +15,7 @@ Route::get('/ping', function () { return response()->json(['ok' => true]); });
 Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
+Route::post('/eventos/nuevo', [EventoController::class, 'storeApi']);
 Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
 Route::match(['get', 'post'], '/asistencia/registrar', [PaseListaController::class, 'marcarAsistencia']);
 

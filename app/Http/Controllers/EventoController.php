@@ -33,21 +33,34 @@ class EventoController extends Controller
 
     public function store(Request $request)
     {
+        // Validamos los campos que vimos en tu captura de pantalla
         $request->validate([
-            'Nombre_Evento' => 'required|string|max:100',
-            'Id_Categoria_Evento' => 'required|exists:Categoria_Evento,Id_Categoria_Evento',
-            'Observaciones' => 'nullable|string',
+            'Nombre_Evento'       => 'required|string|max:100',
+            'Id_Categoria_Evento' => 'required',
+            'Observaciones'       => 'nullable|string',
         ]);
 
-        Evento::create([
-            'Nombre_Evento'       => $request->Nombre_Evento,
-            'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
-            'Observaciones'       => $request->Observaciones,
-            'Id_Creo'             => auth()->user()->username ?? 'admin',
-            'Fecha_Creo'          => now(),
-        ]);
+        try {
+            $evento = Evento::create([
+                'Nombre_Evento'       => $request->Nombre_Evento,
+                'Id_Categoria_Evento' => $request->Id_Categoria_Evento, // El ID numérico (1, 2, 3...)
+                'Observaciones'       => $request->Observaciones,
+                'Id_Creo'             => auth()->check() ? auth()->user()->username : 'iPhone_App',
+                'Fecha_Creo'          => now(),
+            ]);
 
-        return redirect()->route('eventos.index')->with('success', 'Evento guardado correctamente');
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'evento' => $evento]);
+            }
+
+            return redirect()->route('eventos.index')->with('success', 'Evento guardado');
+
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
     public function edit($id)
     {
@@ -91,5 +104,33 @@ class EventoController extends Controller
         $evento->delete();
 
         return redirect()->route('eventos.index')->with('success', 'Evento y sus registros de Pase de Lista eliminados correctamente.');
+    }
+    public function storeApi(Request $request)
+    {
+        // Validamos los datos EXACTOS
+        $validated = $request->validate([
+            'Nombre_Evento'       => 'required|string|max:100',
+            'Id_Categoria_Evento' => 'required|integer',
+            'Observaciones'       => 'nullable|string',
+        ]);
+
+        try {
+            $evento = Evento::create([
+                'Nombre_Evento'       => $request->Nombre_Evento,
+                'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
+                'Observaciones'       => $request->Observaciones,
+                'Id_Creo'             => 'App_iOS', // Evitamos el error de Id_Creo nulo
+                'Fecha_Creo'          => now(),
+            ]);
+
+            return response()->json(['success' => true, 'evento' => $evento]);
+
+        } catch (\Exception $e) {
+            // Esto te dirá en el log si falta alguna columna o el ID de categoría no existe
+            return response()->json([
+                'success' => false,
+                'message' => "Error de base de datos: " . $e->getMessage()
+            ], 500);
+        }
     }
 }
