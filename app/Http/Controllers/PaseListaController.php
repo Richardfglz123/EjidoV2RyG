@@ -74,29 +74,33 @@ class PaseListaController extends Controller
 
     public function marcarAsistencia(Request $request)
     {
+        // Forzamos a que cualquier salida sea JSON
         try {
-            // 1. Recibimos el ID que manda el iPhone (que es el Id_Evento)
             $id_referencia = $request->id_sesion;
+            $qr_data = $request->qr_data;
 
-            // 2. BUSCAR O CREAR LA SESIÓN AUTOMÁTICAMENTE
-            // Esto evita el error "No query results" si es el primer escaneo del día
+            if (!$id_referencia || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
+            }
+
+            // 1. Buscar o crear la sesión (Usamos el modelo Sesion)
+            // Asegúrate de que los nombres de las columnas coincidan: Id_Referencia, Tipo, Fecha
             $sesion = Sesion::firstOrCreate(
                 [
-                    'Tipo'          => 'Evento', // O 'Actividad' según prefieras por defecto
+                    'Tipo'          => 'Evento',
                     'Id_Referencia' => $id_referencia,
                     'Fecha'         => date('Y-m-d')
                 ]
             );
 
-            $raw = strtoupper($request->qr_data);
-            // Limpiamos el QR para quedarnos solo con letras (como ya lo tenías)
+            $raw = strtoupper($qr_data);
             $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
             if (empty($soloLetrasQR)) {
-                return response()->json(['success' => false, 'message' => "QR ilegible"]);
+                return response()->json(['success' => false, 'message' => "QR sin texto"]);
             }
 
-            // 3. BUSCAR AL EJIDATARIO
+            // 2. Buscar Ejidatario
             $ejidatario = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
                 ->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
@@ -107,10 +111,10 @@ class PaseListaController extends Controller
                 ->first();
 
             if (!$ejidatario) {
-                return response()->json(['success' => false, 'message' => "No registrado: " . substr($raw, 0, 15)]);
+                return response()->json(['success' => false, 'message' => "No hallado: " . substr($soloLetrasQR, 0, 10)]);
             }
 
-            // 4. REGISTRAR EL PASE DE LISTA
+            // 3. Registrar Asistencia
             DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -125,13 +129,16 @@ class PaseListaController extends Controller
 
             return response()->json([
                 'success' => true,
-                'num_ejid' => $ejidatario->Num_Ejidatario,
+                'num_ejid' => (int)$ejidatario->Num_Ejidatario,
                 'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            // Esto atrapará cualquier error y lo mandará al iPhone para que lo veas en rojo
-            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
+            // Si algo falla, lo mandamos como JSON para que el iPhone NO de "Error de parseo"
+            return response()->json([
+                'success' => false,
+                'message' => "Error servidor: " . $e->getMessage()
+            ], 200); // Mandamos 200 para que el iPhone pueda leer el mensaje de error
         }
     }
 
