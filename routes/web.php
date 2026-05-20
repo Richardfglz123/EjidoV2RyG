@@ -460,4 +460,3 @@ Route::get('storage/perfiles/{filename}', function ($filename) {
 Route::get('/debug-auth', function () {
     return response()->json(session()->all());
 });
-});
