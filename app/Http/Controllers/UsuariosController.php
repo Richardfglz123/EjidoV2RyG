@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CodigoVerificacionMail;
 use App\Mail\ResetPasswordMail;
+use Illuminate\Validation\Rules\Password;
 use App\Models\Usuario;
 
 class UsuariosController extends Controller
@@ -16,13 +17,13 @@ class UsuariosController extends Controller
     {
         return [
             'required' => 'El campo :attribute es obligatorio.',
-            'unique'   => 'El :attribute ya se encuentra registrado en el sistema.',
-            'email'    => 'El :attribute debe ser una dirección de correo válida.',
-            'confirmed'=> 'La confirmación de la :attribute no coincide.',
-            'min'      => 'El campo :attribute debe tener al menos :min caracteres.',
-            'regex'    => 'El campo :attribute debe contener al menos una mayúscula y un número.',
-            'numeric'  => 'El campo :attribute debe ser un valor numérico.',
-            'digits'   => 'El campo :attribute debe tener :digits dígitos.',
+            'unique' => 'El :attribute ya se encuentra registrado en el sistema.',
+            'email' => 'El :attribute debe ser una dirección de correo válida.',
+            'confirmed' => 'La confirmación de la :attribute no coincide.',
+            'min' => 'El campo :attribute debe tener al menos :min caracteres.',
+            'regex' => 'El campo :attribute debe contener al menos una mayúscula y un número.',
+            'numeric' => 'El campo :attribute debe ser un valor numérico.',
+            'digits' => 'El campo :attribute debe tener :digits dígitos.',
         ];
     }
 
@@ -250,20 +251,22 @@ class UsuariosController extends Controller
         $code = rand(100000, 999999);
 
         $nombreCompleto = trim(($user->Nombres ?? '') . ' ' . ($user->Apellido_Paterno ?? ''));
-        if (empty($nombreCompleto)) { $nombreCompleto = $usernameStr; }
+        if (empty($nombreCompleto)) {
+            $nombreCompleto = $usernameStr;
+        }
 
         session([
             '2fa_code' => $code,
             '2fa_user' => [
-                'Id_Usuario'      => $userId,
-                'id'              => $userId,
-                'username'        => $usernameStr,
-                'email'           => $user->Correo,
-                'foto'            => $user->foto ?? null,
+                'Id_Usuario' => $userId,
+                'id' => $userId,
+                'username' => $usernameStr,
+                'email' => $user->Correo,
+                'foto' => $user->foto ?? null,
                 'nombre_completo' => $nombreCompleto,
-                'id_rol'          => $acceso ? $acceso->Id_Rol : null,
-                'rol'             => $acceso ? ($acceso->Tipo_Rol ?? 'Usuario') : 'Usuario',
-                'permisos'        => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
+                'id_rol' => $acceso ? $acceso->Id_Rol : null,
+                'rol' => $acceso ? ($acceso->Tipo_Rol ?? 'Usuario') : 'Usuario',
+                'permisos' => ($acceso && $acceso->Permisos) ? json_decode($acceso->Permisos, true) : []
             ]
         ]);
 
@@ -283,7 +286,9 @@ class UsuariosController extends Controller
     public function buscar(Request $request)
     {
         $query = DB::table('usuario as u')->select('u.*')->whereNull('u.fecha_eliminado');
-        if ($request->filled('nombre')) { $query->where('u.Nombres', 'like', '%' . $request->nombre . '%'); }
+        if ($request->filled('nombre')) {
+            $query->where('u.Nombres', 'like', '%' . $request->nombre . '%');
+        }
         if ($request->filled('apellido')) {
             $query->where(function ($q) use ($request) {
                 $q->where('u.Apellido_Paterno', 'like', '%' . $request->apellido . '%')
@@ -294,13 +299,18 @@ class UsuariosController extends Controller
         return view('cpanel.usuarios.Buscarusuarios', compact('usuarios'));
     }
 
-    public function forgotForm() { return view('cpanel.login.forgot-password'); }
+    public function forgotForm()
+    {
+        return view('cpanel.login.forgot-password');
+    }
 
     public function sendResetCode(Request $request)
     {
         $request->validate(['username' => 'required'], $this->validationMessages(), $this->validationAttributes());
         $user = DB::table('usuario')->where('Correo', $request->username)->orWhere('Usuario', $request->username)->first();
-        if (!$user) { return back()->withErrors(['username' => 'No encontrado']); }
+        if (!$user) {
+            return back()->withErrors(['username' => 'No encontrado']);
+        }
         $code = rand(100000, 999999);
         DB::table('password_resets')->updateOrInsert(['email' => $user->Correo], ['token' => $code, 'expires_at' => now()->addMinutes(10), 'created_at' => now()]);
         Mail::to($user->Correo)->send(new ResetPasswordMail($user->Nombres, $code));
@@ -308,7 +318,11 @@ class UsuariosController extends Controller
         return redirect()->route('password.reset.form')->with('success', 'Código enviado');
     }
 
-    public function resetForm() { abort_if(!session('reset_email'), 403); return view('cpanel.login.reset-password'); }
+    public function resetForm()
+    {
+        abort_if(!session('reset_email'), 403);
+        return view('cpanel.login.reset-password');
+    }
 
     public function resetPassword(Request $request)
     {
@@ -323,7 +337,9 @@ class UsuariosController extends Controller
             ->where('expires_at', '>=', now())
             ->first();
 
-        if (!$record) { return back()->withErrors(['code' => 'Código inválido o expirado']); }
+        if (!$record) {
+            return back()->withErrors(['code' => 'Código inválido o expirado']);
+        }
 
         DB::table('usuario')->where('Correo', session('reset_email'))->update([
             'Contraseña' => Hash::make($request->password),
@@ -335,43 +351,39 @@ class UsuariosController extends Controller
         return redirect()->route('login')->with('success', '¡Contraseña actualizada con éxito!');
     }
 
-    // ==========================================
-    //      MÉTODOS ENDPOINTS API (PARA IOS)
-    // ==========================================
+    // ios
 
-    /**
-     * GET /api/usuarios
-     * Muestra la lista de usuarios en formato JSON para el iPhone.
-     */
-    public function apiIndex() {
-        // Obtenemos todos los registros usando Query Builder para asegurar el mapeo correcto
-        $usuarios = DB::table('usuario')->whereNull('fecha_eliminado')->get();
-        return response()->json($usuarios, 200);
-    }
-
-    /**
-     * POST /api/usuarios
-     * Guarda un usuario desde la aplicación móvil.
-     */
-    public function apiStore(Request $request) {
-        // Adaptamos el mapeo de claves desde los CodingKeys estructurados en Swift (Mayúsculas iniciales)
-        $idusuario = DB::table('usuario')->insertGetId([
-            'Nombres'          => $request->input('Nombres'),
-            'Apellido_Paterno' => $request->input('Apellido_Paterno'),
-            'Apellido_Materno' => $request->input('Apellido_Materno'),
-            'Usuario'          => $request->input('Usuario'),
-            'Correo'           => $request->input('Correo'),
-            'Contraseña'       => Hash::make($request->input('Contraseña', 'Ejido123*')), // Contraseña por defecto si viene nulo
-            'Telefono'         => $request->input('Telefono'),
-            'Fecha_Creo'       => now(),
+    public function apiStore(Request $request)
+    {
+        $request->validate([
+            'Nombres' => 'required|string|max:255',
+            'Apellido_Paterno' => 'required|string|max:255',
+            'Apellido_Materno' => 'nullable|string|max:255',
+            'Usuario' => 'required|string|min:4|max:50|unique:usuario,Usuario',
+            'Correo' => 'required|email|unique:usuario,Correo',
+            'Telefono' => 'required|digits:10',
+            'Contraseña' => [
+                'required',
+                Password::min(8)->letters()->mixedCase()
+            ],
         ]);
 
-        // Asignación de Rol por defecto (Ejidatario)
+        $idusuario = DB::table('usuario')->insertGetId([
+            'Nombres' => $request->input('Nombres'),
+            'Apellido_Paterno' => $request->input('Apellido_Paterno'),
+            'Apellido_Materno' => $request->input('Apellido_Materno'),
+            'Usuario' => $request->input('Usuario'),
+            'Correo' => $request->input('Correo'),
+            'Contraseña' => Hash::make($request->input('Contraseña', 'Ejido123*')),
+            'Telefono' => $request->input('Telefono'),
+            'Fecha_Creo' => now(),
+        ]);
+
         $rol = DB::table('Roles')->where('Tipo_Rol', 'Ejidatario')->first();
         $rolId = $rol ? $rol->Id_Rol : 1;
 
         DB::table('Relacion_Ejidatario')->insert([
-            'Id_Rol'     => $rolId,
+            'Id_Rol' => $rolId,
             'Id_usuario' => $idusuario,
             'Fecha_Creo' => now()
         ]);
@@ -379,20 +391,31 @@ class UsuariosController extends Controller
         return response()->json(['success' => true, 'id' => $idusuario], 201);
     }
 
-    /**
-     * PUT /api/usuarios/{id}
-     * Edita un usuario existente desde la aplicación móvil.
-     */
-    public function apiUpdate(Request $request, $id) {
+    public function apiUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'Nombres' => 'required|string|max:255',
+            'Apellido_Paterno' => 'required|string|max:255',
+            'Apellido_Materno' => 'nullable|string|max:255',
+            'Telefono' => 'required|digits:10',
+            // Si mandan correo, debe ser único, PERO ignorando al usuario que estamos editando en este momento
+            'Correo' => 'sometimes|required|email|unique:usuario,Correo,' . $id . ',Id_Usuario',
+            // La contraseña solo se valida si viene rellena en el JSON
+            'Contraseña' => [
+                'nullable',
+                'sometimes',
+                Password::min(8)->letters()->mixedCase()
+            ],
+        ]);
+
         $data = [
-            'Nombres'          => $request->input('Nombres'),
+            'Nombres' => $request->input('Nombres'),
             'Apellido_Paterno' => $request->input('Apellido_Paterno'),
             'Apellido_Materno' => $request->input('Apellido_Materno'),
-            'Telefono'         => $request->input('Telefono'),
+            'Telefono' => $request->input('Telefono'),
             'Fecha_Modificado' => now()
         ];
 
-        // Solo actualizar contraseña o correo si el JSON de iOS los provee expresamente
         if ($request->filled('Correo')) {
             $data['Correo'] = $request->input('Correo');
         }
@@ -400,20 +423,7 @@ class UsuariosController extends Controller
             $data['Contraseña'] = Hash::make($request->input('Contraseña'));
         }
 
-        $actualizado = DB::table('usuario')->where('Id_Usuario', $id)->update($data);
-
-        return response()->json(['success' => true], 200);
-    }
-
-    /**
-     * DELETE /api/usuarios/{id}
-     * Elimina un usuario desde la aplicación móvil.
-     */
-    public function apiDestroy($id) {
-        DB::transaction(function () use ($id) {
-            DB::table('Relacion_Ejidatario')->where('Id_usuario', $id)->delete();
-            DB::table('usuario')->where('Id_Usuario', $id)->delete();
-        });
+        DB::table('usuario')->where('Id_Usuario', $id)->update($data);
 
         return response()->json(['success' => true], 200);
     }
