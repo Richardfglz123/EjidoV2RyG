@@ -16,9 +16,9 @@ Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
 Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
-Route::post('/asistencia/registrar', [PaseListaController::class, 'marcarAsistencia']);
+Route::post('/asistencia/registrar', [PaseListaController::class, 'registrarAsistencia']);
 
-// RUTAS PROTEGIDAS (Requieren obligatoriamente el Token que guardamos en UserDefaults)
+// RUTAS PROTEGIDAS
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
     Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);

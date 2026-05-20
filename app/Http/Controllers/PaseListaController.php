@@ -75,16 +75,28 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_sesion = $request->id_sesion;
-            $sesion = Sesion::findOrFail($id_sesion);
+            // 1. Recibimos el ID que manda el iPhone (que es el Id_Evento)
+            $id_referencia = $request->id_sesion;
+
+            // 2. BUSCAR O CREAR LA SESIÓN AUTOMÁTICAMENTE
+            // Esto evita el error "No query results" si es el primer escaneo del día
+            $sesion = Sesion::firstOrCreate(
+                [
+                    'Tipo'          => 'Evento', // O 'Actividad' según prefieras por defecto
+                    'Id_Referencia' => $id_referencia,
+                    'Fecha'         => date('Y-m-d')
+                ]
+            );
 
             $raw = strtoupper($request->qr_data);
+            // Limpiamos el QR para quedarnos solo con letras (como ya lo tenías)
             $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
             if (empty($soloLetrasQR)) {
-                return response()->json(['success' => false, 'message' => "QR ilegible o vacío"]);
+                return response()->json(['success' => false, 'message' => "QR ilegible"]);
             }
 
+            // 3. BUSCAR AL EJIDATARIO
             $ejidatario = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
                 ->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
@@ -98,6 +110,7 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "No registrado: " . substr($raw, 0, 15)]);
             }
 
+            // 4. REGISTRAR EL PASE DE LISTA
             DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -117,6 +130,7 @@ class PaseListaController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // Esto atrapará cualquier error y lo mandará al iPhone para que lo veas en rojo
             return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
