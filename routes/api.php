@@ -16,7 +16,7 @@ Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 Route::get('/ejidatarios', [EjidatariosController::class, 'getEjidatariosApi']);
 Route::get('/eventos', function () { return response()->json(\App\Models\Evento::all()); });
-Route::post('/asistencia/registrar', [PaseListaController::class, 'registrarAsistencia']);
+Route::match(['get', 'post'], '/asistencia/registrar', [PaseListaController::class, 'marcarAsistencia']);
 
 // RUTAS PROTEGIDAS
 Route::middleware('auth:sanctum')->group(function () {

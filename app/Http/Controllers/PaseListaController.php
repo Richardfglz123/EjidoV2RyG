@@ -74,18 +74,18 @@ class PaseListaController extends Controller
 
     public function marcarAsistencia(Request $request)
     {
-        // Forzamos a que cualquier salida sea JSON
         try {
-            $id_referencia = $request->id_sesion;
-            $qr_data = $request->qr_data;
+            // Obtenemos los datos sin importar si vienen por GET o POST
+            $id_referencia = $request->input('id_sesion');
+            $qr_data = $request->input('qr_data');
 
             if (!$id_referencia || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
+                return response()->json(['success' => false, 'message' => "Faltan datos (ID: $id_referencia)"]);
             }
 
-            // 1. Buscar o crear la sesión (Usamos el modelo Sesion)
-            // Asegúrate de que los nombres de las columnas coincidan: Id_Referencia, Tipo, Fecha
-            $sesion = Sesion::firstOrCreate(
+            // IMPORTANTE: Verifica que los nombres de las columnas en tu tabla
+            // sean exactamente estos (mayúsculas/minúsculas)
+            $sesion = \App\Models\Sesion::firstOrCreate(
                 [
                     'Tipo'          => 'Evento',
                     'Id_Referencia' => $id_referencia,
@@ -96,14 +96,9 @@ class PaseListaController extends Controller
             $raw = strtoupper($qr_data);
             $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
-            if (empty($soloLetrasQR)) {
-                return response()->json(['success' => false, 'message' => "QR sin texto"]);
-            }
-
-            // 2. Buscar Ejidatario
-            $ejidatario = DB::table('Ejidatario as e')
+            $ejidatario = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
+                ->where(\Illuminate\Support\Facades\DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
                     'LIKE',
                     "%$soloLetrasQR%"
                 )
@@ -111,11 +106,10 @@ class PaseListaController extends Controller
                 ->first();
 
             if (!$ejidatario) {
-                return response()->json(['success' => false, 'message' => "No hallado: " . substr($soloLetrasQR, 0, 10)]);
+                return response()->json(['success' => false, 'message' => "No hallado: $soloLetrasQR"]);
             }
 
-            // 3. Registrar Asistencia
-            DB::table('PaseLista')->updateOrInsert(
+            \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
                     'Id_Ejidatario' => $ejidatario->Id_Ejidatario
@@ -134,11 +128,11 @@ class PaseListaController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // Si algo falla, lo mandamos como JSON para que el iPhone NO de "Error de parseo"
+            // Esto previene el "Error de parseo JSON" enviando el error en formato JSON
             return response()->json([
                 'success' => false,
-                'message' => "Error servidor: " . $e->getMessage()
-            ], 200); // Mandamos 200 para que el iPhone pueda leer el mensaje de error
+                'message' => "Error: " . $e->getMessage()
+            ]);
         }
     }
 
