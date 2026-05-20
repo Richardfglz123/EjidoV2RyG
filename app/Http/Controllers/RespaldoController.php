@@ -20,7 +20,6 @@ class RespaldoController extends Controller
         $respaldos = [];
 
         foreach ($files as $file) {
-            // Solo archivos .sql
             if (pathinfo($file, PATHINFO_EXTENSION) !== 'sql') continue;
 
             $respaldos[] = [
@@ -53,7 +52,6 @@ class RespaldoController extends Controller
         $fullPath = $backupDirectory . DIRECTORY_SEPARATOR . $filename;
 
         try {
-            // 1. Obtener todas las tablas de la base de datos
             $tables = \DB::select('SHOW TABLES');
             $dbNameAttr = "Tables_in_" . config('database.connections.mysql.database');
 
@@ -63,18 +61,15 @@ class RespaldoController extends Controller
             foreach ($tables as $table) {
                 $tableName = $table->$dbNameAttr;
 
-                // 2. Obtener la estructura de la tabla (CREATE TABLE)
                 $createTableStructure = \DB::select('SHOW CREATE TABLE ' . $tableName);
                 $sqlScript .= $createTableStructure[0]->{"Create Table"} . ";\n\n";
 
-                // 3. Obtener los datos de la tabla
                 $rows = \DB::table($tableName)->get();
                 foreach ($rows as $row) {
                     $rowArray = (array)$row;
                     $columns = array_keys($rowArray);
                     $values = array_values($rowArray);
 
-                    // Escapar los valores para evitar errores de SQL
                     $escapedValues = array_map(function($value) {
                         if (is_null($value)) return 'NULL';
                         return "'" . addslashes($value) . "'";
@@ -85,7 +80,6 @@ class RespaldoController extends Controller
                 $sqlScript .= "\n\n";
             }
 
-            // 4. Guardar el archivo generado en el disco
             file_put_contents($fullPath, $sqlScript);
 
             return back()->with('success', 'Respaldo generado con éxito (Modo Compatible): ' . $filename);

@@ -20,7 +20,6 @@ class usuariosExport implements
     WithCustomStartCell,
     WithEvents
 {
-    // Iniciamos la tabla en la fila 4 para el título superior
     public function startCell(): string
     {
         return 'A4';
@@ -54,7 +53,6 @@ class usuariosExport implements
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                // 1. Título del Reporte (Combinado de A a E)
                 $sheet->mergeCells('A1:E1');
                 $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE usuarioS');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -62,7 +60,6 @@ class usuariosExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 2. Información de fecha y total
                 $sheet->mergeCells('A2:E2');
                 $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | usuarios registrados: ' . ($sheet->getHighestRow() - 4));
                 $sheet->getStyle('A2')->applyFromArray([
@@ -70,7 +67,6 @@ class usuariosExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 3. Pie de página
                 $lastRow = $sheet->getHighestRow();
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells("A{$footerRow}:E{$footerRow}");
@@ -87,7 +83,6 @@ class usuariosExport implements
     {
         $lastRow = $sheet->getHighestRow();
 
-        // Estilo del Encabezado de la Tabla (Fila 4)
         $sheet->getStyle('A4:E4')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -104,7 +99,6 @@ class usuariosExport implements
             ]
         ]);
 
-        // Bordes y fuente para los datos (A partir de la fila 4)
         $sheet->getStyle("A4:E{$lastRow}")->applyFromArray([
             'font' => [
                 'name' => 'Arial',
@@ -118,7 +112,6 @@ class usuariosExport implements
             ]
         ]);
 
-        // Centrar columnas de usuario y Teléfono para mejor vista
         $sheet->getStyle("C5:C{$lastRow}")->getAlignment()->setHorizontal('center');
         $sheet->getStyle("E5:E{$lastRow}")->getAlignment()->setHorizontal('center');
 

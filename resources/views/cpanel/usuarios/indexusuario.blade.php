@@ -104,6 +104,7 @@
                 </tr>
                 </thead>
                 <tbody>
+
                 @forelse($data as $fila)
                     @php
                         $nombresLimpio = str_ireplace(['\n', "\n", "\r"], ' ', $fila->Nombres);

@@ -33,7 +33,7 @@
                                value="{{ old('Apellido_Paterno') }}">
                         @error('Apellido_Paterno')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-
+                    {{-- Metodo para el apellido materno --}}
                     <div class="col-md-4">
                         <label>Apellido Materno</label>
                         <input type="text" name="Apellido_Materno"
@@ -41,6 +41,7 @@
                                value="{{ old('Apellido_Materno') }}">
                         @error('Apellido_Materno')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+
                 </div>
 
                 <div class="row mb-3">

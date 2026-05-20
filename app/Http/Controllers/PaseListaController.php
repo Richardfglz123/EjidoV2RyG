@@ -8,23 +8,27 @@ use App\Models\Ejidatario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\AsistenciaExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaseListaController extends Controller
 {
     public function index()
     {
-        $eventos = Evento::all();
+        $eventos = Evento::with('categoria')->get();
+
         $totalEjidatarios = Ejidatario::count();
 
-        // Sesiones con conteo de asistencias corregido
         $sesiones = Sesion::with('evento')
-            ->select('Sesion.*')
+            ->leftJoin('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
+            ->leftJoin('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->select('Sesion.*', 'c.Nombre_Categoria')
             ->addSelect([
                 'asistencias_count' => DB::table('PaseLista')
                     ->whereColumn('Id_Sesion', 'Sesion.Id_Sesion')
                     ->selectRaw('count(*)')
             ])
-            ->orderBy('Fecha', 'desc')
+            ->orderBy('Sesion.Fecha', 'desc')
             ->get();
 
         return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
@@ -46,7 +50,6 @@ class PaseListaController extends Controller
             ]
         );
 
-        // JOIN corregido para mostrar nombres de quienes ya estaban registrados en la sesión
         $presentes = DB::table('PaseLista as a')
             ->join('Ejidatario as e', 'a.Id_Ejidatario', '=', 'e.Id_Ejidatario')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
@@ -72,15 +75,13 @@ class PaseListaController extends Controller
             $id_sesion = $request->id_sesion;
             $sesion = Sesion::findOrFail($id_sesion);
 
-            // Limpieza del QR
             $raw = strtoupper($request->qr_data);
-            $soloLetrasQR = preg_replace('/[^A-Z0-9ÁÉÍÓÚÑ\s]/', '', $raw);
+            $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
             if (empty($soloLetrasQR)) {
                 return response()->json(['success' => false, 'message' => "QR ilegible o vacío"]);
             }
 
-            // Búsqueda del Ejidatario usando JOIN para evitar fallos de relación Eloquent
             $ejidatario = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
                 ->where(DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
@@ -94,7 +95,6 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "No registrado: " . substr($raw, 0, 15)]);
             }
 
-            // Registro de asistencia (PaseLista suele ser el nombre de la tabla en tu DB)
             DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -122,7 +122,6 @@ class PaseListaController extends Controller
     {
         try {
             DB::beginTransaction();
-            // Eliminamos asistencias vinculadas primero por integridad
             DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
             Sesion::destroy($id);
             DB::commit();
@@ -137,7 +136,6 @@ class PaseListaController extends Controller
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
 
-        // Obtener asistentes con JOIN para el PDF
         $asistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
@@ -145,7 +143,6 @@ class PaseListaController extends Controller
             ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
             ->get();
 
-        // Obtener NO asistentes (aquellos que no están en PaseLista para esta sesión)
         $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
 
         $noAsistieron = DB::table('Ejidatario as e')
@@ -158,5 +155,13 @@ class PaseListaController extends Controller
 
         $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
         return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
+    }
+    public function exportarExcel($id)
+    {
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\AsistenciaExport($id),
+            'Reporte_Asistencia_' . $id . '.xlsx'
+        );
     }
 }

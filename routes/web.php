@@ -5,6 +5,7 @@ use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\SocialController;
 use App\Models\Ejidatario;
 use App\Http\Controllers\AsambleaController;
+use App\Http\Controllers\ConcentradoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ActividadesController;
 use App\Http\Controllers\UsuariosController;
@@ -36,9 +37,7 @@ use App\Http\Controllers\EntradaController;
 use App\Http\Controllers\SalidaController;
 use App\Http\Controllers\ParcelaController;
 
-// =========================================================================
 // RUTAS PÚBLICAS Y AUTENTICACIÓN
-// =========================================================================
 Route::get('/auth/google/redirect', [SocialController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('/auth/google/callback', [SocialController::class, 'handleGoogleCallback']);
 
@@ -77,9 +76,7 @@ Route::get('/limpiar', function () {
 });
 
 
-// =========================================================================
 // GRUPO PROTEGIDO (AUTH Y 2FA)
-// =========================================================================
 Route::middleware([CheckAuth::class, '2fa'])->group(function () {
 
     // Dashboard e Inicio
@@ -90,7 +87,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
 
-// --- MÓDULO: USUARIOS
+    // --- MÓDULO: USUARIOS
     Route::prefix('admon/usuarios')->group(function () {
 
         // PERMISO: VER
@@ -108,7 +105,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
             Route::post('/store-legacy', [UsuariosController::class, 'store'])->name('Usuarios.store'); // Legacy
         });
 
-        // PERMISO: EDITAR (Movido a su middleware correcto y corregido parámetro a {id})
+        // PERMISO: EDITAR
         Route::middleware(['permiso:usuarios_editar'])->group(function () {
             Route::get('/{id}/edit', [UsuariosController::class, 'edit'])->name('usuarios.edit');
             Route::get('/{id}/edit-legacy', [UsuariosController::class, 'edit'])->name('Usuarios.edit'); // Legacy
@@ -123,7 +120,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         });
     });
 
-    // --- MÓDULO: EJIDATARIOS ---
+    // Modulo Ejidatarios
     Route::prefix('admon/Ejidatarios')->group(function () {
         Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
         Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
@@ -154,15 +151,16 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
     Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
 
-    // Ruta para el botón de "Abonar/Pagar" en el Segundo Reparto
+    // Ruta para el boton de "Abonar/Pagar" en el Segundo Reparto
     Route::post('/prestamo/abonar-r2/{id}', [Reparto2Controller::class, 'abonarPrestamo'])->name('prestamo.abonar.r2');
 
     Route::get('/descuentos/asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
     Route::get('/descuentos-faenas', [FaenasController::class, 'index'])->name('descuentos.faenas');
     Route::post('/faenas/aplicar', [FaenasController::class, 'aplicarDescuento'])->name('faenas.aplicar');
+    //EXPOR FINAL
+    Route::get('/concentrado/excel', [ConcentradoController::class, 'exportarExcel'])->name('concentrado.excel');
 
-
-    // --- MÓDULO: ACTIVIDADES ---
+    // MÓDULO: ACTIVIDADES
     Route::prefix('admon/actividades')->group(function () {
         Route::middleware(['permiso:actividades_ver'])->group(function () {
             Route::get('/', [ActividadesController::class, 'index'])->name('actividades.index');
@@ -190,7 +188,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- REPORTES ---
+    // REPORTES
     Route::middleware(['permiso:usuarios_ver'])->prefix('admon/reportes/usuarios')->group(function () {
         Route::get('/pdf', [ReportesUController::class, 'GenerarPDF'])->name('reportes.usuarios.pdf');
         Route::get('/excel', [ReportesUController::class, 'GenerarExcel'])->name('reportes.usuarios.excel');
@@ -202,7 +200,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-// --- RUTA GLOBAL PARA VER ARCHIVOS (Indispensable para Hostinger) ---
+//  RUTA GLOBAL PARA VER ARCHIVOS (Indispensable para Hostinger)
     Route::get('ver-archivo/{path}', function ($path) {
         $path = urldecode($path);
         $cleanPath = str_replace('storage/', '', $path);
@@ -214,7 +212,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
         return Illuminate\Support\Facades\Storage::disk('public')->response($cleanPath);
     })->where('path', '.*')->name('ver.archivo');
 
-// --- MÓDULO: DATOS HISTÓRICOS ---
+    // MÓDULO: DATOS HISTÓRICOS
     Route::middleware(['permiso:historicos_ver'])->prefix('admon/DatosHistoricos')->group(function () {
         Route::get('/reportes/pdf', [DatosHistoricosController::class, 'reportePDF'])->name('datos_historicos.reporte.pdf');
         Route::get('/reportes/excel', [DatosHistoricosController::class, 'reporteExcel'])->name('datos_historicos.reporte.excel');
@@ -231,7 +229,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: PARCELAS ---
+    // MÓDULO: PARCELAS
     Route::middleware(['permiso:parcelas_ver'])->group(function () {
         Route::get('/parcelas', [ParcelaController::class, 'index'])->name('parcelas.index');
         Route::get('/verParcela', [ParcelaController::class, 'verParcela'])->name('parcelas.ver');
@@ -246,7 +244,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: GASTOS ---
+    // MÓDULO: GASTOS
     Route::middleware(['permiso:gastos_ver'])->group(function () {
         Route::get('/gastos', [GastoController::class, 'index'])->name('gastos.index');
         Route::get('/gastos-pdf', [GastoController::class, 'generarPdf'])->name('gastos.pdf');
@@ -263,7 +261,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: INVENTARIO ---
+    // MÓDULO: INVENTARIO
     Route::middleware(['permiso:inventario_ver'])->group(function () {
         Route::get('/articulos', [ArticuloController::class, 'index'])->name('articulos.index');
         Route::get('/articulos/buscar', [ArticuloController::class, 'buscar'])->name('articulos.buscar');
@@ -296,7 +294,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: RESPALDO ---
+    // MÓDULO: RESPALDO
     Route::middleware(['permiso:respaldo_ver'])->prefix('admon')->group(function () {
         Route::get('/Respaldos', [RespaldoController::class, 'index'])->name('Respaldos.index');
         Route::post('/Respaldos/generar', [RespaldoController::class, 'store'])->name('Respaldos.store');
@@ -305,7 +303,7 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-    // --- MÓDULO: CONFIGURACIÓN Y PERMISOS ---
+    // MÓDULO: CONFIGURACIÓN Y PERMISOS
     Route::prefix('configuracion')->group(function () {
         Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])->name('configuracion.usuarios.buscar_ajax');
 
@@ -321,9 +319,8 @@ Route::middleware([CheckAuth::class, '2fa'])->group(function () {
     });
 
 
-// --- MÓDULO: EXPEDIENTES
-Route::get('ver-expediente/{path}', function ($path) {
-    // 1. Limpiamos la ruta por si viene con 'storage/' o caracteres raros
+//   MÓDULO: EXPEDIENTES
+    Route::get('ver-expediente/{path}', function ($path) {
     $path = urldecode($path);
     $cleanPath = str_replace('storage/', '', $path);
     if (!Storage::disk('public')->exists($cleanPath)) {
@@ -334,7 +331,7 @@ Route::get('ver-expediente/{path}', function ($path) {
 })->where('path', '.*')->name('ver.expediente');
 
 
-// --- MÓDULO: EXPEDIENTES (GESTIÓN) ---
+//  MÓDULO GESTION DE EXPEDIENTES
 Route::prefix('admon/expedientes')->group(function () {
 
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
@@ -348,7 +345,7 @@ Route::prefix('admon/expedientes')->group(function () {
     });
 });
 
-    // --- MÓDULO: ADMINISTRACIÓN DE FAENAS (CRUD CON PERMISOS) ---
+    // MÓDULO: ADMINISTRACIÓN DE FAENAS
     Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
         Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');
 
@@ -362,7 +359,7 @@ Route::prefix('admon/expedientes')->group(function () {
     });
 
 
-    // --- MÓDULO: REPARTOS ---
+    // MÓDULO: REPARTOS
     Route::middleware(['permiso:repartos_ver'])->prefix('admon/repartos')->group(function () {
         Route::get('/', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.index');
 
@@ -373,7 +370,7 @@ Route::prefix('admon/expedientes')->group(function () {
     });
 
 
-    // --- MÓDULO: REPARTOS Y FINANZAS (UTILIDADES) ---
+    // MÓDULO: REPARTOS Y FINANZAS (UTILIDADES)
     Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(function () {
         Route::get('/menu-repartos', [RepartoController::class, 'menu'])->name('menu');
         Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('monto.index');
@@ -406,10 +403,7 @@ Route::prefix('admon/expedientes')->group(function () {
             Route::post('/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
             Route::get('/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
 
-            // NUEVA: Ruta para posponer la deuda al siguiente año (pasa el ID del ejidatario)
             Route::post('/posponer/{id}', [Reparto2Controller::class, 'posponerSiguienteAnio'])->name('reparto.segundo.posponer');
-
-            // NUEVA: Ruta para el Ticket PDF en el segundo reparto (pasa el ID del ejidatario)
             Route::get('/ticket/{id}', [Reparto2Controller::class, 'generarTicketPDFSegundo'])->name('reparto.segundo.ticket');
         });
 
@@ -424,13 +418,13 @@ Route::prefix('admon/expedientes')->group(function () {
         Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar_segundo');
     });
 
-    // --- RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
+    // RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
     Route::resource('eventos', EventoController::class);
     Route::resource('categorias', CategoriaEventoController::class);
     Route::resource('multas', MultaController::class);
 
 
-    // --- MÓDULO: PASE DE LISTA Y ASISTENCIA ---
+    // MÓDULO: PASE DE LISTA Y ASISTENCIA
     Route::prefix('asistencia')->group(function () {
         Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
         Route::delete('/asistencia/{id}', [PaseListaController::class, 'destroy'])->name('asistencia.destroy');
@@ -442,12 +436,12 @@ Route::prefix('admon/expedientes')->group(function () {
 
     Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
 
-    // --- RUTAS DE PRUEBAS ---
+    // RUTAS DE PRUEBAS
     Route::get('/test-qr', function () {
         $ejidatarios = \App\Models\Ejidatario::with('usuario')->get();
         return view('test_qr', compact('ejidatarios'));
     });
-    // borrar despues
+    // NO BORRAR (NO SE QUE HACE PERO SI SE ELIMINA TRUENA)
     Route::get('storage/perfiles/{filename}', function ($filename) {
         $path = 'perfiles/' . $filename;
 

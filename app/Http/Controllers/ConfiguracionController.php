@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Usuario;
+use App\Models\Ejidatario;
+
 
 class ConfiguracionController extends Controller
 {
@@ -15,7 +18,6 @@ class ConfiguracionController extends Controller
 
     public function buscarusuariosAjax(Request $request)
     {
-        // Corregido: Se busca en la columna real 'Usuario' y se retorna 'Id_Usuario'
         return DB::table('usuario')
             ->where('Usuario', 'LIKE', '%' . $request->q . '%')
             ->select('Id_Usuario as id', 'Usuario as text')
@@ -25,7 +27,6 @@ class ConfiguracionController extends Controller
 
     public function obtenerPermisosusuario($id)
     {
-        // Corregido: Join usando la columna exacta 'Id_usuario' de la tabla pivote y 'Id_Usuario' de la tabla usuario si fuera necesario.
         $datos = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_usuario', $id)
@@ -51,7 +52,6 @@ class ConfiguracionController extends Controller
 
     public function guardarPermisos(Request $request)
     {
-        // Adaptado a la estructura limpia de la sesión 2fa_user / usuario
         $sesion = session('usuario', session('2fa_user', []));
 
         if (is_object($sesion)) {
@@ -68,15 +68,12 @@ class ConfiguracionController extends Controller
             $misPermisos = $sesion['permisos'] ?? [];
         }
 
-        // Definimos quién es Superadmin de manera segura
         $soySuperAdmin = ($miIdRol == 1 || $miCorreo === 'rickvevo1@gmail.com' || $miIdusuario == 405 || strtolower(trim($miRolNombre)) === 'administrador');
 
-        // Validación de acceso inicial
         if (!$soySuperAdmin && !in_array('configuracion_crear', $misPermisos)) {
             abort(403, 'No tienes permisos para modificar configuraciones');
         }
 
-        // SOLUCIÓN AL ERROR: Validamos de forma flexible aceptando 'Id_Usuario' o 'Id_usuario'
         $request->validate([
             'Id_Usuario' => 'required_without:Id_usuario|integer',
             'Id_usuario' => 'required_without:Id_Usuario|integer',
@@ -84,7 +81,6 @@ class ConfiguracionController extends Controller
             'permisos'   => 'array'
         ]);
 
-        // Capturamos el ID enviado sin importar la mayúscula/minúscula
         $targetUserId = $request->input('Id_Usuario') ?? $request->input('Id_usuario');
 
         $jerarquia = [
@@ -96,11 +92,9 @@ class ConfiguracionController extends Controller
             'invitado'              => 1
         ];
 
-        // Normalizamos a minúsculas para Hostinger (Linux)
         $miRolNormalizado = strtolower(trim($miRolNombre));
         $miNivel = $soySuperAdmin ? 999 : ($jerarquia[$miRolNormalizado] ?? 0);
 
-        // Datos del usuario al que queremos modificar (Target)
         $usuarioTarget = DB::table('Relacion_Ejidatario')
             ->join('Roles', 'Relacion_Ejidatario.Id_Rol', '=', 'Roles.Id_Rol')
             ->where('Relacion_Ejidatario.Id_usuario', $targetUserId)
@@ -110,27 +104,20 @@ class ConfiguracionController extends Controller
         $targetRolNormalizado = $usuarioTarget ? strtolower(trim($usuarioTarget->Tipo_Rol)) : 'sin rol';
         $nivelTarget = $jerarquia[$targetRolNormalizado] ?? 0;
 
-        // --- VALIDACIONES DE RANGO ---
-
-        // 1. Impedir que otros modifiquen al Superadmin (Rol 1)
         if ($usuarioTarget && $usuarioTarget->Id_Rol == 1 && !$soySuperAdmin) {
-            return back()->withErrors("El Administrador Principal es intocable.");
+            return back()->withErrors("El Administrador no puede modificarse");
         }
 
-        // 2. No permitir que alguien de rango menor o igual modifique a uno mayor
         if ($miNivel <= $nivelTarget && $targetUserId != $miIdusuario) {
             return back()->withErrors("No tienes rango suficiente para modificar a un " . ($usuarioTarget->Tipo_Rol ?? 'Usuario') . ".");
         }
 
-        // 3. No permitir asignarse a sí mismo permisos (para evitar bloqueos accidentales)
         if ($targetUserId == $miIdusuario) {
-            return back()->withErrors('No puedes modificar tus propios permisos directamente.');
+            return back()->withErrors('No puedes modificar tus propios permisos directamente');
         }
 
-        // --- PROCESO DE GUARDADO ---
-
         if (!$request->has('confirmacion_global')) {
-            return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol.');
+            return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol');
         }
 
         $permisosPermitidos = [
@@ -154,12 +141,11 @@ class ConfiguracionController extends Controller
         $permisosRecibidos = $request->permisos ?? [];
 
         if (array_diff($permisosRecibidos, $permisosPermitidos)) {
-            return back()->withErrors('Se detectaron permisos inválidos.');
+            return back()->withErrors('Se detectaron permisos inválidos');
         }
 
         DB::beginTransaction();
         try {
-            // Actualizar o Insertar en la tabla intermedia
             DB::table('Relacion_Ejidatario')->updateOrInsert(
                 ['Id_usuario' => $targetUserId],
                 [
@@ -168,7 +154,6 @@ class ConfiguracionController extends Controller
                 ]
             );
 
-            // Si el rol no es el Admin Maestro, actualizar los permisos globales de ese rol
             if ($request->Id_Rol != 1) {
                 DB::table('Roles')
                     ->where('Id_Rol', $request->Id_Rol)
@@ -178,7 +163,7 @@ class ConfiguracionController extends Controller
             }
 
             DB::commit();
-            return back()->with('success', 'Permisos y rol actualizados correctamente.');
+            return back()->with('success', 'Permisos y rol actualizados correctamente');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withErrors('Error al guardar: ' . $e->getMessage());

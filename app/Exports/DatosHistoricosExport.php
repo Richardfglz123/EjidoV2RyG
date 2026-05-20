@@ -27,7 +27,6 @@ class DatosHistoricosExport implements
         $this->request = $request;
     }
 
-    // Iniciamos en la fila 4 para el encabezado de la tabla
     public function startCell(): string
     {
         return 'A4';
@@ -71,7 +70,6 @@ class DatosHistoricosExport implements
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                // 1. Título del Reporte (Centrado en las 3 columnas)
                 $sheet->mergeCells('A1:C1');
                 $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE DATOS HISTÓRICOS');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -79,7 +77,6 @@ class DatosHistoricosExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 2. Información de generación
                 $sheet->mergeCells('A2:C2');
                 $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | Registros: ' . ($sheet->getHighestRow() - 3));
                 $sheet->getStyle('A2')->applyFromArray([
@@ -87,7 +84,6 @@ class DatosHistoricosExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 3. Pie de página al final
                 $lastRow = $sheet->getHighestRow();
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells("A{$footerRow}:C{$footerRow}");
@@ -104,7 +100,6 @@ class DatosHistoricosExport implements
     {
         $lastRow = $sheet->getHighestRow();
 
-        // Estilo del Encabezado de la tabla (Fila 4) - Verde Ejidal
         $sheet->getStyle('A4:C4')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -119,7 +114,6 @@ class DatosHistoricosExport implements
             ],
         ]);
 
-        // Bordes a todos los registros
         $sheet->getStyle("A4:C{$lastRow}")->applyFromArray([
             'borders' => [
                 'allBorders' => [
@@ -128,7 +122,6 @@ class DatosHistoricosExport implements
             ],
         ]);
 
-        // Centrar solo la columna de Fecha para mejor estética
         $sheet->getStyle("C5:C{$lastRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
         return $sheet;

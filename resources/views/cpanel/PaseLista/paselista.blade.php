@@ -8,7 +8,6 @@
         </h1>
     </div>
 
-    {{-- ALERTAS DE ÉXITO --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
@@ -31,7 +30,7 @@
                             <option value="">-- Seleccionar --</option>
                             @foreach($eventos as $item)
                                 <option value="{{ $item->Id_Evento }}" {{ old('id_referencia') == $item->Id_Evento ? 'selected' : '' }}>
-                                    {{ $item->Nombre_Evento }}
+                                    {{ $item->Nombre_Evento }} [{{ $item->Nombre_Categoria ?? 'Sin Categoría' }}]
                                 </option>
                             @endforeach
                         </select>
@@ -50,7 +49,6 @@
         </form>
     </div>
 
-    {{-- SECCIÓN: HISTORIAL DE SESIONES --}}
     <div class="card card-ejidal shadow-sm">
         <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
             <span><i class="fas fa-history me-2"></i> Historial de Pases Realizados</span>
@@ -62,7 +60,8 @@
                     <thead class="table-dark">
                     <tr>
                         <th class="ps-4 border-0">Fecha</th>
-                        <th class="border-0">Evento</th>
+                        <th class="border-0">Evento / Actividad</th>
+                        <th class="text-center border-0">Categoría</th>
                         <th class="text-center border-0">Asistieron</th>
                         <th class="text-center border-0">Ausentes</th>
                         <th class="text-center border-0">Opciones</th>
@@ -74,6 +73,15 @@
                         @php
                             $asistieron = $s->asistencias_count ?? 0;
                             $ausentes = max(0, $totalEjidatarios - $asistieron);
+
+                            $categoriaNombre = $s->evento->categoria->Nombre_Categoria ?? $s->Nombre_Categoria ?? null;
+
+                            $badgeColor = 'bg-secondary';
+                            if (str_contains(strtolower($categoriaNombre), 'faena')) {
+                                $badgeColor = 'bg-primary';
+                            } elseif (str_contains(strtolower($categoriaNombre), 'asamblea')) {
+                                $badgeColor = 'bg-success';
+                            }
                         @endphp
                         <tr>
                             <td class="ps-4 text-muted small">
@@ -83,6 +91,15 @@
                                 <div class="fw-bold text-ejidal">
                                     {{ $s->evento->Nombre_Evento ?? 'Evento Eliminado (#'.$s->Id_Referencia.')' }}
                                 </div>
+                            </td>
+                            <td class="text-center">
+                                @if($categoriaNombre)
+                                    <span class="badge {{ $badgeColor }} px-2 py-1 text-uppercase" style="font-size: 0.75rem;">
+                                        {{ $categoriaNombre }}
+                                    </span>
+                                @else
+                                    <span class="text-muted small"><em>No asignada</em></span>
+                                @endif
                             </td>
                             <td class="text-center">
                                 <span class="badge rounded-pill bg-success px-3">{{ $asistieron }}</span>
@@ -101,7 +118,6 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                {{-- BOTÓN PARA ELIMINAR LA SESIÓN DE ASISTENCIA --}}
                                 <form action="{{ route('asistencia.destroy', $s->Id_Sesion) }}" method="POST"
                                       onsubmit="return confirm('¿Seguro que deseas eliminar este registro de asistencia? No se puede deshacer.')">
                                     @csrf
@@ -114,7 +130,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 No hay registros de pases de lista anteriores.
                             </td>
                         </tr>

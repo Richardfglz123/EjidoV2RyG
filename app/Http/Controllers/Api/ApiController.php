@@ -26,21 +26,17 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'El usuario no existe'], 401);
         }
 
-        // Login Biométrico
         if ($request->login_biometrico === 'true') {
             $token = $usuario->createToken('ios-device-biometric')->plainTextToken;
             return response()->json(['ok' => true, 'two_factor' => false, 'token' => $token]);
         }
 
-        // Validar Password
         if (!Hash::check($request->password, $usuario->Contraseña)) {
             return response()->json(['ok' => false, 'error' => 'Credenciales incorrectas'], 401);
         }
 
-        // --- GENERAR CÓDIGO Y GUARDAR EN password_resets ---
         $code = rand(100000, 999999);
 
-        // Usamos updateOrInsert para no duplicar correos en la tabla de códigos
         DB::table('password_resets')->updateOrInsert(
             ['email' => $emailLimpio],
             [
@@ -50,7 +46,6 @@ class ApiController extends Controller
             ]
         );
 
-        // Envío de Email (Tu diseño estilo Dark Mode)
         try {
             $html = "
             <div style='background-color: #000; padding: 40px; font-family: -apple-system, sans-serif; text-align: center;'>
@@ -78,7 +73,6 @@ class ApiController extends Controller
         $emailLimpio = strtolower(trim($request->email));
         $codigoIngresado = trim($request->code);
 
-        // 1. Validamos el código vinculado al correo
         $record = DB::table('password_resets')
             ->where('email', $emailLimpio)
             ->where('token', $codigoIngresado)
@@ -88,20 +82,18 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'Código inválido para este correo'], 401);
         }
 
-        // 2. BUSQUEDA REAL: Aquí es donde se decide quién eres
         $user = DB::table('usuario')->where('Correo', $emailLimpio)->first();
 
         if (!$user) {
             return response()->json(['ok' => false, 'error' => 'No existe un usuario con ese correo'], 404);
         }
 
-        // Limpiamos el código para que no se use de nuevo
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
         // 3. RESPUESTA DINÁMICA
         return response()->json([
             'ok' => true,
-            'token' => (string)$user->Id_Usuario, // Si entraste con ricvevo1, AQUÍ DEBE IR EL 405
+            'token' => (string)$user->Id_Usuario,
             'user' => [
                 'nombre' => $user->Nombres,
                 'email' => $user->Correo

@@ -27,14 +27,13 @@ class SalidasExport implements
 
     public function collection()
     {
-        // Usamos los nombres exactos de tu CREATE TABLE
         return DB::table('Salida')
             ->join('Articulos', 'Salida.Id_Articulo', '=', 'Articulos.Id_Articulo')
             ->select(
-                'Articulos.descripcion as articulo', // Verifica si en Articulos es 'descripcion' o 'Descripcion'
+                'Articulos.descripcion as articulo',
                 'Salida.Cantidad',
                 'Salida.Tipo_Salida',
-                'Salida.Fecha', // <--- Antes decía fecha_salida, por eso fallaba
+                'Salida.Fecha',
                 'Salida.Responsable'
             )->get();
     }
@@ -56,7 +55,6 @@ class SalidasExport implements
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                // 1. Título del Reporte
                 $sheet->mergeCells('A1:E1');
                 $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE SALIDAS DE INVENTARIO');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -64,7 +62,6 @@ class SalidasExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 2. Información de fecha y total
                 $totalRegistros = $sheet->getHighestRow() - 4;
                 $sheet->mergeCells('A2:E2');
                 $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | Total movimientos: ' . $totalRegistros);
@@ -73,7 +70,6 @@ class SalidasExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 3. Pie de página
                 $lastRow = $sheet->getHighestRow();
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells("A{$footerRow}:E{$footerRow}");
@@ -90,7 +86,6 @@ class SalidasExport implements
     {
         $lastRow = $sheet->getHighestRow();
 
-        // Estilo del Encabezado (Verde Institucional)
         $sheet->getStyle('A4:E4')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -104,7 +99,6 @@ class SalidasExport implements
             'alignment' => ['horizontal' => 'center']
         ]);
 
-        // Bordes y fuente para los datos
         $sheet->getStyle("A4:E{$lastRow}")->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 11],
             'borders' => [
@@ -114,7 +108,6 @@ class SalidasExport implements
             ]
         ]);
 
-        // Centrar Cantidad y Fecha
         $sheet->getStyle("B5:B{$lastRow}")->getAlignment()->setHorizontal('center');
         $sheet->getStyle("D5:D{$lastRow}")->getAlignment()->setHorizontal('center');
 

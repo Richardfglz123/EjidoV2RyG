@@ -27,7 +27,6 @@ class ActividadesExport implements
         $this->request = $request;
     }
 
-    // La tabla comenzará en la fila 4 para dejar espacio al título
     public function startCell(): string
     {
         return 'A4';
@@ -81,7 +80,6 @@ class ActividadesExport implements
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                // 1. Título del Reporte
                 $sheet->mergeCells('A1:H1');
                 $sheet->setCellValue('A1', 'SISTEMA EJIDAL - REPORTE DE ACTIVIDADES');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -89,7 +87,6 @@ class ActividadesExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 2. Información de generación
                 $sheet->mergeCells('A2:H2');
                 $sheet->setCellValue('A2', 'Generado el: ' . date('d/m/Y H:i A') . ' | Total: ' . ($sheet->getHighestRow() - 4) . ' registros');
                 $sheet->getStyle('A2')->applyFromArray([
@@ -97,7 +94,6 @@ class ActividadesExport implements
                     'alignment' => ['horizontal' => 'center']
                 ]);
 
-                // 3. Pie de página al final de los datos
                 $lastRow = $sheet->getHighestRow();
                 $footerRow = $lastRow + 2;
                 $sheet->mergeCells("A{$footerRow}:H{$footerRow}");
@@ -114,7 +110,6 @@ class ActividadesExport implements
     {
         $lastRow = $sheet->getHighestRow();
 
-        // Estilo del Encabezado de la tabla (Fila 4)
         $sheet->getStyle('A4:H4')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -129,7 +124,6 @@ class ActividadesExport implements
             ],
         ]);
 
-        // Bordes a todos los datos
         $sheet->getStyle("A4:H{$lastRow}")->applyFromArray([
             'borders' => [
                 'allBorders' => [

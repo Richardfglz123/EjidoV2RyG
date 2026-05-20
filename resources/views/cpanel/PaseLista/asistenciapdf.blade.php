@@ -39,15 +39,12 @@
     </thead>
     <tbody>
     @foreach($asistieron as $e)
-        @php
-            $nom = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Nombres ?? 'N/A');
-            $apeP = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Paterno ?? '');
-            $apeM = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Materno ?? '');
-        @endphp
         <tr>
             <td>{{ $e->Num_Ejidatario }}</td>
-            <td style="text-transform: uppercase;">{{ $nom }} {{ $apeP }} {{ $apeM }}</td>
-            <td class="text-success">ASISTI</td>
+            <td style="text-transform: uppercase;">
+                {{ trim(($e->Nombres ?? '') . ' ' . ($e->Apellido_Paterno ?? '') . ' ' . ($e->Apellido_Materno ?? '')) }}
+            </td>
+            <td class="text-success">ASISTIÓ</td>
         </tr>
     @endforeach
     </tbody>
@@ -64,14 +61,11 @@
     </thead>
     <tbody>
     @foreach($noAsistieron as $e)
-        @php
-            $nom = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Nombres ?? 'N/A');
-            $apeP = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Paterno ?? '');
-            $apeM = str_ireplace(['\n', "\n", "\r"], ' ', $e->usuario->Apellido_Materno ?? '');
-        @endphp
         <tr>
             <td>{{ $e->Num_Ejidatario }}</td>
-            <td style="text-transform: uppercase;">{{ $nom }} {{ $apeP }} {{ $apeM }}</td>
+            <td style="text-transform: uppercase;">
+                {{ trim(($e->Nombres ?? '') . ' ' . ($e->Apellido_Paterno ?? '') . ' ' . ($e->Apellido_Materno ?? '')) }}
+            </td>
             <td class="text-danger">FALTA</td>
         </tr>
     @endforeach

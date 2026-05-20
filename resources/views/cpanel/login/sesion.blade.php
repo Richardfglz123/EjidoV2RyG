@@ -228,7 +228,7 @@
 
             <a href="{{ route('google.redirect') }}" class="social-btn shadow-sm">
                 <i class="fab fa-google" style="color: #DB4437; font-size: 1.1rem;"></i>
-                <span>Google Account</span>
+                <span>Google</span>
             </a>
         @endif
     </div>

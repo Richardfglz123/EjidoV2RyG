@@ -32,7 +32,6 @@
         .card-stats {
             background: #ffffff !important;
             border: 1px solid rgba(0,0,0,0.03) !important;
-            /* Sombra más profunda pero suave para que el blanco no choque con el gris */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
         }
 
@@ -41,7 +40,6 @@
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
         }
 
-        /* Hero Section Refinado */
         .hero-section {
             background: linear-gradient(135deg, #1a1d20 0%, #198754 100%);
             color: white;
@@ -65,7 +63,6 @@
             transform: rotate(-15deg);
         }
 
-        /* Estilo de los iconos en las cards */
         .icon-shape {
             display: flex;
             align-items: center;
@@ -73,7 +70,6 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Ajustes de tabla */
         .table thead th {
             background-color: #f8fafc;
             text-transform: uppercase;
@@ -119,9 +115,9 @@
                             <i class="fas fa-users fs-4"></i>
                         </div>
                         <div class="text-end">
-                        <span class="badge rounded-pill fw-bold" style="background: #dcfce7; color: #15803d; font-size: 0.7rem;">
-                            <i class="fas fa-check-circle me-1"></i>ACTIVOS
-                        </span>
+                            <span class="badge rounded-pill fw-bold" style="background: #dcfce7; color: #15803d; font-size: 0.7rem;">
+                                <i class="fas fa-check-circle me-1"></i>ACTIVOS
+                            </span>
                         </div>
                     </div>
                     <h6 class="text-muted mb-1 text-uppercase small fw-extrabold" style="letter-spacing: 1px;">Ejidatarios Registrados</h6>
@@ -143,16 +139,16 @@
                             <i class="fas fa-tasks fs-4"></i>
                         </div>
                         <div class="text-end">
-                        <span class="badge rounded-pill fw-bold" style="background: #dbeafe; color: #1d4ed8; font-size: 0.7rem;">
-                            <i class="fas fa-clock me-1"></i>PENDIENTES
-                        </span>
+                            <span class="badge rounded-pill fw-bold" style="background: #dbeafe; color: #1d4ed8; font-size: 0.7rem;">
+                                <i class="fas fa-clock me-1"></i>PENDIENTES
+                            </span>
                         </div>
                     </div>
                     <h6 class="text-muted mb-1 text-uppercase small fw-extrabold" style="letter-spacing: 1px;">Faenas del Mes</h6>
-                    <h2 class="display-6 fw-extrabold mb-0" style="color: #1e293b;">12</h2>
+                    <h2 class="display-6 fw-extrabold mb-0" style="color: #1e293b;">{{ $faenasDelMes ?? 0 }}</h2>
                     <div class="mt-3 pt-3 border-top border-light">
-                        <a href="#" class="text-primary fw-bold text-decoration-none small d-flex align-items-center">
-                            Pasar lista <i class="fas fa-chevron-right ms-2" style="font-size: 0.7rem;"></i>
+                        <a href="{{ route('eventos.index') }}" class="text-primary fw-bold text-decoration-none small d-flex align-items-center">
+                            Ver Módulo Eventos <i class="fas fa-chevron-right ms-2" style="font-size: 0.7rem;"></i>
                         </a>
                     </div>
                 </div>
@@ -167,15 +163,15 @@
                             <i class="fas fa-map-marked-alt fs-4"></i>
                         </div>
                         <div class="text-end">
-                        <span class="badge rounded-pill fw-bold" style="background: #fef3c7; color: #b45309; font-size: 0.7rem;">
-                            <i class="fas fa-mountain me-1"></i>Registros
-                        </span>
+                            <span class="badge rounded-pill fw-bold" style="background: #fef3c7; color: #b45309; font-size: 0.7rem;">
+                                <i class="fas fa-mountain me-1"></i>Registros
+                            </span>
                         </div>
                     </div>
                     <h6 class="text-muted mb-1 text-uppercase small fw-extrabold" style="letter-spacing: 1px;">Parcelas Totales</h6>
-                    <h2 class="display-6 fw-extrabold mb-0" style="color: #1e293b;">85</h2>
+                    <h2 class="display-6 fw-extrabold mb-0" style="color: #1e293b;">{{ $totalParcelas ?? 0 }}</h2>
                     <div class="mt-3 pt-3 border-top border-light">
-                        <a href="#" class="text-warning fw-bold text-decoration-none small d-flex align-items-center">
+                        <a href="{{ route('parcelas.index') }}" class="text-warning fw-bold text-decoration-none small d-flex align-items-center">
                             Ver parcelas <i class="fas fa-chevron-right ms-2" style="font-size: 0.7rem;"></i>
                         </a>
                     </div>
@@ -212,11 +208,11 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-success border border-success-subtle px-2 py-1 fw-bold">
-                                            {{ $a->Tipo }}
+                                            {{ $a->Tipo ?? 'Modificación' }}
                                         </span>
                                     </td>
-                                    <td class="small fw-semibold">{{ $a->Usuario }}</td>
-                                    <td class="text-muted small">{{ Str::limit($a->Descripcion, 50) }}</td>
+                                    <td class="small fw-semibold">{{ $a->NombreUsuario ?? 'Sistema' }}</td>
+                                    <td class="text-muted small">{{ Str::limit($a->Descripcion ?? 'Sin descripción', 50) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -236,22 +232,24 @@
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
                 <div class="card-header bg-white py-4 border-0">
-                    <h5 class="fw-extrabold mb-0 text-primary"><i class="fas fa-calendar-check me-2"></i> Próximas Citas</h5>
+                    <h5 class="fw-extrabold mb-0 text-primary"><i class="fas fa-calendar-check me-2"></i> Próximos Eventos</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        @forelse($proximosEventos as $e)
+                        @forelse($proximosEventos ?? [] as $e)
                             <div class="list-group-item px-4 py-3 border-0">
                                 <div class="d-flex align-items-center">
                                     <div class="event-date-box me-3">
-                                        <div class="fw-extrabold" style="font-size: 1.1rem; line-height: 1;">{{ \Carbon\Carbon::parse($e->FechaInicio)->format('d') }}</div>
-                                        <div class="small fw-bold text-uppercase" style="font-size: 0.6rem;">{{ \Carbon\Carbon::parse($e->FechaInicio)->translatedFormat('M') }}</div>
+                                        <div class="fw-extrabold" style="font-size: 1.1rem; line-height: 1;">{{ \Carbon\Carbon::parse($e->Fecha_Creo)->format('d') }}</div>
+                                        <div class="small fw-bold text-uppercase" style="font-size: 0.6rem;">{{ \Carbon\Carbon::parse($e->Fecha_Creo)->translatedFormat('M') }}</div>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-0 fw-bold small">{{ $e->Tipo }}</h6>
-                                        <p class="mb-0 text-muted" style="font-size: 0.75rem;">{{ Str::limit($e->Descripcion, 30) }}</p>
+                                        <h6 class="mb-0 fw-bold small">{{ $e->Nombre_Evento }}</h6>
+                                        <p class="mb-0 text-muted" style="font-size: 0.75rem;">Categoría: {{ $e->Nombre_Categoria }}</p>
                                     </div>
-                                    <i class="fas fa-chevron-right text-light"></i>
+                                    <a href="{{ route('eventos.index') }}" class="text-decoration-none">
+                                        <i class="fas fa-chevron-right text-muted"></i>
+                                    </a>
                                 </div>
                             </div>
                         @empty
@@ -264,14 +262,15 @@
             <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px; background: #1a1d20;">
                 <div class="card-body p-4 text-center">
                     <div class="mb-3">
-                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold" style="font-size: 0.65rem;">
-                        <i class="fas fa-chart-line me-1"></i>REPORTES 2026
-                    </span>
+                        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold" style="font-size: 0.65rem;">
+                            <i class="fas fa-chart-line me-1"></i>REPORTES {{ $anioActual }}
+                        </span>
                     </div>
                     <h5 class="text-white fw-extrabold mb-3">Estadísticas de Gestión</h5>
                     <p class="text-secondary small mb-4">Visualiza el avance de los repartos, descuentos y faenas del periodo.</p>
-                    <a href="#" class="btn btn-success w-100 py-2 fw-bold" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);">
-                        Generar Reporte Completo
+
+                    <a href="{{ route('concentrado.excel') }}" class="btn btn-success w-100 py-2 fw-bold" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);">
+                        <i class="fas fa-file-excel me-2"></i>Generar Reporte Completo
                     </a>
                 </div>
             </div>
