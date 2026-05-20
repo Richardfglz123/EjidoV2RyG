@@ -33,7 +33,6 @@ class EventoController extends Controller
 
     public function store(Request $request)
     {
-        // Validamos los campos que vimos en tu captura de pantalla
         $request->validate([
             'Nombre_Evento'       => 'required|string|max:100',
             'Id_Categoria_Evento' => 'required',
@@ -107,7 +106,6 @@ class EventoController extends Controller
     }
     public function storeApi(Request $request)
     {
-        // Validamos los datos EXACTOS
         $validated = $request->validate([
             'Nombre_Evento'       => 'required|string|max:100',
             'Id_Categoria_Evento' => 'required|integer',
@@ -126,7 +124,6 @@ class EventoController extends Controller
             return response()->json(['success' => true, 'evento' => $evento]);
 
         } catch (\Exception $e) {
-            // Esto te dirá en el log si falta alguna columna o el ID de categoría no existe
             return response()->json([
                 'success' => false,
                 'message' => "Error de base de datos: " . $e->getMessage()
