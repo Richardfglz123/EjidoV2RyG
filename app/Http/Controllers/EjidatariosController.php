@@ -137,21 +137,27 @@ class EjidatariosController extends Controller
         $request->validate([
             'Num_Ejidatario'   => 'required|integer|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
             'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
-            'Id_usuario'       => 'required|exists:usuario,Id_Usuario', // Asegurar que venga el usuario
         ]);
 
-        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_usuario)->first();
+        // 1. Obtener el ID del usuario correcto.
+        // Si no viene en el request, lo tomamos del registro actual del Ejidatario para no perderlo.
+        $idUsuario = $request->Id_usuario ?? $request->Id_Usuario ?? DB::table('Ejidatario')->where('Id_Ejidatario', $id)->value('Id_usuario');
+
+        // 2. Forzar la consulta al usuario directamente a la base de datos para traer el nombre real y actualizado
+        $user = DB::table('usuario')->where('Id_Usuario', $idUsuario)->first();
 
         if (!$user) {
-            return back()->withInput()->withErrors('El usuario seleccionado no existe.');
+            return back()->withInput()->withErrors('El usuario asociado no existe en la base de datos.');
         }
 
+        // 3. Re-generar el payload limpio con los datos frescos de la BD
         $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
         $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
+        // 4. Actualizar el registro
         DB::table('Ejidatario')->where('Id_Ejidatario', $id)->update([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
-            'qr_payload'       => $payloadQR, // actulziacion del qr en caso de camios
+            'qr_payload'       => $payloadQR, // <-- Aquí se guarda el código de validación corregido
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
             'Num_Interior'     => $request->Num_Interior,
@@ -165,12 +171,12 @@ class EjidatariosController extends Controller
             'Clave_Elector'    => $request->Clave_Elector,
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
-            'Id_usuario'       => $request->Id_usuario,
+            'Id_usuario'       => $idUsuario,
             'Fecha_Modificado' => now(),
             'Id_Modificado'    => session('usuario.username', 'admin')
         ]);
 
-        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado y QR regenerado con éxito.');
+        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado y código QR sincronizado.');
     }
 
     public function destroy($id)
