@@ -113,32 +113,21 @@ class EventoController extends Controller
         ]);
 
         try {
-            DB::beginTransaction(); // Aseguramos que se cree el evento Y la sesión juntos
-
             $evento = Evento::create([
                 'Nombre_Evento'       => $request->Nombre_Evento,
                 'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
                 'Observaciones'       => $request->Observaciones,
-                'Id_Creo'             => 'App_iOS',
+                'Id_Creo'             => 'App_iOS', // Evitamos el error de Id_Creo nulo
                 'Fecha_Creo'          => now(),
             ]);
 
-            $sesion = Sesion::create([
-                'Tipo'          => 'Evento',
-                'Id_Referencia' => $evento->Id_Evento, // Vinculamos la sesión al evento
-                'Fecha'         => now(),
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success'   => true,
-                'id_sesion' => $sesion->Id_Sesion // EL IPHONE DEBE GUARDAR ESTE ID
-            ]);
+            return response()->json(['success' => true, 'evento' => $evento]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => "Error de base de datos: " . $e->getMessage()
+            ], 500);
         }
     }
 }

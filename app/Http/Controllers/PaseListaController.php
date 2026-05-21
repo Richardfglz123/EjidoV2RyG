@@ -71,64 +71,64 @@ class PaseListaController extends Controller
 
     public function marcarAsistencia(Request $request)
     {
-        // Log para depuración: Ver qué recibe exactamente el servidor
-        \Log::info('PaseLista - Datos recibidos:', $request->all());
-
         try {
             $id_recibido = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            // 1. Validación de existencia de datos
-            if (empty($id_recibido) || empty($qr_data)) {
-                return response()->json(['success' => false, 'message' => "Datos de sesión o QR ausentes"]);
+            if (!$id_recibido || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
             }
 
-            // 2. Validación de la Sesión (Forzamos a que sea un ID existente)
-            $sesion = Sesion::find((int)$id_recibido);
+            $sesion = Sesion::find($id_recibido);
 
             if (!$sesion) {
-                \Log::error("PaseLista - Sesión no encontrada en BD con ID: " . $id_recibido);
-                return response()->json(['success' => false, 'message' => "La sesión actual no existe en el sistema."]);
+                $sesion = Sesion::where('Id_Referencia', $id_recibido)
+                    ->orderBy('Fecha', 'desc')
+                    ->first();
             }
 
-            // 3. Limpieza y búsqueda de Ejidatario
-            $cadenaQR = strtoupper(trim($qr_data));
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
+            }
 
+            $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
+            $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
+            $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
+
+            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR ilegible"]);
+
+            $cadenaQR = implode(' ', $palabras);
             $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
+                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
                 ->get()
-                ->sortBy(function($c) use ($cadenaQR) {
-                    $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
-                    return levenshtein($cadenaQR, $nombreCompleto);
-                })
+                ->sortBy(fn($c) => levenshtein($cadenaQR, $c->nombre_normalizado))
                 ->first();
 
-            // Umbral de seguridad (levenshtein < 20 es una coincidencia muy buena)
-            if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
+            if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
-            }
 
-            // 4. Inserción o Actualización (El 'updateOrInsert' previene duplicados y asegura el registro)
-            $registrado = DB::table('PaseLista')->updateOrInsert(
-                [
-                    'Id_Sesion'     => (int)$sesion->Id_Sesion,
-                    'Id_Ejidatario' => (int)$mejorMatch->Id_Ejidatario
-                ],
-                [
-                    'Asistencia' => 1,
-                    'Fecha'      => now()->format('Y-m-d H:i:s')
-                ]
-            );
+            DB::table('PaseLista')
+                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
+                ->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)
+                ->delete();
+
+            DB::table('PaseLista')->insert([
+                'Id_Sesion'     => (int)$sesion->Id_Sesion,
+                'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+                'Asistencia'    => 1,
+                'Fecha'         => now()->format('Y-m-d H:i:s')
+            ]);
 
             return response()->json([
                 'success'  => true,
-                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
+                'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            \Log::error("PaseLista - Error crítico: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => "Error de sistema: " . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
 
