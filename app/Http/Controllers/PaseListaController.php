@@ -37,9 +37,10 @@ class PaseListaController extends Controller
     {
         $request->validate(['id_referencia' => 'required', 'tipo' => 'required']);
 
+        // Buscamos o creamos la sesión única por evento
         $sesion = Sesion::firstOrCreate(
             ['Tipo' => $request->tipo, 'Id_Referencia' => $request->id_referencia],
-            ['Fecha' => $request->fecha ?? now()]
+            ['Fecha' => now()]
         );
 
         $presentes = DB::table('PaseLista as a')
@@ -62,7 +63,6 @@ class PaseListaController extends Controller
 
             if (!$id_sesion || !$qr_data) return response()->json(['success' => false, 'message' => "Datos incompletos"]);
 
-            // Limpieza y búsqueda
             $raw = strtoupper(preg_replace('/[0-9.,-]/', ' ', preg_replace('/\([^)]+\)/', '', str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data))));
             $palabrasLimpias = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && $p !== 'HERM');
 
@@ -80,12 +80,18 @@ class PaseListaController extends Controller
 
             if (!$mejorMatch || $distanciaMinima > 12) return response()->json(['success' => false, 'message' => "No encontrado"]);
 
-            DB::table('PaseLista')->updateOrInsert(
-                ['Id_Sesion' => (int)$id_sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
-                ['Asistencia' => 1, 'Fecha' => now()]
-            );
+            // Registro seguro: Verifica existencia antes de insertar para evitar duplicados
+            $existe = DB::table('PaseLista')->where('Id_Sesion', (int)$id_sesion)->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)->exists();
 
-            // CORRECCIÓN: Aquí enviamos el Num_Ejidatario que causaba el #undefined
+            if (!$existe) {
+                DB::table('PaseLista')->insert([
+                    'Id_Sesion' => (int)$id_sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+                    'Asistencia' => 1,
+                    'Fecha' => now()
+                ]);
+            }
+
             return response()->json([
                 'success'  => true,
                 'num_ejid' => $mejorMatch->Num_Ejidatario,
