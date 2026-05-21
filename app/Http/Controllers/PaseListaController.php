@@ -110,8 +110,14 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
             DB::table('PaseLista')->updateOrInsert(
-                ['Id_Sesion' => (int)$sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
-                ['Asistencia' => 1, 'Fecha' => now()]
+                [
+                    'Id_Sesion' => (int)$sesion->Id_Sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
+                ],
+                [
+                    'Asistencia' => 1,
+                    'Fecha' => DB::raw('NOW()')
+                ]
             );
 
             return response()->json([
