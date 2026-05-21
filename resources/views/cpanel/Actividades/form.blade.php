@@ -30,13 +30,19 @@
             </div>
 
             <div class="col-md-3">
-                <label for="FechaInicio" class="form-label">Fecha de Inicio</label>
+                <label>Fecha de Inicio</label>
+
                 <input type="date"
-                       id="FechaInicio"
                        name="FechaInicio"
+                       class="form-control @error('FechaInicio') is-invalid @enderror"
                        value="{{ old('FechaInicio', $fila->FechaInicio ?? '') }}"
-                       class="form-control"
                        required>
+
+                @error('FechaInicio')
+                <div class="invalid-feedback">
+                    {{ $message }}
+                </div>
+                @enderror
             </div>
 
             <div class="col-md-3">

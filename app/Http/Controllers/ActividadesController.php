@@ -32,8 +32,9 @@ class ActividadesController extends Controller
 
     public function index()
     {
-        // Se recomienda usar paginate si hay muchos registros
-        $actividad = DB::table('Actividad')->get();
+        $actividad = DB::table('Actividad')
+            ->orderBy('Id_Actividad', 'desc')
+            ->get();
         return view('cpanel/Actividades/indexActividad', ['data' => $actividad]);
     }
 
@@ -50,14 +51,36 @@ class ActividadesController extends Controller
     {
         $this->checkPermission('actividades_crear');
 
-        $request->validate([
+        $rules = [
             'Tipo' => 'required|string|max:60',
             'Descripcion' => 'required|string|max:200',
             'FechaInicio' => 'required|date',
             'FechaFin' => 'required|date|after_or_equal:FechaInicio',
             'Estado_Actividad' => 'required|string',
             'Registro_Original' => 'required|date',
-        ]);
+        ];
+
+        $messages = [];
+
+        //Validacion de fechas para Faena
+        if ($request->Tipo == 'Faena') {
+
+            $existeFaena = DB::table('Actividad')
+                ->where('Tipo', 'Faena')
+                ->where('FechaInicio', $request->FechaInicio)
+                ->exists();
+
+            if ($existeFaena) {
+
+                return back()
+                    ->withErrors([
+                        'FechaInicio' => 'Ya existe una faena registrada en esa fecha.'
+                    ])
+                    ->withInput();
+            }
+        }
+
+        $request->validate($rules, $messages);
 
         $sesion = session('usuario', session('2fa_user'));
 
@@ -74,7 +97,8 @@ class ActividadesController extends Controller
             'Id_Creo' => $sesion['nombre_completo'] ?? 'Admin',
         ]);
 
-        return redirect()->route('actividades.index')->with('success', 'Actividad creada correctamente.');
+        return redirect()->route('actividades.index')
+            ->with('success', 'Actividad creada correctamente.');
     }
 
     /**
@@ -148,11 +172,11 @@ class ActividadesController extends Controller
     {
         $data = $this->filtrar($request);
         $pdf = Pdf::loadView('cpanel/reportes/reporteActividades', compact('data'));
-        return $pdf->stream('reporte_actividades.pdf');
+        return $pdf->stream('Reporte_Actividades.pdf');
     }
 
     public function reporteExcel(Request $request)
     {
-        return Excel::download(new ActividadesExport($request), 'actividades.xlsx');
+        return Excel::download(new ActividadesExport($request), 'Actividades.xlsx');
     }
 }
