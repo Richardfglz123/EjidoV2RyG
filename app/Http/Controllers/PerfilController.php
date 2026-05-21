@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class PerfilController extends Controller
 {
@@ -154,7 +155,7 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        // 1. Recuperamos el ID con el plan de rescate que ya nos funcionó
+        // 1. Recuperar el ID del usuario de forma segura
         $userId = null;
         if ($request->user()) {
             $userId = $request->user()->Id_usuario ?? $request->user()->id;
@@ -172,36 +173,44 @@ class PerfilController extends Controller
         }
 
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado por el sistema.'], 401);
+            return response()->json(['ok' => false, 'error' => 'No autorizado.'], 401);
         }
 
-        // 2. Mapeo tolerante de inputs (por si Swift manda 'correo' o 'Correo', etc.)
-        $inputCorreo = $request->input('Correo') ?? $request->input('correo');
-        $inputTelefono = $request->input('Telefono') ?? $request->input('telefono');
-        $inputNombreCompleto = $request->input('nombre') ?? $request->input('Nombre');
+        // 2. Extraer y limpiar los valores vengan como vengan (mayúsculas o minúsculas de Swift)
+        $correo = trim($request->input('Correo') ?? $request->input('correo') ?? '');
+        $telefono = trim($request->input('Telefono') ?? $request->input('telefono') ?? '');
+        $nombreCompleto = trim($request->input('nombre') ?? $request->input('Nombre') ?? '');
 
-        // Forzamos al request a tener los datos unificados en las variables correctas antes de validar
-        $request->merge([
-            'Correo' => $inputCorreo,
-            'Telefono' => $inputTelefono,
-            'nombre' => $inputNombreCompleto
-        ]);
+        // 3. Crear un validador manual para controlar el JSON de error en las APIs móviles
+        $datosAValidar = [
+            'nombre' => $nombreCompleto,
+            'Telefono' => $telefono,
+            'Correo' => $correo,
+        ];
 
-        // 3. Validamos usando la clase Rule (Mucho más estricta e infalible)
-        $request->validate([
+        $reglas = [
             'nombre' => 'required|string|max:255',
             'Telefono' => 'required',
             'Correo' => [
                 'required',
                 'email',
-                // 🚀 ESTA SINTAXIS ES INFALIBLE:
-                // Busca en la tabla 'usuario', en la columna 'Correo', pero ignora donde 'Id_usuario' sea igual a tu $userId
                 Rule::unique('usuario', 'Correo')->ignore($userId, 'Id_usuario')
             ],
-        ]);
+        ];
 
-        // 4. Separar el nombre completo en partes para tu base de datos
-        $partesNombre = explode(' ', trim($request->nombre));
+        $validator = Validator::make($datosAValidar, $reglas);
+
+        // 4. 🚀 SI FALLA LA VALIDACIÓN: No redirigimos, devolvemos un JSON directo para que Swift no se congele
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Error de validación en los datos.',
+                'detalles' => $validator->errors() // 👈 Esto le dirá a Xcode exactamente qué pasó
+            ], 422);
+        }
+
+        // 5. Procesar nombres para tu BD tradicional
+        $partesNombre = explode(' ', $nombreCompleto);
         $nombres = $partesNombre[0];
         $paterno = isset($partesNombre[1]) ? $partesNombre[1] : '';
         $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '';
@@ -210,31 +219,29 @@ class PerfilController extends Controller
             'Nombres' => $nombres,
             'Apellido_Paterno' => $paterno,
             'Apellido_Materno' => $materno,
-            'Correo' => $request->Correo,
-            'Telefono' => $request->Telefono,
+            'Correo' => $correo,
+            'Telefono' => $telefono,
             'Fecha_Modificado' => now(),
         ];
 
-        // Manejo de la foto si es que se envía en esta petición
+        // Subida de foto opcional
         if ($request->hasFile('foto_perfil')) {
             $file = $request->file('foto_perfil');
-
             $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
             if ($userRecord && $userRecord->foto) {
                 Storage::disk('public')->delete($userRecord->foto);
             }
-
             $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('perfiles', $nombreArchivo, 'public');
             $datosActualizar['foto'] = $path;
         }
 
-        // 5. Guardar los cambios finales
+        // 6. Guardar cambios
         DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Campos de identidad actualizados con éxito.'
+            'message' => 'Perfil actualizado con éxito.'
         ]);
     }
 }
