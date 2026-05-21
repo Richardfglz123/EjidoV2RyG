@@ -89,22 +89,26 @@ class PaseListaController extends Controller
                 ]
             );
 
-            // 1. LIMPIEZA INTERGELENTE DEL QR
             $raw = strtoupper($qr_data);
 
-            // Reemplazos ortográficos comunes (Normalizamos S, Z, C y acentos)
-            $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'];
-            $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'];
+            // Normalización ortográfica base (S, Z, C y acentos)
+            $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'C'];
+            $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S'];
             $raw = str_replace($buscar, $reemplazar, $raw);
 
-            // Eliminamos lo que esté entre paréntesis (ej: "(CALANZINGO)")
-            $raw = preg_replace('/\([^)]+\)/', '', $raw);
+            // EXTRAEMOS EL NÚMERO DEL QR SI EXISTE (Ej: "1" o "2")
+            preg_match('/\b([0-9])\b/', $raw, $coincidenciaNumero);
+            $numeroQR = isset($coincidenciaNumero[1]) ? $coincidenciaNumero[1] : null;
 
-            // Quitamos números, puntos, comas, guiones
-            $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
+            // EXTRAEMOS TEXTO ENTRE PARÉNTESIS SI EXISTE (Ej: "CALANZINGO")
+            preg_match('/\(([^)]+)\)/', $raw, $coincidenciaParentesis);
+            $textoParentesis = isset($coincidenciaParentesis[1]) ? trim($coincidenciaParentesis[1]) : null;
 
-            // Rompemos en palabras, quitamos "HERM" y espacios vacíos
-            $palabras = explode(' ', $raw);
+            // LIMPIEZA PARA EL TEXTO DEL NOMBRE
+            $textoNombre = preg_replace('/\([^)]+\)/', '', $raw); // Quitamos paréntesis
+            $textoNombre = preg_replace('/[0-9.,-]/', ' ', $textoNombre); // Quitamos números y signos
+
+            $palabras = explode(' ', $textoNombre);
             $palabrasLimpias = array_filter($palabras, function($p) {
                 $p = trim($p);
                 return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
@@ -114,23 +118,23 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "El QR no contiene un nombre reconocible."]);
             }
 
-            // Esta es la cadena limpia del QR que vamos a emparejar (Ej: "FELIX SUARES OSORIO")
             $cadenaQR = implode(' ', $palabrasLimpias);
 
-            // 2. BUSQUEDA DE CANDIDATOS EN LA BASE DE DATOS
-            // Traemos a todos los usuarios que compartan AL MENOS una palabra clave (para no saturar la memoria)
+            // CONSULTA BASE DE CANDIDATOS
             $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
 
-            // Creamos la misma normalización en la BD (S, Z, C se vuelven S para evitar errores de dedo)
-            $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
+            $concatBD = "REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S')";
 
+            // Filtramos candidatos que tengan al menos una palabra clave
             $query->where(function($q) use ($palabrasLimpias, $concatBD) {
                 foreach ($palabrasLimpias as $palabra) {
                     $q->orWhere(\Illuminate\Support\Facades\DB::raw($concatBD), 'LIKE', "%$palabra%");
                 }
             });
 
+            // Si el QR trae un número (como el 2), priorizamos traer ejidatarios cuyo Num_Ejidatario termine o contenga ese número,
+            // o buscamos si el número o el texto entre paréntesis está guardado en alguna columna (como observaciones o el mismo nombre)
             $candidatos = $query->select(
                 'e.Id_Ejidatario',
                 'e.Num_Ejidatario',
@@ -140,25 +144,50 @@ class PaseListaController extends Controller
                 \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado")
             )->get();
 
-            // 3. EL TRUCO MAESTRO: Encontrar el match más cercano usando la distancia de Levenshtein
             $mejorMatch = null;
-            $distanciaMinima = 999; // Buscamos la menor diferencia de letras posible
+            $distanciaMinima = 999;
 
             foreach ($candidatos as $candidato) {
-                // Calculamos cuántas letras de diferencia hay entre el QR y el nombre de la BD
+                // CALCULAMOS LA DISTANCIA BASE
                 $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
 
-                // Si es una coincidencia exacta o la más cercana encontrada hasta ahora
+                // --- SISTEMA DE PENALIZACIÓN / RECOMPENSA POR NÚMERO ---
+                if ($numeroQR !== null) {
+                    // Si el número del QR (ej: 2) coincide con el último dígito del número de ejidatario, le damos prioridad máxima
+                    if (str_ends_with((string)$candidato->Num_Ejidatario, $numeroQR)) {
+                        $distancia -= 5; // Le restamos distancia para forzar que sea el elegido
+                    } else {
+                        $distancia += 5; // Lo penalizamos si no coincide el número
+                    }
+                }
+
+                // Si hay texto entre paréntesis en el QR (como CALANZINGO), y por suerte coincide con parte de los campos de la BD
+                if ($textoParentesis !== null) {
+                    $camposUsuario = strtoupper($candidato->Nombres . $candidato->Apellido_Paterno . $candidato->Apellido_Materno);
+                    if (str_contains($camposUsuario, $textoParentesis)) {
+                        $distancia -= 10; // Súper prioridad
+                    }
+                }
+
                 if ($distancia < $distanciaMinima) {
                     $distanciaMinima = $distancia;
                     $mejorMatch = $candidato;
                 }
             }
 
-            // Margen de tolerancia: Si el nombre difiere en demasiadas letras, asumimos que no es nadie
-            // Un valor de 12 permite pequeños errores ortográficos o segundos nombres ausentes.
-            if (!$mejorMatch || $distanciaMinima > 12) {
-                return response()->json(['success' => false, 'message' => "No se encontró un usuario con suficiente similitud para: '$cadenaQR'"]);
+            // Si las distancias empatan o son muy altas por las penalizaciones, hacemos un desempate estricto por ID de Ejidatario
+            // (Los números 2 suelen tener IDs más altos en la BD que los números 1 porque se crearon después)
+            if ($numeroQR === "2" && $mejorMatch) {
+                // Buscamos si hay otro candidato con el mismo nombre exacto pero con un ID más alto (el segundo registro)
+                foreach ($candidatos as $candidato) {
+                    if ($candidato->nombre_normalizado === $mejorMatch->nombre_normalizado && $candidato->Id_Ejidatario > $mejorMatch->Id_Ejidatario) {
+                        $mejorMatch = $candidato; // Nos quedamos con el segundo registro (Félix 2)
+                    }
+                }
+            }
+
+            if (!$mejorMatch) {
+                return response()->json(['success' => false, 'message' => "No se encontró un usuario válido para: '$cadenaQR'"]);
             }
 
             $ejidatario = $mejorMatch;
