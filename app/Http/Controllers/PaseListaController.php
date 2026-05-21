@@ -61,7 +61,15 @@ class PaseListaController extends Controller
             ->orderBy('a.Fecha', 'desc')
             ->get()
             ->map(function ($p) {
-                $p->Hora = \Carbon\Carbon::parse($p->Fecha)->format('H:i:s');
+                // Si la fecha es igual a la fecha de hoy pero la hora es 00:00:00,
+                // mostramos al menos la hora actual o un mensaje.
+                // PERO: Si la fecha guardada NO tiene hora, Carbon devolverá 00:00:00.
+                $fecha = \Carbon\Carbon::parse($p->Fecha);
+
+                // FORZADO: Si la hora es exactamente 00:00:00, intentamos ver si el campo
+                // tiene información oculta o simplemente mostramos que no hay hora.
+                $p->Hora = ($fecha->format('H:i:s') === '00:00:00') ? "Sin hora" : $fecha->format('H:i:s');
+
                 return $p;
             });
 
