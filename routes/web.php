@@ -331,12 +331,11 @@ Route::get('ver-expediente/{path}', function ($path) {
 
 
 //  MÓDULO GESTION DE EXPEDIENTES
-Route::prefix('admon/ejidatarios')->group(function () {
-    Route::get('/nuevo', [EjidatarioController::class, 'create'])->name('ejidatarios.create');
+
 Route::prefix('admon/expedientes')->group(function () {
 
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
-
+    Route::get('/admon/expedientes/nuevo', [ExpedienteController::class, 'create'])->name('ejidatarios.create');
     Route::middleware(['permiso:expedientes_crear'])->group(function () {
         Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
         Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
