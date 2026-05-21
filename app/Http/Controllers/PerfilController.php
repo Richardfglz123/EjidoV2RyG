@@ -36,7 +36,6 @@ class PerfilController extends Controller
         $userId = session('usuario.id');
 
         $request->validate([
-            // Cambiamos a 'Usuario' con mayúscula para que coincida con tu Blade
             'Usuario' => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
             'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono' => 'required|numeric',
@@ -44,7 +43,7 @@ class PerfilController extends Controller
         ]);
 
         $data = [
-            'usuario' => $request->Usuario, // Coincide con el input del Blade
+            'usuario' => $request->Usuario,
             'Correo' => $request->Correo,
             'Telefono' => $request->Telefono,
             'Fecha_Modificado' => now(),
@@ -56,7 +55,6 @@ class PerfilController extends Controller
                 Storage::disk('public')->delete($userRecord->foto);
             }
 
-            // Guardamos y actualizamos sesión
             $path = $request->file('foto')->store('perfiles', 'public');
             $data['foto'] = $path;
             session(['usuario.foto' => $path]);
@@ -74,20 +72,16 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // 1. Intentamos la vía normal de Sanctum
         $userId = null;
         if ($request->user()) {
             $userId = $request->user()->Id_usuario ?? $request->user()->id;
         }
 
-        // 2. 🚀 PLAN DE RESCATE: Si Sanctum no devolvió el usuario por incompatibilidad de modelos,
-        // leemos el token directamente de la cabecera HTTP "Authorization"
+
         if (!$userId) {
-            $headerToken = $request->bearerToken(); // Extrae la cadena limpia del token (sin el "Bearer ")
+            $headerToken = $request->bearerToken();
 
             if ($headerToken) {
-                // Buscamos el token en la tabla de Sanctum utilizando el hash SHA256 que Laravel usa internamente
-                // Nota: Los tokens de Sanctum vienen en formato "id|token_real". Separamos si tiene pipa.
                 $tokenActual = str_contains($headerToken, '|') ? explode('|', $headerToken)[1] : $headerToken;
 
                 $accessToken = DB::table('personal_access_tokens')
@@ -95,13 +89,11 @@ class PerfilController extends Controller
                     ->first();
 
                 if ($accessToken) {
-                    // 'tokenable_id' guarda el Id_usuario de la persona que se logueó
                     $userId = $accessToken->tokenable_id;
                 }
             }
         }
 
-        // 3. Si de plano no hay ID tras agotar recursos, devolvemos el fallo
         if (!$userId) {
             return response()->json([
                 'ok' => false,
@@ -109,7 +101,6 @@ class PerfilController extends Controller
             ], 401);
         }
 
-        // 4. Tu consulta se mantiene igual, trayendo los datos usando la variable blindada
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
             ->where('u.Id_usuario', '=', $userId)
@@ -123,7 +114,6 @@ class PerfilController extends Controller
             ], 404);
         }
 
-        // Mapeo consistente a un array para evitar problemas de mayúsculas/minúsculas del driver
         $uArray = (array) $usuario;
 
         $nombres = $uArray['Nombres'] ?? $uArray['nombres'] ?? '';
@@ -155,23 +145,18 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        // 1. DEPURACIÓN: Registro de qué está llegando al servidor
-        // Revisa storage/logs/laravel.log después de intentar guardar
         \Log::info('Intento de update API', [
             'headers' => $request->headers->all(),
             'has_bearer' => $request->hasHeader('Authorization'),
             'user_id_sanctum' => $request->user() ? $request->user()->id : 'null'
         ]);
 
-        // 2. RECUPERACIÓN DE USUARIO (Versión Robusta)
         $userId = null;
 
-        // Intento A: Vía Sanctum estándar
         if ($request->user()) {
             $userId = $request->user()->Id_usuario ?? $request->user()->id;
         }
 
-        // Intento B: Vía Token manual (Si Sanctum falla por configuración de modelo)
         if (!$userId) {
             $headerToken = $request->bearerToken();
             if ($headerToken) {
@@ -185,7 +170,6 @@ class PerfilController extends Controller
             }
         }
 
-        // Si aún no tenemos ID, devolvemos el error con detalle
         if (!$userId) {
             return response()->json([
                 'ok' => false,
@@ -194,13 +178,10 @@ class PerfilController extends Controller
             ], 401);
         }
 
-        // 3. EXTRACCIÓN DE DATOS (Más segura)
-        // Usamos $request->get() para capturar datos tanto de JSON como de Form-Data
         $correo = trim($request->get('Correo') ?? $request->get('correo') ?? '');
         $telefono = trim($request->get('Telefono') ?? $request->get('telefono') ?? '');
         $nombreCompleto = trim($request->get('nombre') ?? $request->get('Nombre') ?? '');
 
-        // 4. VALIDACIÓN
         $validator = Validator::make([
             'nombre' => $nombreCompleto,
             'Telefono' => $telefono,
@@ -219,7 +200,6 @@ class PerfilController extends Controller
             ], 422);
         }
 
-        // 5. PROCESAMIENTO
         $partesNombre = explode(' ', $nombreCompleto);
         $datosActualizar = [
             'Nombres' => $partesNombre[0],
@@ -230,7 +210,6 @@ class PerfilController extends Controller
             'Fecha_Modificado' => now(),
         ];
 
-        // Subida de imagen
         if ($request->hasFile('foto_perfil')) {
             $file = $request->file('foto_perfil');
             // Eliminar anterior
@@ -242,13 +221,12 @@ class PerfilController extends Controller
             $datosActualizar['foto'] = $path;
         }
 
-        // 6. ACTUALIZACIÓN
         $actualizado = DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
 
         return response()->json([
             'ok' => true,
             'message' => 'Perfil actualizado correctamente.',
-            'debug_actualizado' => $actualizado // Para saber si realmente cambió algo en la BD
+            'debug_actualizado' => $actualizado
         ]);
     }
 }
