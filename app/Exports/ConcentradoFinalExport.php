@@ -13,8 +13,8 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
 {
     public function collection()
     {
-        // Forzamos los nombres exactos que tú necesitas
-        $nombresEventos = [
+        // 1. Nombres exactos de las asambleas (Deben coincidir con tu BD)
+        $nombresAsambleas = [
             'ASAMBLEA ELECCION 30/10/24',
             'ASAMBLEA EXTRAORDINARIA 20/11/24',
             'ASAMBLEA 18 DICIEMBRE',
@@ -24,27 +24,19 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
             'ASAMBLEA SEPTIEMBRE CORTE DE CAJA'
         ];
 
-        // Obtener datos globales
-        $montoR2 = DB::table('Utilidad')->where('Id_Utilidad', 2)->value('Monto') ?? 3000;
-        $costoAsamblea = DB::table('Catalogo_Multa')->where('Tipo', 'Asamblea')->orderBy('Año', 'desc')->value('Costo') ?? 0;
-        $costoFaena = DB::table('Catalogo_Multa')->where('Tipo', 'Faena')->orderBy('Año', 'desc')->value('Costo') ?? 0;
-
-        // Mapear eventos a IDs de sesión
-        $sesionesMap = [];
-        foreach ($nombresEventos as $nombre) {
-            $sesion = DB::table('Sesion')
-                ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-                ->where('Evento.Nombre_Evento', 'LIKE', '%' . $nombre . '%')
-                ->first();
-            $sesionesMap[$nombre] = $sesion ? $sesion->Id_Sesion : null;
-        }
-
         return DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->leftJoin('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
             ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'es.Estatus as NombreEstatus')
             ->get()
-            ->map(function ($ejid) use ($sesionesMap, $costoAsamblea, $montoR2) {
+            ->map(function ($ejid) use ($nombresAsambleas) {
+
+                $montoR2 = 3000;
+
+                // Cálculo de deuda R1 (Prestamo - Abono)
+                $totalPrestamoR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
+                $totalAbonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto');
+                $deudaR1 = max(0, $totalPrestamoR1 - $totalAbonosR1);
 
                 $fila = [
                     'No' => $ejid->Id_Ejidatario,
@@ -53,32 +45,29 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                 ];
 
                 $totalDescJuntas = 0;
-                foreach ($sesionesMap as $idSesion) {
-                    $asistio = $idSesion ? DB::table('PaseLista')
-                        ->where('Id_Sesion', $idSesion)
-                        ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
-                        ->where('Asistencia', 1)
-                        ->exists() : false;
-
-                    $multa = (!$asistio && $idSesion) ? $costoAsamblea : 0;
+                foreach ($nombresAsambleas as $nombre) {
+                    $evento = DB::table('Evento')->where('Nombre_Evento', 'LIKE', '%' . $nombre . '%')->first();
+                    $multa = 0;
+                    if ($evento) {
+                        $sesion = DB::table('Sesion')->where('Id_Referencia', $evento->Id_Evento)->first();
+                        $asistio = $sesion ? DB::table('PaseLista')->where('Id_Sesion', $sesion->Id_Sesion)->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->exists() : false;
+                        if (!$asistio) {
+                            $multa = DB::table('Catalogo_Multa')->where('Tipo', 'Asamblea')->orderBy('Año', 'desc')->value('Costo') ?? 0;
+                        }
+                    }
                     $fila[] = $multa > 0 ? $multa : '';
                     $totalDescJuntas += $multa;
                 }
 
-                // Cálculo de deuda real
-                $prestamoR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
-                $abonoR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto');
-                $deudaR1 = max(0, $prestamoR1 - $abonoR1);
-
-                $fila['Saneamiento'] = 0;
-                $fila['R1'] = $deudaR1; // Deuda R1
+                $fila['RepartoSaneamiento'] = 0;
+                $fila['R1'] = $deudaR1;
                 $fila['R2'] = $montoR2;
                 $fila['Finiquito'] = 0;
-                $fila['F_San'] = 0;
-                $fila['F_Apr'] = 0;
-                $fila['Desc_Juntas'] = $totalDescJuntas;
-                $fila['Desc_Faenas'] = 0;
-                $fila['Total_Pagar'] = $montoR2 - ($totalDescJuntas + $deudaR1);
+                $fila['FaenaSan'] = 0;
+                $fila['FaenaApr'] = 0;
+                $fila['DescJuntas'] = $totalDescJuntas;
+                $fila['DescFaenas'] = 0;
+                $fila['TotalPagar'] = $montoR2 - ($totalDescJuntas + $deudaR1);
 
                 return $fila;
             });
@@ -88,7 +77,7 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     {
         return [
             ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS ' . now()->year],
-            ['No.', 'NOMBRE', 'SITUACION', 'ASAMBLEA ELECCION 30/10/24', 'ASAMBLEA EXTRAORDINARIA 20/11/24', 'ASAMBLEA 18 DICIEMBRE', 'ASAMBLEA ENERO', 'ASAMBLEA MARZO', 'ASAMBLEA JUNIO', 'ASAMBLEA SEPTIEMBRE CORTE DE CAJA', 'REPARTO DE FINIQUITO DEL SANEAMIENTO', '1ER. REPARTO DE UTILIDAD', '2do. REPARTO DE UTILIDAD', 'FINIQUITO DE UTILIDAD', 'FAENAS SANEAMIENTO', 'FAENAS APROVECHAMIENTO', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
+            ['No.', 'NOMBRE DE EJIDATARIO', 'SITUACION', 'ASAMBLEA ELECCION 30/10/24', 'ASAMBLEA EXTRAORDINARIA 20/11/24', 'ASAMBLEA 18 DICIEMBRE', 'ASAMBLEA ENERO', 'ASAMBLEA MARZO', 'ASAMBLEA JUNIO', 'ASAMBLEA SEPTIEMBRE CORTE DE CAJA', 'REPARTO DE FINIQUITO DEL SANEAMIENTO', '1ER. REPARTO DE UTILIDAD', '2do. REPARTO DE UTILIDAD', 'FINIQUITO DE UTILIDAD', 'FAENAS SANEAMIENTO', 'FAENAS APROVECHAMIENTO', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
         ];
     }
 
