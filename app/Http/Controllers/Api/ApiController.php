@@ -82,18 +82,22 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'Código inválido para este correo'], 401);
         }
 
-        $user = DB::table('usuario')->where('Correo', $emailLimpio)->first();
+        // 🔑 CAMBIO: Buscamos con el Modelo Eloquent para poder generar un token de Sanctum válido
+        $user = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$user) {
             return response()->json(['ok' => false, 'error' => 'No existe un usuario con ese correo'], 404);
         }
 
+        // Limpiamos el código ya usado
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
-        // 3. RESPUESTA DINÁMICA
+        // 🔑 MAGIA SANCTUM: Generamos un token alfanumérico encriptado real
+        $tokenReal = $user->createToken('ios-device-2fa')->plainTextToken;
+
         return response()->json([
             'ok' => true,
-            'token' => (string)$user->Id_Usuario,
+            'token' => $tokenReal,
             'user' => [
                 'nombre' => $user->Nombres,
                 'email' => $user->Correo
