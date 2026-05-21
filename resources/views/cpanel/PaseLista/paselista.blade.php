@@ -77,7 +77,7 @@
                             $asistieron = $s->asistencias_count ?? 0;
                             $ausentes = max(0, $totalEjidatarios - $asistieron);
 
-                            $categoriaNombre = $s->evento->categoria->Nombre_Categoria ?? $s->Nombre_Categoria ?? null;
+                            $categoriaNombre = $s->evento->categoria->Nombre_Categoria ?? null;
 
                             $badgeColor = 'bg-secondary';
                             if (str_contains(strtolower($categoriaNombre), 'faena')) {
@@ -92,8 +92,7 @@
                             </td>
                             <td>
                                 <div class="fw-bold text-ejidal">
-                                    {{ $s->evento->Nombre_Evento ?? 'Evento Eliminado (#'.$s->Id_Referencia.')' }}
-                                </div>
+                                    {{ $s->evento ? $s->evento->Nombre_Evento : 'Evento Eliminado (#' . $s->Id_Referencia . ')' }}                                </div>
                             </td>
                             <td class="text-center">
                                 @if($categoriaNombre)

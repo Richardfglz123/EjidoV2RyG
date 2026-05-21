@@ -21,10 +21,7 @@ class PaseListaController extends Controller
 
         $totalEjidatarios = Ejidatario::count();
 
-        $sesiones = Sesion::with('evento')
-            ->leftJoin('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
-            ->leftJoin('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
-            ->select('Sesion.*', 'c.Nombre_Categoria')
+        $sesiones = Sesion::with(['evento.categoria'])
             ->addSelect([
                 'asistencias_count' => DB::table('PaseLista')
                     ->whereColumn('Id_Sesion', 'Sesion.Id_Sesion')
