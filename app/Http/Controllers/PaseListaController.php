@@ -21,14 +21,18 @@ class PaseListaController extends Controller
 
         $totalEjidatarios = Ejidatario::count();
 
-        // Usamos una consulta más directa para asegurar que cuente bien
+        // 1. Obtenemos todas las sesiones
         $sesiones = Sesion::with(['evento.categoria'])->orderBy('Fecha', 'desc')->get();
 
-        // Hacemos el conteo manualmente para evitar errores de SQL si los modelos están complejos
+        // 2. Mapeamos los conteos manualmente consultando la tabla PaseLista
+        // directamente por el ID de la Sesión de forma explícita
         foreach ($sesiones as $sesion) {
-            $sesion->total_asistencias = DB::table('PaseLista')
-                ->where('Id_Sesion', $sesion->Id_Sesion)
+            $count = DB::table('PaseLista')
+                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
                 ->count();
+
+            $sesion->total_asistencias = $count;
+            $sesion->total_ausentes = $totalEjidatarios - $count;
         }
 
         return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
