@@ -17,57 +17,84 @@ class Reparto2Controller extends Controller
     {
         $reparto2 = Utilidad::find($this->idUtilidadReparto2);
         $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
+        $anoActual = now()->year;
 
-        // Obtenemos los costos actuales
-        $precios = CatalogoMulta::all();
+        $precios = CatalogoMulta::where('Año', $anoActual)->get();
         $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
         $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
 
-        // 1. OBTENCIÓN DINÁMICA DE SESIONES
-        // En lugar de filtrar por categoría 1 o año, buscamos todas las sesiones de tipo evento
-        // Y las clasificamos dinámicamente si tienen categoría 1 o no.
-        $sesionesEventos = DB::table('Sesion')
+        $sesionesAsambleasIds = DB::table('Sesion')
             ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
             ->where('Sesion.Tipo', 'Evento')
-            ->select('Sesion.Id_Sesion', 'Evento.Id_Categoria_Evento')
-            ->get();
+            ->pluck('Sesion.Id_Sesion')->toArray();
 
-        $sesionesAsambleasIds = $sesionesEventos->where('Id_Categoria_Evento', 1)->pluck('Id_Sesion')->toArray();
-        $sesionesFaenasIds = $sesionesEventos->where('Id_Categoria_Evento', '!=', 1)->pluck('Id_Sesion')->toArray();
+        $sesionesFaenasIds = DB::table('Sesion')
+            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+            ->where('Evento.Id_Categoria_Evento', '!=', 1)
+            ->whereYear('Evento.Fecha_Creo', $anoActual)
+            ->where('Sesion.Tipo', 'Evento')
+            ->pluck('Sesion.Id_Sesion')->toArray();
 
-        // 2. Consulta de Ejidatarios
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno');
+            ->select(
+                'e.Id_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno'
+            );
 
         if ($request->filled('query')) {
             $search = trim($request->get('query'));
             $query->where(function($q) use ($search) {
                 $q->where('u.Nombres', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
-                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%");
+                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%")
+                    ->orWhere(DB::raw("CONCAT(u.Nombres, ' ', u.Apellido_Paterno, ' ', u.Apellido_Materno)"), 'LIKE', "%{$search}%");
             });
         }
 
-        $ejidatarios = $query->paginate(15)->withQueryString();
+        $ejidatarios = $query->paginate(15);
 
-        // 3. Procesamiento
         $ejidatarios->getCollection()->transform(function ($ejidatario) use ($montoFijoR2, $sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena) {
 
-            // ... (Tu lógica de préstamos R1 se mantiene igual)
-            $totalPrestamoR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)->where('Id_Utilidad', $this->idUtilidadReparto1)->sum('Cantidad') ?? 0;
-            $totalAbonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejidatario->Id_Ejidatario)->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)->sum('Abono.Monto') ?? 0;
-            $ejidatario->deuda_arrastrada_r1 = max(0, $totalPrestamoR1 - $totalAbonosR1);
+            $totalPrestamoR1 = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->sum('Cantidad') ?? 0;
 
-            // Obtener asistencias
+            $totalAbonosR1 = DB::table('Abono')
+                ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
+                ->where('Prestamo.Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
+                ->sum('Abono.Monto') ?? 0;
+
+            $deudaRealRestante = max(0, $totalPrestamoR1 - $totalAbonosR1);
+
+            $ejidatario->deuda_arrastrada_r1 = $deudaRealRestante;
+
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNotNull('Id_Sesion')
-                ->pluck('Id_Sesion')->toArray();
+                ->pluck('Id_Sesion')
+                ->toArray();
 
-            $reprosAsambleas = DB::table('PaseLista')->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 1)->count();
-            $reprosFaenas = DB::table('PaseLista')->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 2)->count();
+            $reprosAsambleas = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->whereNull('Id_Sesion')
+                ->where('Id_Actividad', 1)
+                ->count();
+
+            $reprosFaenas = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->whereNull('Id_Sesion')
+                ->where('Id_Actividad', 2)
+                ->count();
 
             $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
             $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
@@ -82,8 +109,6 @@ class Reparto2Controller extends Controller
 
         return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
     }
-
-
     public function posponerSiguienteAnio($id)
     {
         try {
