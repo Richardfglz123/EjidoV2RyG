@@ -74,7 +74,6 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            // Obtenemos los datos sin importar si vienen por GET o POST
             $id_referencia = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
@@ -82,7 +81,6 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "Faltan datos (ID: $id_referencia)"]);
             }
 
-            // Verifica o crea la sesión del día
             $sesion = \App\Models\Sesion::firstOrCreate(
                 [
                     'Tipo'          => 'Evento',
@@ -91,55 +89,55 @@ class PaseListaController extends Controller
                 ]
             );
 
-            // 1. LIMPIEZA DEL QR: Convertimos a mayúsculas y removemos acentos comunes
+            // 1. NORMALIZACIÓN DEL QR
             $raw = strtoupper($qr_data);
             $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'];
             $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N'];
             $raw = str_replace($buscar, $reemplazar, $raw);
 
-            // Dejamos únicamente letras de la A a la Z, números y espacios (eliminamos paréntesis, puntos, comas)
-            $limpioQR = preg_replace('/[^A-Z0-9 ]/', '', $raw);
+            // Limpieza inicial: removemos paréntesis y lo que tengan dentro, puntos y comas
+            // Esto elimina limpiamente "(CALANZINGO)" o "(CUALQUIER_COSA)"
+            $raw = preg_replace('/\([^)]+\)/', '', $raw);
+            $raw = str_replace(['.', ',', '-'], ' ', $raw);
 
-            // 2. SEGMENTACIÓN: Rompemos la cadena del QR en palabras individuales
-            $palabras = array_filter(explode(' ', $limpioQR));
+            // 2. ELIMINACIÓN DE RUIDO ESPECÍFICO (Números sueltos y marcas de lista)
+            // Filtramos números, letras solas o etiquetas como HERM, SERGIO 1, FELIX 2 al inicio/medio
+            $palabras = explode(' ', $raw);
+            $basura = ['HERM', 'SERGIO', 'FELIX', '1', '2', '3', '4', '5'];
 
-            // Palabras o anotaciones comunes en tus QR que debemos ignorar para que no estorben en la búsqueda
-            $basuraQR = ['HERM', 'CALANZINGO', 'SERGIO', 'FELIX'];
-
-            // 3. FILTRADO: Quitamos números sueltos, letras solas (como la de J.) y palabras basura
-            $palabrasFiltradas = array_filter($palabras, function($palabra) use ($basuraQR) {
-                return !is_numeric($palabra) && strlen($palabra) > 1 && !in_array($palabra, $basuraQR);
+            $palabrasLimpias = array_filter($palabras, function($p) use ($basura) {
+                $p = trim($p);
+                return $p !== '' && !in_array($p, $basura) && !is_numeric($p);
             });
 
-            // Si por alguna razón el filtro se queda vacío, respaldamos con las palabras originales limpias
-            if (empty($palabrasFiltradas)) {
-                $palabrasFiltradas = array_filter($palabras, function($palabra) {
-                    return !is_numeric($palabra);
-                });
+            // Reconstruimos la frase limpia (Ej: "JULIA CABALLERO PEREZ" o "SUAREZ OSORIO")
+            $fraseBuscar = implode(' ', $palabrasLimpias);
+
+            if (empty($fraseBuscar)) {
+                return response()->json(['success' => false, 'message' => "El QR no contiene un nombre válido reconocible."]);
             }
 
-            // 4. CONSULTA DINÁMICA: Construimos la búsqueda en la base de datos
-            $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
-                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
+            // 3. CONSULTA ESTRICTA PERO FLEXIBLE
+            // Concatenamos los datos de la BD de dos formas distintas para cubrir variaciones de orden comunes
+            $nombreOrdenNatural = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno))");
+            $nombreOrdenApellidos = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Apellido_Paterno, u.Apellido_Materno, u.Nombres))");
 
-            // Creamos un contenedor de texto completo con los campos del usuario para buscar en él
-            $concatColumn = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno))");
-
-            // Cada palabra clave filtrada (como 'JULIA', 'CABALLERO', 'PEREZ') se vuelve una condición obligatoria
-            foreach ($palabrasFiltradas as $palabra) {
-                $query->where($concatColumn, 'LIKE', "%$palabra%");
-            }
-
-            $ejidatario = $query->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno')
+            $ejidatario = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
+                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+                ->where(function($query) use ($fraseBuscar, $nombreOrdenNatural, $nombreOrdenApellidos) {
+                    // Ahora buscamos la FRASE COMPLETA. Así "SUAREZ OSORIO" no morderá a "ARCADIO SUAREZ".
+                    $query->where($nombreOrdenNatural, 'LIKE', "%$fraseBuscar%")
+                        ->orWhere($nombreOrdenApellidos, 'LIKE', "%$fraseBuscar%");
+                })
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->first();
 
-            // Si no se encuentra a pesar de la flexibilidad, devolvemos el error de diagnóstico
+            // 4. DIAGNÓSTICO EN CASO DE ERROR
             if (!$ejidatario) {
-                $diagnosticoBusqueda = implode(' + ', $palabrasFiltradas);
-                return response()->json(['success' => false, 'message' => "No hallado buscando: [$diagnosticoBusqueda]"]);
+                return response()->json(['success' => false, 'message' => "No se encontró a nadie que coincida exactamente con: '$fraseBuscar'"]);
             }
 
-            // 5. REGISTRO: Insertamos o actualizamos la asistencia
+            // 5. REGISTRO DE ASISTENCIA
             \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -155,7 +153,7 @@ class PaseListaController extends Controller
             return response()->json([
                 'success' => true,
                 'num_ejid' => (int)$ejidatario->Num_Ejidatario,
-                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno
+                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno . ' ' . $ejidatario->Apellido_Materno
             ]);
 
         } catch (\Exception $e) {
