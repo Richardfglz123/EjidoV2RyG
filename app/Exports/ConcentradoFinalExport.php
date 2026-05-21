@@ -13,27 +13,23 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
 {
     public function collection()
     {
-        $anoActual = now()->year;
+        $anoActual = 2026; // Ajustado según tu captura de 2024
 
-        // Montos para el cálculo según el 2do reparto
+        // Obtenemos los nombres exactos de las sesiones para los encabezados
+        $nombresSesiones = [
+            'ASAMBLEA ELECCION 30/10/24', 'ASAMBLEA EXTRAORDINARIA 20/11/24', 'ASAMBLEA 18 DICIEMBRE',
+            'ASAMBLEA ENERO', 'ASAMBLEA MARZO', 'ASAMBLEA JUNIO', 'ASAMBLEA SEPTIEMBRE CORTE DE CAJA'
+        ];
+
         $montoR2 = DB::table('Utilidad')->where('Id_Utilidad', 2)->value('Monto') ?? 0;
         $costoAsamblea = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Asamblea')->value('Costo') ?? 0;
-        $costoFaena = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Faena')->value('Costo') ?? 0;
-
-        $sesionesAsambleas = DB::table('Sesion')
-            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-            ->where('Evento.Id_Categoria_Evento', 1)
-            ->whereYear('Sesion.Fecha', $anoActual)
-            ->orderBy('Sesion.Fecha', 'asc')
-            ->take(7)
-            ->get();
 
         return DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->leftJoin('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
-            ->select('e.Id_Ejidatario', 'e.Id_Estatus', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'es.Estatus as NombreEstatus')
+            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'es.Estatus as NombreEstatus')
             ->get()
-            ->map(function ($ejid, $index) use ($sesionesAsambleas, $costoAsamblea, $costoFaena, $montoR2) {
+            ->map(function ($ejid, $index) use ($nombresSesiones, $costoAsamblea, $montoR2) {
 
                 $fila = [
                     'No' => $index + 1,
@@ -41,52 +37,26 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                     'Situacion' => $ejid->NombreEstatus ?? 'S/P',
                 ];
 
-                // Cálculo de faltas asambleas
-                $totalFaltasJuntas = 0;
-                foreach ($sesionesAsambleas as $sesion) {
-                    $asistio = DB::table('PaseLista')
-                        ->where('Id_Sesion', $sesion->Id_Sesion)
-                        ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
-                        ->where('Asistencia', 1)
-                        ->exists();
+                $totalDescJuntas = 0;
+                foreach ($nombresSesiones as $nombre) {
+                    $sesion = DB::table('Sesion')->where('Nombre_Sesion', $nombre)->first();
+                    $asistio = $sesion ? DB::table('PaseLista')->where('Id_Sesion', $sesion->Id_Sesion)->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->exists() : false;
 
-                    $multa = $asistio ? 0 : $costoAsamblea;
+                    $multa = (!$asistio) ? $costoAsamblea : 0;
                     $fila[] = $multa > 0 ? $multa : '';
-                    if (!$asistio) $totalFaltasJuntas += $costoAsamblea;
+                    $totalDescJuntas += $multa;
                 }
-                for ($i = count($sesionesAsambleas); $i < 7; $i++) { $fila[] = ''; }
 
-                // Deuda Arrastrada R1
-                $prestamosR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
-                $abonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
-                    ->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto');
-                $deudaArrastrada = max(0, $prestamosR1 - $abonosR1);
-
-                // Faltas Faenas
-                $faltasFaenas = DB::table('Sesion')
-                    ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-                    ->where('Evento.Id_Categoria_Evento', '!=', 1)
-                    ->whereNotExists(function ($query) use ($ejid) {
-                        $query->select(DB::raw(1))
-                            ->from('PaseLista')
-                            ->whereColumn('PaseLista.Id_Sesion', 'Sesion.Id_Sesion')
-                            ->where('PaseLista.Id_Ejidatario', $ejid->Id_Ejidatario)
-                            ->where('Asistencia', 1);
-                    })->count();
-                $descFaenas = $faltasFaenas * $costoFaena;
-
-                // Estructura de columnas
-                $fila['Saneamiento'] = 0;
+                // Agregamos las columnas fijas que solicitaste
+                $fila['Saneamiento'] = 0; // Ajusta si tienes valor de utilidad
                 $fila['R1'] = 0;
                 $fila['R2'] = $montoR2;
                 $fila['Finiquito'] = 0;
-                $fila['Faena_San'] = 0;
-                $fila['Faena_Apr'] = 0;
-                $fila['Total_Desc_Juntas'] = $totalFaltasJuntas;
-                $fila['Total_Desc_Faenas'] = $descFaenas;
-
-                // Cálculo Final
-                $fila['Total_Pagar'] = $montoR2 - ($totalFaltasJuntas + $descFaenas + $deudaArrastrada);
+                $fila['F_San'] = 0;
+                $fila['F_Apr'] = 0;
+                $fila['Desc_Juntas'] = $totalDescJuntas;
+                $fila['Desc_Faenas'] = 0;
+                $fila['Total_Pagar'] = $montoR2 - $totalDescJuntas; // Lógica exacta de tu módulo
 
                 return $fila;
             });
@@ -95,8 +65,15 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     public function headings(): array
     {
         return [
-            ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS 2026'],
-            ['No.', 'NOMBRE', 'SITUACION', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'SANEAMIENTO', '1ER REPARTO', '2DO REPARTO', 'FINIQUITO', 'F. SAN', 'F. APR', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
+            ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS 2025'], // Título principal
+            [
+                'No.', 'NOMBRE DE EJIDATARIO', 'SITUACION',
+                'ASAMBLEA ELECCION 30/10/24', 'ASAMBLEA EXTRAORDINARIA 20/11/24', 'ASAMBLEA 18 DICIEMBRE',
+                'ASAMBLEA ENERO', 'ASAMBLEA MARZO', 'ASAMBLEA JUNIO', 'ASAMBLEA SEPTIEMBRE CORTE DE CAJA',
+                'REPARTO DE FINIQUITO DEL SANEAMIENTO', '1ER. REPARTO DE UTILIDAD', '2do. REPARTO DE UTILIDAD',
+                'FINIQUITO DE UTILIDAD', 'FAENAS SANEAMIENTO', 'FAENAS APROVECHAMIENTO',
+                'DESCUENTO POR JUNTAS', 'DESCUENTO DE FAENAS', 'TOTAL A PAGAR'
+            ]
         ];
     }
 
@@ -105,11 +82,7 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
         $sheet->mergeCells('A1:S1');
         return [
             1 => ['font' => ['bold' => true, 'size' => 16], 'alignment' => ['horizontal' => 'center']],
-            2 => [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '000000']],
-                'alignment' => ['horizontal' => 'center']
-            ],
+            2 => ['font' => ['bold' => true], 'alignment' => ['horizontal' => 'center']],
         ];
     }
 }
