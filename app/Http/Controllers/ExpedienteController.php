@@ -69,7 +69,7 @@ class ExpedienteController extends Controller
 
                 DocumentoUsuario::updateOrCreate(
                     ['Id_Usuario' => $usuario->Id_Usuario, 'nombre_documento' => $nombreDoc],
-                    ['ruta_archivo' => 'storage/' . $path]
+                    ['ruta_archivo' => $path]
                 );
             }
         }
