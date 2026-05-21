@@ -21,19 +21,14 @@ class PaseListaController extends Controller
 
         $totalEjidatarios = Ejidatario::count();
 
-        // 1. Obtenemos todas las sesiones
-        $sesiones = Sesion::with(['evento.categoria'])->orderBy('Fecha', 'desc')->get();
-
-        // 2. Mapeamos los conteos manualmente consultando la tabla PaseLista
-        // directamente por el ID de la Sesión de forma explícita
-        foreach ($sesiones as $sesion) {
-            $count = DB::table('PaseLista')
-                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
-                ->count();
-
-            $sesion->total_asistencias = $count;
-            $sesion->total_ausentes = $totalEjidatarios - $count;
-        }
+        $sesiones = Sesion::with(['evento.categoria'])
+            ->addSelect([
+                'asistencias_count' => DB::table('PaseLista')
+                    ->whereColumn('Id_Sesion', 'Sesion.Id_Sesion')
+                    ->selectRaw('count(*)')
+            ])
+            ->orderBy('Fecha', 'desc')
+            ->get();
 
         return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
     }
@@ -77,54 +72,63 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_sesion = $request->input('id_sesion');
-            $qr_data   = $request->input('qr_data');
+            $id_recibido = $request->input('id_sesion');
+            $qr_data = $request->input('qr_data');
 
-            if (!$id_sesion || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Datos insuficientes"]);
+            if (!$id_recibido || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
             }
 
-            // 1. Validar que la sesión realmente exista
-            $sesion = Sesion::find($id_sesion);
+            $sesion = Sesion::find($id_recibido);
+
             if (!$sesion) {
-                return response()->json(['success' => false, 'message' => "Sesión no encontrada (ID: $id_sesion)"]);
+                $sesion = Sesion::where('Id_Referencia', $id_recibido)
+                    ->orderBy('Fecha', 'desc')
+                    ->first();
             }
 
-            // 2. Buscar al ejidatario (Coincidencia flexible)
-            $cadenaQR = strtoupper(trim($qr_data));
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
+            }
+
+            $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
+            $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
+            $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
+
+            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR ilegible"]);
+
+            $cadenaQR = implode(' ', $palabras);
             $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
+                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
                 ->get()
-                ->sortBy(function($c) use ($cadenaQR) {
-                    $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
-                    return levenshtein($cadenaQR, $nombreCompleto);
-                })
+                ->sortBy(fn($c) => levenshtein($cadenaQR, $c->nombre_normalizado))
                 ->first();
 
-            if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no coincide"]);
-            }
+            if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
+                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            // 3. Insertar o Actualizar usando el ID de sesión validado
-            DB::table('PaseLista')->updateOrInsert(
-                [
-                    'Id_Sesion'     => (int)$sesion->Id_Sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
-                ],
-                [
-                    'Asistencia' => 1,
-                    'Fecha'      => now()->format('Y-m-d H:i:s')
-                ]
-            );
+            DB::table('PaseLista')
+                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
+                ->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)
+                ->delete();
+
+            DB::table('PaseLista')->insert([
+                'Id_Sesion'     => (int)$sesion->Id_Sesion,
+                'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+                'Asistencia'    => 1,
+                'Fecha'         => now()->format('Y-m-d H:i:s')
+            ]);
 
             return response()->json([
-                'success' => true,
-                'nombre'  => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
+                'success'  => true,
+                'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
 
