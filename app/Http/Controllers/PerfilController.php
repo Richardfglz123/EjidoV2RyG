@@ -153,51 +153,51 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        // 🔑 Obtenemos el ID de forma segura con Sanctum
-        $userId = $request->user()->Id_usuario ?? $request->user()->id;
-
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
-            'Telefono' => 'required|numeric',
-            'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
-        ]);
-
-        $partesNombre = explode(' ', trim($request->nombre));
-        $nombres = $partesNombre[0];
-        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : '';
-        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '';
-
-        $datosActualizar = [
-            'Nombres' => $nombres,
-            'Apellido_Paterno' => $paterno,
-            'Apellido_Materno' => $materno,
-            'Correo' => $request->Correo,
-            'Telefono' => $request->Telefono,
-            'Fecha_Modificado' => now(),
-        ];
-
-        if ($request->hasFile('foto_perfil')) {
-            $file = $request->file('foto_perfil');
-
-            // Eliminamos la foto anterior si existe para no llenar el servidor de basura
-            $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
-            if ($userRecord && $userRecord->foto) {
-                Storage::disk('public')->delete($userRecord->foto);
+        // Recuperamos el ID del usuario con la estrategia blindada que usamos antes
+        $userId = null;
+        if ($request->user()) {
+            $userId = $request->user()->Id_usuario ?? $request->user()->id;
+        } else {
+            $headerToken = $request->bearerToken();
+            if ($headerToken) {
+                $tokenActual = str_contains($headerToken, '|') ? explode('|', $headerToken)[1] : $headerToken;
+                $accessToken = DB::table('personal_access_tokens')
+                    ->where('token', hash('sha256', $tokenActual))
+                    ->first();
+                if ($accessToken) {
+                    $userId = $accessToken->tokenable_id;
+                }
             }
-
-            // Guardamos consistentemente en la columna 'foto' usando el disco public
-            $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('perfiles', $nombreArchivo, 'public');
-
-            $datosActualizar['foto'] = $path; // ✅ Cambiado a 'foto' para que coincida con getPerfilApi
         }
 
-        DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
+        if (!$userId) {
+            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        // 🚀 AQUÍ ESTÁ EL TRUCO:
+        // Le decimos a la regla 'unique' que ignore el registro donde la columna 'Id_usuario' sea igual a nuestro $userId
+        $request->validate([
+            'Nombres' => 'required|string|max:255',
+            'Apellido_Paterno' => 'required|string|max:255',
+            'Apellido_Materno' => 'nullable|string|max:255',
+            'Telefono' => 'nullable|string',
+            'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario', // 👈 Excluye tu propio ID
+        ]);
+
+        // Tu lógica para actualizar los datos en la base de datos...
+        DB::table('usuario')
+            ->where('Id_usuario', $userId)
+            ->update([
+                'Nombres' => $request->Nombres,
+                'Apellido_Paterno' => $request->Apellido_Paterno,
+                'Apellido_Materno' => $request->Apellido_Materno,
+                'Telefono' => $request->Telefono,
+                'Correo' => $request->Correo,
+            ]);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Campos de identidad y foto actualizados con éxito en el sistema.'
+            'message' => 'Perfil actualizado correctamente.'
         ]);
     }
 }
