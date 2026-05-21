@@ -15,9 +15,8 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     {
         $anoActual = now()->year;
 
-        // Solo necesitamos el monto del 2do reparto para que coincida con tu vista web
+        // Montos para el cálculo según el 2do reparto
         $montoR2 = DB::table('Utilidad')->where('Id_Utilidad', 2)->value('Monto') ?? 0;
-
         $costoAsamblea = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Asamblea')->value('Costo') ?? 0;
         $costoFaena = DB::table('Catalogo_Multa')->where('Año', $anoActual)->where('Tipo', 'Faena')->value('Costo') ?? 0;
 
@@ -42,44 +41,41 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                     'Situacion' => $ejid->NombreEstatus ?? 'S/P',
                 ];
 
-                // Lógica de Faltas (Juntas) - Idéntica al controlador
-                $asistenciasEjidatario = DB::table('PaseLista')
-                    ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
-                    ->where('Asistencia', 1)
-                    ->whereNotNull('Id_Sesion')
-                    ->distinct()->pluck('Id_Sesion')->toArray();
-
-                $reprosAsambleas = DB::table('PaseLista')
-                    ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
-                    ->where('Asistencia', 1)
-                    ->whereNull('Id_Sesion')
-                    ->where('Id_Actividad', 1)->count();
-
-                $reprosFaenas = DB::table('PaseLista')
-                    ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
-                    ->where('Asistencia', 1)
-                    ->whereNull('Id_Sesion')
-                    ->where('Id_Actividad', 2)->count();
-
+                // Cálculo de faltas asambleas
                 $totalFaltasJuntas = 0;
                 foreach ($sesionesAsambleas as $sesion) {
-                    $esFalta = !in_array($sesion->Id_Sesion, $asistenciasEjidatario);
-                    $multa = ($esFalta && $reprosAsambleas <= 0) ? $costoAsamblea : 0;
+                    $asistio = DB::table('PaseLista')
+                        ->where('Id_Sesion', $sesion->Id_Sesion)
+                        ->where('Id_Ejidatario', $ejid->Id_Ejidatario)
+                        ->where('Asistencia', 1)
+                        ->exists();
+
+                    $multa = $asistio ? 0 : $costoAsamblea;
                     $fila[] = $multa > 0 ? $multa : '';
-                    if ($esFalta) $totalFaltasJuntas += $costoAsamblea;
+                    if (!$asistio) $totalFaltasJuntas += $costoAsamblea;
                 }
                 for ($i = count($sesionesAsambleas); $i < 7; $i++) { $fila[] = ''; }
 
-                // Deuda R1 - Idéntica al controlador
-                $totalPrestamoR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
-                $totalAbonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
+                // Deuda Arrastrada R1
+                $prestamosR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad');
+                $abonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
                     ->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto');
-                $deudaArrastrada = max(0, $totalPrestamoR1 - $totalAbonosR1);
+                $deudaArrastrada = max(0, $prestamosR1 - $abonosR1);
 
-                // Cálculo de Faenas
-                $descFaenas = max(0, (/*aquí deberías obtener el conteo de faenas igual que en el controlador*/) - $reprosFaenas) * $costoFaena;
+                // Faltas Faenas
+                $faltasFaenas = DB::table('Sesion')
+                    ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
+                    ->where('Evento.Id_Categoria_Evento', '!=', 1)
+                    ->whereNotExists(function ($query) use ($ejid) {
+                        $query->select(DB::raw(1))
+                            ->from('PaseLista')
+                            ->whereColumn('PaseLista.Id_Sesion', 'Sesion.Id_Sesion')
+                            ->where('PaseLista.Id_Ejidatario', $ejid->Id_Ejidatario)
+                            ->where('Asistencia', 1);
+                    })->count();
+                $descFaenas = $faltasFaenas * $costoFaena;
 
-                // Columnas de montos
+                // Estructura de columnas
                 $fila['Saneamiento'] = 0;
                 $fila['R1'] = 0;
                 $fila['R2'] = $montoR2;
@@ -89,7 +85,7 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                 $fila['Total_Desc_Juntas'] = $totalFaltasJuntas;
                 $fila['Total_Desc_Faenas'] = $descFaenas;
 
-                // TOTAL A PAGAR EXACTO
+                // Cálculo Final
                 $fila['Total_Pagar'] = $montoR2 - ($totalFaltasJuntas + $descFaenas + $deudaArrastrada);
 
                 return $fila;
@@ -99,10 +95,21 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     public function headings(): array
     {
         return [
-            ['CONCENTRADO FINAL 2026'],
-            ['No.', 'NOMBRE', 'SITUACION', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'SANEAMIENTO', 'R1', '2DO REPARTO', 'FINIQUITO', 'F. SAN', 'F. APR', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
+            ['CONCENTRADO FINAL DE APORTACIONES Y DESCUENTOS 2026'],
+            ['No.', 'NOMBRE', 'SITUACION', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'SANEAMIENTO', '1ER REPARTO', '2DO REPARTO', 'FINIQUITO', 'F. SAN', 'F. APR', 'DESC. JUNTAS', 'DESC. FAENAS', 'TOTAL A PAGAR']
         ];
     }
 
-    public function styles(Worksheet $sheet) { /* Mantén tu estilo */ }
+    public function styles(Worksheet $sheet)
+    {
+        $sheet->mergeCells('A1:S1');
+        return [
+            1 => ['font' => ['bold' => true, 'size' => 16], 'alignment' => ['horizontal' => 'center']],
+            2 => [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '000000']],
+                'alignment' => ['horizontal' => 'center']
+            ],
+        ];
+    }
 }
