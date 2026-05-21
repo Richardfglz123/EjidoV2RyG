@@ -7,6 +7,9 @@ use App\Models\Evento;
 use App\Models\Ejidatario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AsistenciaExport;
 
 class PaseListaController extends Controller
 {
@@ -32,21 +35,11 @@ class PaseListaController extends Controller
 
     public function registrarAsistencia(Request $request)
     {
-        $request->validate([
-            'id_referencia' => 'required',
-            'tipo'          => 'required',
-        ]);
+        $request->validate(['id_referencia' => 'required', 'tipo' => 'required']);
 
-        // CORRECCIÓN: Buscamos por Id_Referencia (Evento) sin importar la fecha
-        // para que siempre sea la misma sesión y el contador sume.
         $sesion = Sesion::firstOrCreate(
-            [
-                'Tipo'          => $request->tipo,
-                'Id_Referencia' => $request->id_referencia
-            ],
-            [
-                'Fecha'         => now()
-            ]
+            ['Tipo' => $request->tipo, 'Id_Referencia' => $request->id_referencia],
+            ['Fecha' => $request->fecha ?? now()]
         );
 
         $presentes = DB::table('PaseLista as a')
@@ -58,7 +51,6 @@ class PaseListaController extends Controller
             ->get();
 
         $evento = Evento::find($request->id_referencia);
-
         return view('cpanel.PaseLista.escanear', compact('sesion', 'evento', 'presentes'));
     }
 
@@ -68,54 +60,36 @@ class PaseListaController extends Controller
             $id_sesion = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_sesion || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
-            }
+            if (!$id_sesion || !$qr_data) return response()->json(['success' => false, 'message' => "Datos incompletos"]);
 
-            // Lógica de limpieza QR igual a la que tienes...
+            // Limpieza y búsqueda
             $raw = strtoupper(preg_replace('/[0-9.,-]/', ' ', preg_replace('/\([^)]+\)/', '', str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data))));
             $palabrasLimpias = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && $p !== 'HERM');
 
-            if (empty($palabrasLimpias)) return response()->json(['success' => false, 'message' => "QR no legible"]);
-
-            // Búsqueda del ejidatario
-            $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
             $candidatos = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', DB::raw("$concatBD as nombre_normalizado"))
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
+                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
                 ->get();
 
-            $mejorMatch = null;
-            $distanciaMinima = 999;
-            $cadenaQR = implode(' ', $palabrasLimpias);
-
+            $mejorMatch = null; $distanciaMinima = 999;
             foreach ($candidatos as $c) {
-                $distancia = levenshtein($cadenaQR, $c->nombre_normalizado);
-                if ($distancia < $distanciaMinima) {
-                    $distanciaMinima = $distancia;
-                    $mejorMatch = $c;
-                }
+                $distancia = levenshtein(implode(' ', $palabrasLimpias), $c->nombre_normalizado);
+                if ($distancia < $distanciaMinima) { $distanciaMinima = $distancia; $mejorMatch = $c; }
             }
 
-            if (!$mejorMatch || $distanciaMinima > 12) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
-            }
+            if (!$mejorMatch || $distanciaMinima > 12) return response()->json(['success' => false, 'message' => "No encontrado"]);
 
-            // REGISTRO ÚNICO: Usamos el Id_Sesion exacto que viene del escáner
             DB::table('PaseLista')->updateOrInsert(
-                [
-                    'Id_Sesion'     => (int)$id_sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
-                ],
-                [
-                    'Asistencia' => 1,
-                    'Fecha'      => now()
-                ]
+                ['Id_Sesion' => (int)$id_sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
+                ['Asistencia' => 1, 'Fecha' => now()]
             );
 
+            // CORRECCIÓN: Aquí enviamos el Num_Ejidatario que causaba el #undefined
             return response()->json([
-                'success' => true,
-                'nombre'  => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
+                'success'  => true,
+                'num_ejid' => $mejorMatch->Num_Ejidatario,
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
@@ -123,51 +97,34 @@ class PaseListaController extends Controller
         }
     }
 
-
     public function destroy($id)
     {
-        try {
-            DB::beginTransaction();
-            DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
-            Sesion::destroy($id);
-            DB::commit();
-            return redirect()->back()->with('success', 'Sesión y asistencias eliminadas.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Error al eliminar la sesión.');
-        }
+        DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
+        Sesion::destroy($id);
+        return redirect()->back()->with('success', 'Eliminado correctamente.');
     }
 
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
+        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
 
         $asistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
-            ->where('p.Id_Sesion', $id)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
-            ->get();
-
-        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
+            ->whereIn('e.Id_Ejidatario', $idsAsistentes)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
 
         $noAsistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
-            ->get();
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
 
-        $total = Ejidatario::count();
-
-        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
+        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron'));
         return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
     }
+
     public function exportarExcel($id)
     {
-
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\AsistenciaExport($id),
-            'Reporte_Asistencia_' . $id . '.xlsx'
-        );
+        return Excel::download(new AsistenciaExport($id), 'Reporte_Asistencia_' . $id . '.xlsx');
     }
 }
