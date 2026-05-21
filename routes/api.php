@@ -23,6 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Perfil del usuario autenticado
     Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
     Route::get('/perfil/{id}', [PerfilController::class, 'show']);
+    Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
+    Route::post('/user-profile/update', [PerfilController::class, 'updatePerfilApi']);
 
     // Gestión de Usuarios del Sistema
     Route::get('/usuarios', [UsuariosController::class, 'apiIndex']);
