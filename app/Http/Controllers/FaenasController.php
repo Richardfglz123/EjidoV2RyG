@@ -12,10 +12,12 @@ class FaenasController extends Controller
         $anoActual = now()->year;
 
         // 1. Obtenemos eventos de Faenas (Categorías 9 y 10)
-        $eventosFaenas = DB::table('Evento')
-            ->whereIn('Id_Categoria_Evento', [9, 10])
-            ->whereYear('Fecha_Creo', $anoActual)
-            ->whereNull('Fecha_Eliminado')
+        $eventosFaenas = DB::table('Evento as e')
+            ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->where('c.Clave_Categoria', 'LIKE', 'faena%')
+            ->whereYear('e.Fecha_Creo', $anoActual)
+            ->whereNull('e.Fecha_Eliminado')
+            ->select('e.*')
             ->get();
 
         // 2. Obtenemos sesiones ligadas
