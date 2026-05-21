@@ -333,33 +333,33 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            if (strtotime($request->fecha_nueva) < strtotime(date('Y-m-d'))) {
-                return response()->json(['success' => false, 'message' => 'Fecha inválida.']);
+            // 1. Validar que los datos básicos existan
+            if (!$request->tipo_evento || !$request->id_ejidatario) {
+                return response()->json(['success' => false, 'message' => 'Faltan datos en la petición.'], 400);
             }
 
-            $evento = DB::table('Evento')
-                ->where('Nombre_Evento', $request->tipo_evento)
-                ->first();
+            // 2. Buscar evento con un log de error claro
+            $evento = DB::table('Evento')->where('Nombre_Evento', trim($request->tipo_evento))->first();
 
-            // VALIDACIÓN DE SEGURIDAD: Si no existe el evento, detenemos el proceso
             if (!$evento) {
-                return response()->json(['success' => false, 'message' => 'Tipo de evento no encontrado.']);
+                return response()->json(['success' => false, 'message' => 'No se encontró evento llamado: ' . $request->tipo_evento], 404);
             }
 
+            // 3. Buscar categoría usando el ID del evento encontrado
             $categoria = DB::table('Categoria_Evento')
                 ->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)
                 ->first();
 
-            // VALIDACIÓN ADICIONAL
             if (!$categoria) {
-                return response()->json(['success' => false, 'message' => 'Categoría no encontrada.']);
+                return response()->json(['success' => false, 'message' => 'El evento no tiene una categoría asociada.'], 404);
             }
 
             $idActividad = str_starts_with($categoria->Clave_Categoria, 'asamblea') ? 1 : 2;
 
+            // 4. Insertar
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
-                'Fecha'         => $request->fecha_nueva,
+                'Fecha'         => $request->fecha_nueva ?? now(),
                 'Id_Ejidatario' => $request->id_ejidatario,
                 'Id_Sesion'     => null,
                 'Id_Actividad'  => $idActividad
@@ -368,9 +368,10 @@ class Reparto2Controller extends Controller
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
+            // Esto te dirá exactamente qué línea falla en la consola del navegador (F12 -> Network)
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage() . ' en la línea ' . $e->getLine()
             ], 500);
         }
     }
