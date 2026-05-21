@@ -32,7 +32,6 @@ class PaseListaController extends Controller
 
         return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
     }
-
     public function registrarAsistencia(Request $request)
     {
         $request->validate([
