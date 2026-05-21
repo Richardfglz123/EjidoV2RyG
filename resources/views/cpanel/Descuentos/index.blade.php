@@ -50,13 +50,12 @@
         }
 
         .card-ejidal {
-            border: 1px solid #198754 !important;
+            border-color: #198754 !important;
         }
 
         .card-header-ejidal {
             background-color: #198754 !important;
             color: white !important;
-            font-weight: 600;
         }
 
         .btn-ejidal {
@@ -78,7 +77,7 @@
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2 text-header-main">
-            <i class="fas fa-users text-success me-2"></i> Descuento Asambleas
+            <i class="fas fa-users me-2"></i> Descuento Asambleas
         </h1>
     </div>
 
@@ -88,8 +87,9 @@
         </div>
 
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-12">
+            <form class="row g-3" onsubmit="return false;">
+
+                <div class="col-md-10">
                     <label class="form-label">Nombre o Apellido</label>
 
                     <input
@@ -99,33 +99,51 @@
                             placeholder="Buscar ejidatario..."
                     >
                 </div>
-            </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-ejidal w-100">
+                        <i class="fas fa-filter me-1"></i> Filtrar
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
 
     <div class="card card-ejidal shadow-sm">
-        <div class="card-header card-header-ejidal d-flex justify-content-between align-items-center">
+
+        <div class="card-header card-header-ejidal">
             <span>
                 <i class="fas fa-list me-2"></i> Estatus de Asistencia
             </span>
         </div>
 
         <div class="card-body table-responsive p-0">
+
             <table class="table table-hover table-striped align-middle mb-0" id="tablaEjidatarios">
+
                 <thead class="table-light">
                 <tr class="small text-uppercase">
-                    <th class="ps-3 text-center" style="width: 70px;">Ref</th>
-                    <th style="min-width: 250px;">Ejidatario</th>
+
+                    <th class="ps-3 text-center" style="width: 70px;">
+                        Ref
+                    </th>
+
+                    <th>
+                        Ejidatario
+                    </th>
 
                     @foreach($eventosAsambleas as $ev)
                         <th class="text-center">
                             {{ $ev->Nombre_Evento }}
                         </th>
                     @endforeach
+
                 </tr>
                 </thead>
 
                 <tbody>
+
                 @forelse($ejidatarios as $ejidatario)
 
                     @php
@@ -133,6 +151,7 @@
                     @endphp
 
                     <tr class="fila-ejidatario">
+
                         <td class="ps-3 text-center">
                             <div class="avatar-placeholder mx-auto">
                                 <i class="fas fa-user text-muted"></i>
@@ -140,59 +159,80 @@
                         </td>
 
                         <td class="texto-busqueda">
+
                             <div class="text-dark fw-bold">
-                                {{ $ejidatario->Nombres }}
+                                {{ $ejidatario->Nombres ?? 'Sin Nombre' }}
                             </div>
 
                             <div class="small text-muted text-uppercase">
-                                {{ $ejidatario->Apellido_Paterno }}
-                                {{ $ejidatario->Apellido_Materno }}
+                                {{ $ejidatario->Apellido_Paterno ?? '' }}
+                                {{ $ejidatario->Apellido_Materno ?? '' }}
                             </div>
+
                         </td>
 
                         @foreach($eventosAsambleas as $ev)
+
                             <td class="text-center">
+
                                 @if(in_array($ev->Id_Evento, $idsAsistidos))
+
                                     <span class="badge badge-asistencia bg-success">
                                         <i class="fas fa-check-circle me-1"></i>
                                         Asistió
                                     </span>
+
                                 @else
+
                                     <span class="badge badge-asistencia bg-danger">
                                         <i class="fas fa-times-circle me-1"></i>
                                         No Asistió
                                     </span>
+
                                 @endif
+
                             </td>
+
                         @endforeach
+
                     </tr>
 
                 @empty
-                    <tr id="sinResultados">
+
+                    <tr>
                         <td colspan="{{ count($eventosAsambleas) + 2 }}"
                             class="text-center py-5 text-muted">
 
                             <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
 
                             No se encontraron registros.
+
                         </td>
                     </tr>
+
                 @endforelse
+
                 </tbody>
+
             </table>
+
         </div>
 
         <div class="card-footer bg-light border-top d-flex justify-content-end align-items-center">
+
             <div class="pagination-sm">
                 {{ $ejidatarios->appends(request()->query())->links('pagination::bootstrap-4') }}
             </div>
+
         </div>
+
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
             const buscador = document.getElementById('busquedaEjidatario');
+
             const filas = document.querySelectorAll('.fila-ejidatario');
 
             buscador.addEventListener('keyup', function () {
@@ -217,6 +257,7 @@
 
                         fila.style.display = 'none';
                     }
+
                 });
 
                 let filaNoResultados = document.getElementById('sinResultadosBusqueda');
@@ -238,6 +279,7 @@
                                 <i class="fas fa-search fa-2x mb-3 d-block"></i>
 
                                 No se encontraron coincidencias.
+
                             </td>
                         `;
 
@@ -250,7 +292,9 @@
                         filaNoResultados.remove();
                     }
                 }
+
             });
+
         });
     </script>
 
