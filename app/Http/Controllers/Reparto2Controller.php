@@ -19,7 +19,6 @@ class Reparto2Controller extends Controller
             ->join('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
             ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
             ->where('c.Clave_Categoria', 'LIKE', $tipo . '%')
-            ->whereYear('Sesion.Fecha', $anoActual)
             ->where('Sesion.Tipo', 'Evento')
             ->distinct()
             ->pluck('Sesion.Id_Sesion')
