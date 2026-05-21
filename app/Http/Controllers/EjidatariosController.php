@@ -22,9 +22,9 @@ class EjidatariosController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $ejidatarios = DB::table('Ejidatario as e')
+        $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
             ->select(
@@ -33,9 +33,22 @@ class EjidatariosController extends Controller
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
                 'es.Estatus as NombreEstatus'
-            )
-            ->orderByRaw('e.Num_Ejidatario + 0 ASC')
-            ->paginate(10);
+            );
+
+        if ($request->has('buscar') && !empty($request->buscar)) {
+            $buscar = $request->buscar;
+            $query->where(function($q) use ($buscar) {
+                $q->where('u.Nombres', 'LIKE', "%{$buscar}%")
+                    ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$buscar}%")
+                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$buscar}%")
+                    ->orWhere('e.CURP', 'LIKE', "%{$buscar}%")
+                    ->orWhere('e.RFC', 'LIKE', "%{$buscar}%");
+            });
+        }
+
+        $ejidatarios = $query->orderByRaw('e.Num_Ejidatario + 0 ASC')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('cpanel/ejidatarios/indexEjidatario', [
             'data' => $ejidatarios
