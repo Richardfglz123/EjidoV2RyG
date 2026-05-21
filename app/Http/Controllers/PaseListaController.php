@@ -67,47 +67,48 @@ class PaseListaController extends Controller
             $id_sesion = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_sesion || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
+            if (!$qr_data) return response()->json(['success' => false, 'message' => "QR no detectado"]);
+
+            // 1. INTENTO DE BÚSQUEDA DIRECTA (Para Web)
+            $sesion = Sesion::find($id_sesion);
+
+            // 2. RECUPERACIÓN DE EMERGENCIA (Si es iPhone y falla el ID, buscamos la última sesión abierta)
+            if (!$sesion) {
+                $sesion = Sesion::orderBy('Fecha', 'desc')->first();
             }
 
-            $sesion = Sesion::find($id_sesion);
-            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
+            if (!$sesion) return response()->json(['success' => false, 'message' => "No hay sesiones activas"]);
 
-            // Lógica original de limpieza de QR
+            // --- Lógica de Procesamiento del QR ---
             $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
             $raw = preg_replace('/\([^)]+\)/', '', $raw);
             $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
             $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
 
-            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR no reconocible"]);
+            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR inválido"]);
 
             $cadenaQR = implode(' ', $palabras);
-            $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
-
-            $candidatos = DB::table('Ejidatario as e')
+            $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', DB::raw("$concatBD as nombre_normalizado"))
-                ->get();
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
+                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
+                ->get()
+                ->sortBy(fn($c) => levenshtein($cadenaQR, $c->nombre_normalizado))
+                ->first();
 
-            $mejorMatch = null; $distanciaMinima = 999;
-            foreach ($candidatos as $c) {
-                $distancia = levenshtein($cadenaQR, $c->nombre_normalizado);
-                if ($distancia < $distanciaMinima) { $distanciaMinima = $distancia; $mejorMatch = $c; }
-            }
+            if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
+                return response()->json(['success' => false, 'message' => "No se encontró el ejidatario"]);
 
-            if (!$mejorMatch || $distanciaMinima > 12) return response()->json(['success' => false, 'message' => "No encontrado"]);
-
-            // Registro único
+            // Registro asegurando no duplicados
             DB::table('PaseLista')->updateOrInsert(
-                ['Id_Sesion' => (int)$sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
+                ['Id_Sesion' => $sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
                 ['Asistencia' => 1, 'Fecha' => now()]
             );
 
             return response()->json([
-                'success'  => true,
+                'success' => true,
                 'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
-                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
+                'nombre' => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
