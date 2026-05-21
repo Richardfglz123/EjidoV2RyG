@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\Ejidatario;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -30,7 +29,16 @@ class AsistenciaExport implements
 
     public function collection()
     {
-        return Ejidatario::with('usuario')->get();
+        return DB::table('Ejidatario')
+            ->join('usuario', 'Ejidatario.Id_Usuario', '=', 'usuario.Id_Usuario')
+            ->select(
+                'Ejidatario.Id_Ejidatario',
+                'Ejidatario.Num_Ejidatario',
+                'usuario.Nombres',
+                'usuario.Apellido_Paterno',
+                'usuario.Apellido_Materno'
+            )
+            ->get();
     }
 
     public function headings(): array
@@ -51,15 +59,11 @@ class AsistenciaExport implements
             ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
             ->exists();
 
-        $usuario = $ejidatario->usuario;
-
-        $nombreCompleto = $usuario
-            ? trim(
-                $usuario->Nombres . ' ' .
-                $usuario->Apellido_Paterno . ' ' .
-                $usuario->Apellido_Materno
-            )
-            : 'SIN USUARIO';
+        $nombreCompleto = trim(
+            $ejidatario->Nombres . ' ' .
+            $ejidatario->Apellido_Paterno . ' ' .
+            $ejidatario->Apellido_Materno
+        );
 
         return [
             $ejidatario->Num_Ejidatario,
@@ -101,7 +105,6 @@ class AsistenciaExport implements
             ]
         ]);
 
-        // Bordes generales
         $sheet->getStyle("A1:C{$ultimaFila}")
             ->applyFromArray([
                 'borders' => [
@@ -114,7 +117,6 @@ class AsistenciaExport implements
                 ]
             ]);
 
-        // Centrar columnas
         $sheet->getStyle("A1:A{$ultimaFila}")
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -123,7 +125,6 @@ class AsistenciaExport implements
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        // Altura encabezado
         $sheet->getRowDimension(1)->setRowHeight(25);
 
         return [];
