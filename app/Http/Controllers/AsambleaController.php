@@ -12,7 +12,7 @@ class AsambleaController extends Controller
         $eventosAsambleas = DB::table('Evento')
             ->join('Sesion', 'Evento.Id_Evento', '=', 'Sesion.Id_Referencia')
             ->where('Sesion.Tipo', 'Evento')
-            ->whereNull('Evento.deleted_at')
+            ->whereNull('Evento.Fecha_Eliminado')
             ->select('Evento.*')
             ->distinct()
             ->orderBy('Evento.Fecha_Creo', 'DESC')
