@@ -36,33 +36,30 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($data as $fila)
-                        @php
-                            $nombreLimpio = strtolower(trim($fila->Nombres . ' ' . $fila->Apellido_Paterno . ' ' . $fila->Apellido_Materno));
-                        @endphp
-                        <tr class="fila-ejidatario"
-                            data-search="{{ strtolower($nombreLimpio . ' ' . ($fila->CURP ?? '') . ' ' . ($fila->RFC ?? '')) }}">
-                            <td>{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}</td>
-                            <td>{{ $fila->CURP }}</td>
-                            <td>{{ $fila->RFC }}</td>
-                            <td>
-                                <a href="{{ route('ejidatarios.edit', $fila->Id_Usuario) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i> Editar
-                                </a>
-                                <form action="{{ route('ejidatarios.destroy', $fila->Id_Usuario) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Está seguro de eliminar este ejidatario?');">
-                                        <i class="fas fa-trash"></i> Eliminar
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="text-center">No se encontraron ejidatarios.</td>
-                        </tr>
-                    @endforelse
+                @forelse($data as $fila)
+                    @php
+                        // Filtramos o buscamos los documentos del usuario
+                        $ine = $fila->documentos->where('nombre_documento', 'INE')->first();
+                        $curp = $fila->documentos->where('nombre_documento', 'CURP')->first();
+                        $dom = $fila->documentos->where('nombre_documento', 'DOMICILIO')->first();
+                    @endphp
+                    <tr class="fila-ejidatario" data-search="{{ strtolower($fila->Nombres . ' ' . $fila->CURP) }}">
+                        <td>{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }}</td>
+                        <td>
+                            @if($ine) <a href="{{ route('ver.expediente', $ine->ruta_archivo) }}" target="_blank" class="badge bg-success text-decoration-none">INE</a> @else <span class="badge bg-secondary">Sin INE</span> @endif
+                            @if($curp) <a href="{{ route('ver.expediente', $curp->ruta_archivo) }}" target="_blank" class="badge bg-success text-decoration-none">CURP</a> @else <span class="badge bg-secondary">Sin CURP</span> @endif
+                            @if($dom) <a href="{{ route('ver.expediente', $dom->ruta_archivo) }}" target="_blank" class="badge bg-success text-decoration-none">DOM</a> @else <span class="badge bg-secondary">Sin DOM</span> @endif
+                        </td>
+                        <td>{{ $fila->CURP }}</td>
+                        <td>
+                            <a href="{{ route('ejidatarios.edit', $fila->Id_Usuario) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Gestionar Docs
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" class="text-center">No hay registros.</td></tr>
+                @endforelse
                 </tbody>
             </table>
         </div>
