@@ -332,12 +332,12 @@ Route::prefix('admon/expedientes')->group(function () {
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
 
     // Rutas con nombres que tu vista espera
-    Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('ejidatarios.create');
-    Route::post('/', [ExpedienteController::class, 'store'])->name('ejidatarios.store');
-    Route::get('/{id}/editar', [ExpedienteController::class, 'edit'])->name('ejidatarios.edit');
-    Route::put('/{id}', [ExpedienteController::class, 'update'])->name('ejidatarios.update');
-    Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('ejidatarios.destroy');
-});
+    Route::get('storage/{path}', function ($path) {
+        $path = str_replace(['..', '%20'], ['', ' '], $path); // Seguridad básica
+        $file = storage_path('app/public/' . $path);
+        if (!file_exists($file)) abort(404);
+        return response()->file($file);
+    })->where('path', '.*');
 
 // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {

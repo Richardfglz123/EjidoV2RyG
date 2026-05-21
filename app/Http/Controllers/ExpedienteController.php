@@ -13,18 +13,25 @@ class ExpedienteController extends Controller
 {
     public function index()
     {
-        $permisos = session('usuario.permisos', []);
-        $usuarioId = session('usuario.id');
+        // Obtenemos los usuarios con sus documentos
+        $usuarios = Usuario::whereNull('fecha_eliminado')
+            ->with('documentos')
+            ->get();
 
-        // Usamos $usuarios para que la lógica interna no cambie
-        if (in_array('expedientes_ver', $permisos)) {
-            $usuarios = Usuario::whereNull('fecha_eliminado')->with('documentos')->orderBy('Apellido_Paterno', 'asc')->get();
-        } else {
-            $usuarios = Usuario::where('Id_usuario', $usuarioId)->whereNull('fecha_eliminado')->with('documentos')->get();
+        // TRANSFORMACIÓN: Creamos un objeto virtual para que tu vista original funcione
+        foreach ($usuarios as $usuario) {
+            $docs = $usuario->documentos; // Asumiendo que es una colección
+            $usuario->documentos = (object) [
+                'ruta_ine' => $docs->where('nombre_documento', 'INE')->first()->ruta_archivo ?? null,
+                'ruta_curp' => $docs->where('nombre_documento', 'CURP')->first()->ruta_archivo ?? null,
+                'ruta_comprobante' => $docs->where('nombre_documento', 'DOMICILIO')->first()->ruta_archivo ?? null,
+            ];
         }
 
-        $data = $usuarios; // Esto es lo que necesita tu vista "bonita"
-        return view('cpanel.Expedientes.expediente', compact('data'));
+        $total_usuarios = $usuarios->count();
+        $total_con_expediente = \App\Models\DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
+
+        return view('cpanel.Expedientes.expediente', compact('usuarios', 'total_usuarios', 'total_con_expediente'));
     }
 
     public function store(Request $request)
