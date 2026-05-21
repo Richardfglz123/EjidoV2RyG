@@ -56,6 +56,7 @@ class PaseListaController extends Controller
             ->get();
 
         $evento = Evento::find($request->id_referencia);
+
         return view('cpanel.PaseLista.escanear', compact('sesion', 'evento', 'presentes'));
     }
 
@@ -65,18 +66,14 @@ class PaseListaController extends Controller
             $id_sesion = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            // 1. Validar que el ID llegue
             if (!$id_sesion || !$qr_data) {
                 return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            // 2. Buscar la sesión por el ID recibido
             $sesion = Sesion::find($id_sesion);
-            if (!$sesion) {
-                return response()->json(['success' => false, 'message' => "Sesión no encontrada (ID: $id_sesion)"]);
-            }
+            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
 
-            // 3. Lógica de limpieza QR
+            // Limpieza y búsqueda
             $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
             $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
             $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
@@ -95,9 +92,9 @@ class PaseListaController extends Controller
             if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            // 4. Registro único: Si el registro ya existe, no hace nada, si no, lo inserta.
+            // Registro garantizado
             DB::table('PaseLista')->updateOrInsert(
-                ['Id_Sesion' => $sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
+                ['Id_Sesion' => (int)$sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
                 ['Asistencia' => 1, 'Fecha' => now()]
             );
 
@@ -116,40 +113,32 @@ class PaseListaController extends Controller
     {
         DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
         Sesion::destroy($id);
-        return redirect()->back()->with('success', 'Eliminado.');
+        return redirect()->back()->with('success', 'Sesión eliminada.');
     }
 
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
-
-        // 1. Obtener IDs de quienes SÍ asistieron
         $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
 
-        // 2. Lista de asistentes
-        $asistentes = DB::table('Ejidatario as e')
+        $asistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->whereIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
-            ->get();
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
 
-        // 3. Lista de quienes NO asistieron (AQUÍ ESTABA EL ERROR DEL NULL)
         $noAsistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
-            ->get();
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
 
-        // 4. Total general
         $total = Ejidatario::count();
 
-        // Enviamos todo lo que tu vista espera
-        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes', 'noAsistieron', 'total'))
-            ->stream('Reporte_Asistencia_'.$id.'.pdf');
+        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
+        return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
     }
 
     public function exportarExcel($id)
     {
-        return Excel::download(new AsistenciaExport($id), 'Asistencia_'.$id.'.xlsx');
+        return Excel::download(new AsistenciaExport($id), 'Reporte_Asistencia_'.$id.'.xlsx');
     }
 }
