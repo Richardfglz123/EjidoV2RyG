@@ -19,8 +19,9 @@ class Reparto2Controller extends Controller
             ->join('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
             ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
             ->where('c.Clave_Categoria', 'LIKE', $tipo . '%')
-            ->whereYear('e.Fecha_Creo', $anoActual)
+            ->whereYear('Sesion.Fecha', $anoActual)
             ->where('Sesion.Tipo', 'Evento')
+            ->distinct()
             ->pluck('Sesion.Id_Sesion')
             ->toArray();
     }
@@ -49,9 +50,11 @@ class Reparto2Controller extends Controller
             );
 
         if ($request->filled('query')) {
+
             $search = trim($request->get('query'));
 
             $query->where(function ($q) use ($search) {
+
                 $q->where('u.Nombres', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%")
@@ -92,6 +95,7 @@ class Reparto2Controller extends Controller
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNotNull('Id_Sesion')
+                ->distinct()
                 ->pluck('Id_Sesion')
                 ->toArray();
 
@@ -109,8 +113,13 @@ class Reparto2Controller extends Controller
                 ->where('Id_Actividad', 2)
                 ->count();
 
-            $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
-            $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
+            $faltasAsambleasCount = count(
+                array_diff($sesionesAsambleasIds, $asistenciasEjidatario)
+            );
+
+            $faltasFaenasCount = count(
+                array_diff($sesionesFaenasIds, $asistenciasEjidatario)
+            );
 
             $ejidatario->total_asambleas =
                 max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
@@ -129,7 +138,43 @@ class Reparto2Controller extends Controller
             return $ejidatario;
         });
 
-        return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
+        return view(
+            'cpanel.Repartos.segundo-reparto',
+            compact('ejidatarios', 'montoFijoR2')
+        );
+    }
+
+    public function posponerSiguienteAnio($id)
+    {
+        try {
+
+            $actualizados = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $id)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->update([
+                    'Id_Utilidad' => 99
+                ]);
+
+            if ($actualizados > 0) {
+
+                return redirect()->back()->with(
+                    'success',
+                    'La deuda pendiente se ha congelado y trasladado al siguiente año.'
+                );
+            }
+
+            return redirect()->back()->with(
+                'error',
+                'No se encontraron préstamos pendientes para trasladar.'
+            );
+
+        } catch (\Exception $e) {
+
+            return redirect()->back()->with(
+                'error',
+                'Error al reprogramar: ' . $e->getMessage()
+            );
+        }
     }
 
     public function obtenerDetalleAsambleas($id_ejidatario)
@@ -147,12 +192,14 @@ class Reparto2Controller extends Controller
             $sesionesIds = DB::table('Sesion')
                 ->whereIn('Id_Referencia', $eventosIds)
                 ->where('Tipo', 'Evento')
+                ->distinct()
                 ->pluck('Id_Sesion')
                 ->toArray();
 
             $asistencias = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $id_ejidatario)
                 ->whereIn('Id_Sesion', $sesionesIds)
+                ->distinct()
                 ->pluck('Id_Sesion')
                 ->toArray();
 
@@ -169,6 +216,7 @@ class Reparto2Controller extends Controller
                 ->select('Evento.Nombre_Evento as tipo')
                 ->get()
                 ->map(function ($item) use ($costoMulta) {
+
                     return [
                         'tipo' => $item->tipo,
                         'Descuento' => $costoMulta
@@ -200,12 +248,14 @@ class Reparto2Controller extends Controller
             $sesionesIds = DB::table('Sesion')
                 ->whereIn('Id_Referencia', $eventosIds)
                 ->where('Tipo', 'Evento')
+                ->distinct()
                 ->pluck('Id_Sesion')
                 ->toArray();
 
             $asistencias = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $id_ejidatario)
                 ->whereIn('Id_Sesion', $sesionesIds)
+                ->distinct()
                 ->pluck('Id_Sesion')
                 ->toArray();
 
@@ -222,6 +272,7 @@ class Reparto2Controller extends Controller
                 ->select('Evento.Nombre_Evento as tipo')
                 ->get()
                 ->map(function ($item) use ($costoFaena) {
+
                     return [
                         'tipo' => $item->tipo,
                         'Descuento' => $costoFaena
@@ -238,11 +289,53 @@ class Reparto2Controller extends Controller
         }
     }
 
+    public function abonarPrestamo(Request $request, $id)
+    {
+        $request->validate([
+            'monto' => 'required|numeric|min:0.01'
+        ]);
+
+        try {
+
+            $prestamo = DB::table('Prestamo')
+                ->where('Id_Ejidatario', $id)
+                ->where('Id_Utilidad', $this->idUtilidadReparto1)
+                ->first();
+
+            if ($prestamo) {
+
+                DB::table('Abono')->insert([
+                    'Id_Prestamo' => $prestamo->Id_Prestamo,
+                    'Monto'       => $request->monto,
+                    'Fecha'       => now()
+                ]);
+
+                return redirect()->back()->with(
+                    'success',
+                    'Abono registrado con éxito en el Préstamo del R1.'
+                );
+            }
+
+            return redirect()->back()->with(
+                'error',
+                'El ejidatario no tiene un préstamo activo.'
+            );
+
+        } catch (\Exception $e) {
+
+            return redirect()->back()->with(
+                'error',
+                'Error al procesar el pago: ' . $e->getMessage()
+            );
+        }
+    }
+
     public function reprogramarFalta(Request $request)
     {
         try {
 
             if (strtotime($request->fecha_nueva) < strtotime(date('Y-m-d'))) {
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Fecha inválida.'
@@ -269,7 +362,9 @@ class Reparto2Controller extends Controller
                 'Id_Actividad'  => $idActividad
             ]);
 
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true
+            ]);
 
         } catch (\Exception $e) {
 
@@ -277,6 +372,89 @@ class Reparto2Controller extends Controller
                 'success' => false,
                 'message' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function perdonarAsamblea($id)
+    {
+        try {
+
+            $descuento = DB::table('Descuentos')
+                ->where('Id_Descuento', $id)
+                ->delete();
+
+            return response()->json([
+                'success' => true
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function fijarFechaLimite(Request $request)
+    {
+        $request->validate([
+            'fecha_limite' => 'required|date'
+        ]);
+
+        $utilidad = Utilidad::find($this->idUtilidadReparto2);
+
+        if ($utilidad) {
+
+            $utilidad->Fecha_Eliminado = $request->fecha_limite;
+            $utilidad->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Fecha actualizada'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false
+        ], 404);
+    }
+
+    public function obtenerFechaLimite()
+    {
+        $utilidad = Utilidad::find($this->idUtilidadReparto2);
+
+        return response()->json([
+            'fecha_limite' => $utilidad?->Fecha_Eliminado ?? ''
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        try {
+
+            $multa = CatalogoMulta::findOrFail($request->id_multa_c);
+
+            $id = DB::table('Descuentos')->insertGetId([
+                'Id_Ejidatario' => $request->id_ejidatario,
+                'Id_MultaC'     => $request->id_multa_c,
+                'tipo'          => trim($multa->Tipo),
+                'Descuento'     => $multa->Costo,
+                'Id_Creo'       => session('usuario.nombre') ?? 'Sistema',
+                'Fecha_Creo'    => now()->format('Y-m-d')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'id' => $id
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
     }
 }
