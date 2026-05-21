@@ -8,9 +8,18 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class AsistenciaExport implements
+    FromCollection,
+    WithHeadings,
+    WithMapping,
+    WithStyles,
+    ShouldAutoSize
 {
     protected $id_sesion;
 
@@ -27,8 +36,11 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function headings(): array
     {
         return [
-            ['Reporte Detallado de Asistencia'],
-            ['Núm. Ejidatario', 'Nombre Completo', 'Estatus']
+            [
+                'NÚM. EJIDATARIO',
+                'NOMBRE COMPLETO',
+                'ESTATUS'
+            ]
         ];
     }
 
@@ -39,11 +51,15 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
             ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
             ->exists();
 
-        $nombreCompleto = trim(
-            ($ejidatario->usuario->Nombres ?? '') . ' ' .
-            ($ejidatario->usuario->Apellido_Paterno ?? '') . ' ' .
-            ($ejidatario->usuario->Apellido_Materno ?? '')
-        );
+        $usuario = $ejidatario->usuario;
+
+        $nombreCompleto = $usuario
+            ? trim(
+                $usuario->Nombres . ' ' .
+                $usuario->Apellido_Paterno . ' ' .
+                $usuario->Apellido_Materno
+            )
+            : 'SIN USUARIO';
 
         return [
             $ejidatario->Num_Ejidatario,
@@ -54,30 +70,62 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:C1');
+        $ultimaFila = $sheet->getHighestRow();
 
-        return [
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 14
-                ],
-                'alignment' => [
-                    'horizontal' => 'center'
+        // Encabezados
+        $sheet->getStyle('A1:C1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+                'color' => [
+                    'rgb' => 'FFFFFF'
                 ]
             ],
 
-            2 => [
-                'font' => [
-                    'bold' => true
-                ],
-                'fill' => [
-                    'fillType' => 'solid',
-                    'startColor' => [
-                        'rgb' => 'E9ECEF'
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => [
+                    'rgb' => '198754'
+                ]
+            ],
+
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN
+                ]
+            ]
+        ]);
+
+        // Bordes generales
+        $sheet->getStyle("A1:C{$ultimaFila}")
+            ->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => [
+                            'rgb' => 'D3D3D3'
+                        ]
                     ]
                 ]
-            ],
-        ];
+            ]);
+
+        // Centrar columnas
+        $sheet->getStyle("A1:A{$ultimaFila}")
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->getStyle("C1:C{$ultimaFila}")
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Altura encabezado
+        $sheet->getRowDimension(1)->setRowHeight(25);
+
+        return [];
     }
 }
