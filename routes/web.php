@@ -318,27 +318,16 @@ Route::prefix('configuracion')->group(function () {
 });
 
 
-// MÓDULO: VER ARCHIVOS (Helper)
-Route::get('ver-expediente/{path}', function ($path) {
-    $path = urldecode($path);
-    $cleanPath = str_replace('storage/', '', $path);
-    if (!Storage::disk('public')->exists($cleanPath)) {
-        abort(404, 'El archivo físico no existe.');
-    }
-    return Storage::disk('public')->response($cleanPath);
-})->where('path', '.*')->name('ver.expediente');
-
-// MÓDULO GESTIÓN DE EXPEDIENTES
 Route::prefix('admon/expedientes')->group(function () {
+    // La lista principal
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
 
-    Route::middleware(['permiso:expedientes_crear'])->group(function () {
-        Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
-        Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
-        Route::get('/{id}/editar', [ExpedienteController::class, 'edit'])->name('expedientes.edit');
-        Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
-        Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');
-    });
+    // Mapeamos los nombres que tu vista espera a los métodos del controlador
+    Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('ejidatarios.create');
+    Route::post('/', [ExpedienteController::class, 'store'])->name('ejidatarios.store');
+    Route::get('/{id}/editar', [ExpedienteController::class, 'edit'])->name('ejidatarios.edit');
+    Route::put('/{id}', [ExpedienteController::class, 'update'])->name('ejidatarios.update');
+    Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('ejidatarios.destroy');
 });
 
 // MÓDULO: ADMINISTRACIÓN DE FAENAS

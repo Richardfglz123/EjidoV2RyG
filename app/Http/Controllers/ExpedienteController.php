@@ -16,19 +16,26 @@ class ExpedienteController extends Controller
         $permisos = session('usuario.permisos', []);
         $usuarioId = session('usuario.id');
 
-        // Consultamos directamente los documentos (Expedientes)
-        $query = DocumentoUsuario::with('usuario');
-
-        if (!in_array('expedientes_ver', $permisos)) {
-            $query->where('Id_Usuario', $usuarioId);
+        // Mantenemos tu lógica original de consulta
+        if (in_array('expedientes_ver', $permisos)) {
+            $usuarios = Usuario::whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->orderBy('Apellido_Paterno', 'asc')
+                ->get();
+        } else {
+            $usuarios = Usuario::where('Id_usuario', $usuarioId)
+                ->whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->get();
         }
 
-        $expedientes = $query->orderBy('created_at', 'desc')->get();
+        // RENOMBRAMOS $usuarios a $data para que tu vista original funcione sin cambios
+        $data = $usuarios;
 
-        $total_con_expediente = DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
-        $total_usuarios = Usuario::whereNull('fecha_eliminado')->count();
-
-        return view('cpanel.Expedientes.expediente', compact('expedientes', 'total_usuarios', 'total_con_expediente'));
+        return view(
+            'cpanel.Expedientes.expediente',
+            compact('data') // Aquí está la clave, enviamos $data
+        );
     }
 
     public function store(Request $request)
