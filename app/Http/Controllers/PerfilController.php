@@ -72,26 +72,42 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // 🔑 FORMA ULTRA-SEGURA PARA MODELOS PERSONALIZADOS:
-        // Si $request->user() no tiene la propiedad, la extraemos del token autenticado por Sanctum
-        $tokenUser = $request->user();
-
-        if ($tokenUser) {
-            $userId = $tokenUser->Id_usuario ?? $tokenUser->id ?? null;
-        } else {
-            // Fallback: Intentar obtenerlo mediante el ID del token directamente
-            $userId = auth('sanctum')->id();
+        // 1. Intentamos la vía normal de Sanctum
+        $userId = null;
+        if ($request->user()) {
+            $userId = $request->user()->Id_usuario ?? $request->user()->id;
         }
 
-        // Si aún así no se encuentra (por configuración del Auth provider)
+        // 2. 🚀 PLAN DE RESCATE: Si Sanctum no devolvió el usuario por incompatibilidad de modelos,
+        // leemos el token directamente de la cabecera HTTP "Authorization"
+        if (!$userId) {
+            $headerToken = $request->bearerToken(); // Extrae la cadena limpia del token (sin el "Bearer ")
+
+            if ($headerToken) {
+                // Buscamos el token en la tabla de Sanctum utilizando el hash SHA256 que Laravel usa internamente
+                // Nota: Los tokens de Sanctum vienen en formato "id|token_real". Separamos si tiene pipa.
+                $tokenActual = str_contains($headerToken, '|') ? explode('|', $headerToken)[1] : $headerToken;
+
+                $accessToken = DB::table('personal_access_tokens')
+                    ->where('token', hash('sha256', $tokenActual))
+                    ->first();
+
+                if ($accessToken) {
+                    // 'tokenable_id' guarda el Id_usuario de la persona que se logueó
+                    $userId = $accessToken->tokenable_id;
+                }
+            }
+        }
+
+        // 3. Si de plano no hay ID tras agotar recursos, devolvemos el fallo
         if (!$userId) {
             return response()->json([
                 'ok' => false,
-                'error' => "Sanctum no pudo recuperar el ID del usuario autenticado."
+                'error' => "Sanctum validó el token, pero no se pudo vincular con un ID de usuario válido."
             ], 401);
         }
 
-        // Continuamos con tu consulta...
+        // 4. Tu consulta se mantiene igual, trayendo los datos usando la variable blindada
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
             ->where('u.Id_usuario', '=', $userId)
@@ -101,17 +117,16 @@ class PerfilController extends Controller
         if (!$usuario) {
             return response()->json([
                 'ok' => false,
-                'error' => "El usuario con ID $userId no existe en la tabla de la BD"
+                'error' => "El token pertenece al usuario con ID $userId, pero ese registro ya no existe en la tabla 'usuario'"
             ], 404);
         }
 
-        // Convertimos a array para mitigar problemas de mayúsculas/minúsculas del driver de la BD
+        // Mapeo consistente a un array para evitar problemas de mayúsculas/minúsculas del driver
         $uArray = (array) $usuario;
 
         $nombres = $uArray['Nombres'] ?? $uArray['nombres'] ?? '';
         $paterno = $uArray['Apellido_Paterno'] ?? $uArray['apellido_paterno'] ?? '';
         $materno = $uArray['Apellido_Materno'] ?? $uArray['apellido_materno'] ?? '';
-
         $nombreCompleto = trim("$nombres $paterno $materno");
 
         $correo = $uArray['Correo'] ?? $uArray['correo'] ?? '';
