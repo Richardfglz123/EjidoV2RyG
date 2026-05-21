@@ -331,7 +331,6 @@
             if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
 
             $.ajax({
-                // CAMBIA ESTA LÍNEA:
                 url: "{{ route('reprogramar.falta') }}",
                 type: 'POST',
                 data: {
@@ -345,12 +344,10 @@
                         alert("¡Reprogramación exitosa!");
                         location.reload();
                     } else {
-                        // Esto te mostrará el mensaje real si algo falla en el servidor
                         alert("Error: " + res.message);
                     }
                 },
                 error: function(xhr) {
-                    // Si el error es 404 o 500, esto te ayudará a ver qué pasa
                     console.log(xhr.responseText);
                     alert("Error crítico al procesar la solicitud.");
                 }

@@ -333,19 +333,16 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            // 1. Validar que los datos básicos existan
             if (!$request->tipo_evento || !$request->id_ejidatario) {
                 return response()->json(['success' => false, 'message' => 'Faltan datos en la petición.'], 400);
             }
 
-            // 2. Buscar evento con un log de error claro
             $evento = DB::table('Evento')->where('Nombre_Evento', trim($request->tipo_evento))->first();
 
             if (!$evento) {
                 return response()->json(['success' => false, 'message' => 'No se encontró evento llamado: ' . $request->tipo_evento], 404);
             }
 
-            // 3. Buscar categoría usando el ID del evento encontrado
             $categoria = DB::table('Categoria_Evento')
                 ->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)
                 ->first();
@@ -368,7 +365,6 @@ class Reparto2Controller extends Controller
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
-            // Esto te dirá exactamente qué línea falla en la consola del navegador (F12 -> Network)
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage() . ' en la línea ' . $e->getLine()

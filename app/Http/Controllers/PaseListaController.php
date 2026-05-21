@@ -76,50 +76,42 @@ class PaseListaController extends Controller
             $qr_data = $request->input('qr_data');
 
             if (!$id_recibido || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
+                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            $sesion = Sesion::find($id_recibido);
+            $sesion = Sesion::find($id_recibido) ?? Sesion::where('Id_Referencia', $id_recibido)->latest('Fecha')->first();
 
-            if (!$sesion) {
-                $sesion = Sesion::where('Id_Referencia', $id_recibido)
-                    ->orderBy('Fecha', 'desc')
-                    ->first();
-            }
+            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
 
-            if (!$sesion) {
-                return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
-            }
+            // Normalización simplificada
+            $cadenaQR = strtoupper(trim($qr_data));
 
-            $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
-            $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
-            $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
-
-            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR ilegible"]);
-
-            $cadenaQR = implode(' ', $palabras);
             $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
-                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->get()
-                ->sortBy(fn($c) => levenshtein($cadenaQR, $c->nombre_normalizado))
+                ->sortBy(function($c) use ($cadenaQR) {
+                    $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
+                    return levenshtein($cadenaQR, $nombreCompleto);
+                })
                 ->first();
 
-            if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
-                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
+            // Aumentamos el umbral a 20 o cambiamos la lógica si falla
+            if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
+                return response()->json(['success' => false, 'message' => "Ejidatario no coincide (QR: $cadenaQR)"]);
+            }
 
-            DB::table('PaseLista')
-                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
-                ->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)
-                ->delete();
-
-            DB::table('PaseLista')->insert([
-                'Id_Sesion'     => (int)$sesion->Id_Sesion,
-                'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
-                'Asistencia'    => 1,
-                'Fecha'         => now()->format('Y-m-d H:i:s')
-            ]);
+            // USAR UPDATE OR INSERT (UpdateOrCreate) para evitar borrar el registro si no es necesario
+            DB::table('PaseLista')->updateOrInsert(
+                [
+                    'Id_Sesion' => (int)$sesion->Id_Sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
+                ],
+                [
+                    'Asistencia' => 1,
+                    'Fecha' => now()->format('Y-m-d H:i:s')
+                ]
+            );
 
             return response()->json([
                 'success'  => true,
