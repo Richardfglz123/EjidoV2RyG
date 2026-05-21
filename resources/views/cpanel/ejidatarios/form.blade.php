@@ -6,30 +6,40 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
     <style>
-        .text-negro-titulo { color: #000000 !important; font-weight: normal !important; }
-        .card-header-ejidal {
-            background-color: #198754 !important;
-            color: white !important;
-        }
-
-        .btn-ejidal {
+        .text-header-main { color: #000000 !important; font-weight: normal !important; }
+        .pagination .page-item.active .page-link {
             background-color: #198754 !important;
             border-color: #198754 !important;
-            color: white !important;
+            color: #ffffff !important;
+        }
+        .pagination .page-link {
+            color: #198754 !important;
         }
 
-        .btn-ejidal:hover {
-            background-color: #157347 !important;
-            border-color: #157347 !important;
-            color: white !important;
+        .table tr, .table td {
+            transition: none !important;
+            transform: none !important;
         }
 
-        .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-            border-color: #198754 !important;
-            box-shadow: 0 0 0 .25rem rgba(25, 135, 84, 0.25) !important;
+        .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #dee2e6;
         }
 
-        .input-readonly { background-color: #f8f9fa !important; cursor: not-allowed; border-color: #dee2e6 !important; }
+        /* Estilos de los Badges de Asistencia */
+        .badge-asistencia {
+            font-size: 0.75rem;
+            padding: 0.5em 0.8em;
+            border-radius: 50rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
     </style>
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
