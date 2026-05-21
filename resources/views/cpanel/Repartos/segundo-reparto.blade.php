@@ -331,7 +331,8 @@
             if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
 
             $.ajax({
-                url: "{{ url('admon/finanzas/segundo-reparto/reprográmr-falta') }}",
+                // CAMBIA ESTA LÍNEA:
+                url: "{{ route('reprogramar.falta') }}",
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
@@ -344,10 +345,15 @@
                         alert("¡Reprogramación exitosa!");
                         location.reload();
                     } else {
-                        alert("Atención: " + res.message);
+                        // Esto te mostrará el mensaje real si algo falla en el servidor
+                        alert("Error: " + res.message);
                     }
                 },
-                error: function() { alert("Error crítico al procesar."); }
+                error: function(xhr) {
+                    // Si el error es 404 o 500, esto te ayudará a ver qué pasa
+                    console.log(xhr.responseText);
+                    alert("Error crítico al procesar la solicitud.");
+                }
             });
         }
     </script>
