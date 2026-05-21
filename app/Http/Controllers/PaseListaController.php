@@ -74,6 +74,7 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
+            // Obtenemos los datos sin importar si vienen por GET o POST
             $id_referencia = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
@@ -81,6 +82,8 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "Faltan datos (ID: $id_referencia)"]);
             }
 
+            // IMPORTANTE: Verifica que los nombres de las columnas en tu tabla
+            // sean exactamente estos (mayúsculas/minúsculas)
             $sesion = \App\Models\Sesion::firstOrCreate(
                 [
                     'Tipo'          => 'Evento',
@@ -90,109 +93,21 @@ class PaseListaController extends Controller
             );
 
             $raw = strtoupper($qr_data);
+            $soloLetrasQR = preg_replace('/[^A-ZÁÉÍÓÚÑ]/', '', $raw);
 
-            // Normalización ortográfica base (S, Z, C y acentos)
-            $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'C'];
-            $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S'];
-            $raw = str_replace($buscar, $reemplazar, $raw);
+            $ejidatario = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
+                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+                ->where(\Illuminate\Support\Facades\DB::raw("UPPER(REPLACE(REPLACE(REPLACE(CONCAT(u.Nombres, u.Apellido_Paterno, u.Apellido_Materno), ' ', ''), '.', ''), ',', ''))"),
+                    'LIKE',
+                    "%$soloLetrasQR%"
+                )
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno')
+                ->first();
 
-            // EXTRAEMOS EL NÚMERO DEL QR SI EXISTE (Ej: "1" o "2")
-            preg_match('/\b([0-9])\b/', $raw, $coincidenciaNumero);
-            $numeroQR = isset($coincidenciaNumero[1]) ? $coincidenciaNumero[1] : null;
-
-            // EXTRAEMOS TEXTO ENTRE PARÉNTESIS SI EXISTE (Ej: "CALANZINGO")
-            preg_match('/\(([^)]+)\)/', $raw, $coincidenciaParentesis);
-            $textoParentesis = isset($coincidenciaParentesis[1]) ? trim($coincidenciaParentesis[1]) : null;
-
-            // LIMPIEZA PARA EL TEXTO DEL NOMBRE
-            $textoNombre = preg_replace('/\([^)]+\)/', '', $raw); // Quitamos paréntesis
-            $textoNombre = preg_replace('/[0-9.,-]/', ' ', $textoNombre); // Quitamos números y signos
-
-            $palabras = explode(' ', $textoNombre);
-            $palabrasLimpias = array_filter($palabras, function($p) {
-                $p = trim($p);
-                return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
-            });
-
-            if (empty($palabrasLimpias)) {
-                return response()->json(['success' => false, 'message' => "El QR no contiene un nombre reconocible."]);
+            if (!$ejidatario) {
+                return response()->json(['success' => false, 'message' => "No hallado: $soloLetrasQR"]);
             }
 
-            $cadenaQR = implode(' ', $palabrasLimpias);
-
-            // CONSULTA BASE DE CANDIDATOS
-            $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
-                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
-
-            $concatBD = "REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S')";
-
-            // Filtramos candidatos que tengan al menos una palabra clave
-            $query->where(function($q) use ($palabrasLimpias, $concatBD) {
-                foreach ($palabrasLimpias as $palabra) {
-                    $q->orWhere(\Illuminate\Support\Facades\DB::raw($concatBD), 'LIKE', "%$palabra%");
-                }
-            });
-
-            // Si el QR trae un número (como el 2), priorizamos traer ejidatarios cuyo Num_Ejidatario termine o contenga ese número,
-            // o buscamos si el número o el texto entre paréntesis está guardado en alguna columna (como observaciones o el mismo nombre)
-            $candidatos = $query->select(
-                'e.Id_Ejidatario',
-                'e.Num_Ejidatario',
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno',
-                \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado")
-            )->get();
-
-            $mejorMatch = null;
-            $distanciaMinima = 999;
-
-            foreach ($candidatos as $candidato) {
-                // CALCULAMOS LA DISTANCIA BASE
-                $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
-
-                // --- SISTEMA DE PENALIZACIÓN / RECOMPENSA POR NÚMERO ---
-                if ($numeroQR !== null) {
-                    // Si el número del QR (ej: 2) coincide con el último dígito del número de ejidatario, le damos prioridad máxima
-                    if (str_ends_with((string)$candidato->Num_Ejidatario, $numeroQR)) {
-                        $distancia -= 5; // Le restamos distancia para forzar que sea el elegido
-                    } else {
-                        $distancia += 5; // Lo penalizamos si no coincide el número
-                    }
-                }
-
-                // Si hay texto entre paréntesis en el QR (como CALANZINGO), y por suerte coincide con parte de los campos de la BD
-                if ($textoParentesis !== null) {
-                    $camposUsuario = strtoupper($candidato->Nombres . $candidato->Apellido_Paterno . $candidato->Apellido_Materno);
-                    if (str_contains($camposUsuario, $textoParentesis)) {
-                        $distancia -= 10; // Súper prioridad
-                    }
-                }
-
-                if ($distancia < $distanciaMinima) {
-                    $distanciaMinima = $distancia;
-                    $mejorMatch = $candidato;
-                }
-            }
-
-            // Si las distancias empatan o son muy altas por las penalizaciones, hacemos un desempate estricto por ID de Ejidatario
-            // (Los números 2 suelen tener IDs más altos en la BD que los números 1 porque se crearon después)
-            if ($numeroQR === "2" && $mejorMatch) {
-                // Buscamos si hay otro candidato con el mismo nombre exacto pero con un ID más alto (el segundo registro)
-                foreach ($candidatos as $candidato) {
-                    if ($candidato->nombre_normalizado === $mejorMatch->nombre_normalizado && $candidato->Id_Ejidatario > $mejorMatch->Id_Ejidatario) {
-                        $mejorMatch = $candidato; // Nos quedamos con el segundo registro (Félix 2)
-                    }
-                }
-            }
-
-            if (!$mejorMatch) {
-                return response()->json(['success' => false, 'message' => "No se encontró un usuario válido para: '$cadenaQR'"]);
-            }
-
-            $ejidatario = $mejorMatch;
-
-            // 4. REGISTRO DE ASISTENCIA
             \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
@@ -208,10 +123,11 @@ class PaseListaController extends Controller
             return response()->json([
                 'success' => true,
                 'num_ejid' => (int)$ejidatario->Num_Ejidatario,
-                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno . ' ' . $ejidatario->Apellido_Materno
+                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
+            // Esto previene el "Error de parseo JSON" enviando el error en formato JSON
             return response()->json([
                 'success' => false,
                 'message' => "Error: " . $e->getMessage()
