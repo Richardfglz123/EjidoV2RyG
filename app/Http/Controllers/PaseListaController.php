@@ -89,52 +89,52 @@ class PaseListaController extends Controller
                 ]
             );
 
-            // 1. NORMALIZACIÓN DEL QR
+            // 1. NORMALIZACIÓN Y LIMPIEZA AGRESIVA DE RUIDO
             $raw = strtoupper($qr_data);
             $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'];
             $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N'];
             $raw = str_replace($buscar, $reemplazar, $raw);
 
-            // Limpieza inicial: removemos paréntesis y lo que tengan dentro, puntos y comas
-            // Esto elimina limpiamente "(CALANZINGO)" o "(CUALQUIER_COSA)"
+            // Eliminamos paréntesis y todo lo que esté adentro (ej: "(CALANZINGO)")
             $raw = preg_replace('/\([^)]+\)/', '', $raw);
-            $raw = str_replace(['.', ',', '-'], ' ', $raw);
 
-            // 2. ELIMINACIÓN DE RUIDO ESPECÍFICO (Números sueltos y marcas de lista)
-            // Filtramos números, letras solas o etiquetas como HERM, SERGIO 1, FELIX 2 al inicio/medio
+            // Eliminamos puntos, comas, guiones y CUALQUIER número (1, 2, 3, etc.)
+            $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
+
+            // 2. EXTRACCIÓN DE PALABRAS REALES
             $palabras = explode(' ', $raw);
-            $basura = ['HERM', 'SERGIO', 'FELIX', '1', '2', '3', '4', '5'];
 
-            $palabrasLimpias = array_filter($palabras, function($p) use ($basura) {
+            // Filtramos palabras vacías o conectores irrelevantes como "HERM" o letras sueltas (excepto si son parte del nombre)
+            $palabrasLimpias = array_filter($palabras, function($p) {
                 $p = trim($p);
-                return $p !== '' && !in_array($p, $basura) && !is_numeric($p);
+                // Mantenemos palabras que tengan más de 1 letra y quitamos "HERM"
+                return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
             });
 
-            // Reconstruimos la frase limpia (Ej: "JULIA CABALLERO PEREZ" o "SUAREZ OSORIO")
-            $fraseBuscar = implode(' ', $palabrasLimpias);
-
-            if (empty($fraseBuscar)) {
-                return response()->json(['success' => false, 'message' => "El QR no contiene un nombre válido reconocible."]);
+            if (empty($palabrasLimpias)) {
+                return response()->json(['success' => false, 'message' => "El QR no contiene un nombre reconocible."]);
             }
 
-            // 3. CONSULTA ESTRICTA PERO FLEXIBLE
-            // Concatenamos los datos de la BD de dos formas distintas para cubrir variaciones de orden comunes
-            $nombreOrdenNatural = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno))");
-            $nombreOrdenApellidos = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Apellido_Paterno, u.Apellido_Materno, u.Nombres))");
+            // 3. CONSULTA SEGURA (MÉTODO DE COINCIDENCIA TOTAL)
+            $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
+                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
 
-            $ejidatario = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
-                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->where(function($query) use ($fraseBuscar, $nombreOrdenNatural, $nombreOrdenApellidos) {
-                    // Ahora buscamos la FRASE COMPLETA. Así "SUAREZ OSORIO" no morderá a "ARCADIO SUAREZ".
-                    $query->where($nombreOrdenNatural, 'LIKE', "%$fraseBuscar%")
-                        ->orWhere($nombreOrdenApellidos, 'LIKE', "%$fraseBuscar%");
-                })
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            // Creamos la columna virtual donde buscaremos
+            $concatColumn = \Illuminate\Support\Facades\DB::raw("UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno))");
+
+            // Exigimos que CADA UNA de las palabras del QR se encuentren dentro del nombre completo en la BD
+            // Si el QR dice FELIX, SUAREZ, OSORIO; el registro DEBE tener las tres palabras a fuerza.
+            foreach ($palabrasLimpias as $palabra) {
+                $query->where($concatColumn, 'LIKE', "%$palabra%");
+            }
+
+            $ejidatario = $query->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->first();
 
-            // 4. DIAGNÓSTICO EN CASO DE ERROR
+            // 4. DIAGNÓSTICO
             if (!$ejidatario) {
-                return response()->json(['success' => false, 'message' => "No se encontró a nadie que coincida exactamente con: '$fraseBuscar'"]);
+                $busquedaTexto = implode(' + ', $palabrasLimpias);
+                return response()->json(['success' => false, 'message' => "No hallado. Se buscaba que tuviera: [$busquedaTexto]"]);
             }
 
             // 5. REGISTRO DE ASISTENCIA
