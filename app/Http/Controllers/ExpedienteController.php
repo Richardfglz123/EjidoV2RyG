@@ -13,19 +13,16 @@ class ExpedienteController extends Controller
 {
     public function index()
     {
-        // Obtenemos los usuarios con sus documentos
         $usuarios = Usuario::whereNull('fecha_eliminado')
             ->with('documentos')
+            ->orderBy('Apellido_Paterno', 'asc')
             ->get();
 
-        // TRANSFORMACIÓN: Creamos un objeto virtual para que tu vista original funcione
-        foreach ($usuarios as $usuario) {
-            $docs = $usuario->documentos; // Asumiendo que es una colección
-            $usuario->documentos = (object) [
-                'ruta_ine' => $docs->where('nombre_documento', 'INE')->first()->ruta_archivo ?? null,
-                'ruta_curp' => $docs->where('nombre_documento', 'CURP')->first()->ruta_archivo ?? null,
-                'ruta_comprobante' => $docs->where('nombre_documento', 'DOMICILIO')->first()->ruta_archivo ?? null,
-            ];
+        // Transformamos los documentos para que tu JS los lea fácil
+        foreach ($usuarios as $u) {
+            $u->ruta_ine = $u->documentos->where('nombre_documento', 'INE')->first()->ruta_archivo ?? '';
+            $u->ruta_curp = $u->documentos->where('nombre_documento', 'CURP')->first()->ruta_archivo ?? '';
+            $u->ruta_comp = $u->documentos->where('nombre_documento', 'DOMICILIO')->first()->ruta_archivo ?? '';
         }
 
         $total_usuarios = $usuarios->count();

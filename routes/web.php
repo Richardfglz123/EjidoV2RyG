@@ -338,6 +338,13 @@ Route::prefix('admon/expedientes')->group(function () {
         if (!file_exists($file)) abort(404);
         return response()->file($file);
     })->where('path', '.*');
+    Route::get('/admon/expedientes/nuevo', function() {
+        return redirect()->route('expedientes.index');
+    })->name('ejidatarios.create');
+
+    Route::prefix('admon/expedientes')->group(function () {
+        Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
+    });
 });
 // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
