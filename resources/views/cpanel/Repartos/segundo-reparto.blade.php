@@ -212,22 +212,6 @@
         </div>
     </div>
 
-    <div class="card mt-4">
-        <div class="card-header bg-warning">Préstamos Reprogramados (ID 99)</div>
-        <div class="card-body">
-            <ul>
-                @foreach($reprogramados as $r)
-                    <li>{{ $r->Nombres }} - ${{ $r->Cantidad }}
-                        <form action="{{ route('reparto.revertir', $r->Id_Prestamo) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-danger">Eliminar Reprogramación</button>
-                        </form>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-
     {{-- MODAL DETALLES --}}
     <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -347,7 +331,7 @@
             if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
 
             $.ajax({
-                url: "{{ route('reprogramar.falta') }}",
+                url: "{{ url('admon/finanzas/segundo-reparto/reprográmr-falta') }}",
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
@@ -360,13 +344,10 @@
                         alert("¡Reprogramación exitosa!");
                         location.reload();
                     } else {
-                        alert("Error: " + res.message);
+                        alert("Atención: " + res.message);
                     }
                 },
-                error: function(xhr) {
-                    console.log(xhr.responseText);
-                    alert("Error crítico al procesar la solicitud.");
-                }
+                error: function() { alert("Error crítico al procesar."); }
             });
         }
     </script>
