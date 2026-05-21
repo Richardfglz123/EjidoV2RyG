@@ -8,8 +8,8 @@ use App\Models\Ejidatario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AsistenciaExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaseListaController extends Controller
 {
@@ -35,12 +35,19 @@ class PaseListaController extends Controller
 
     public function registrarAsistencia(Request $request)
     {
-        $request->validate(['id_referencia' => 'required', 'tipo' => 'required']);
+        $request->validate([
+            'id_referencia' => 'required',
+            'tipo'          => 'required',
+            'fecha'         => 'required|date',
+        ]);
 
-        // Buscamos o creamos la sesión única por evento
+        // Mantenemos la lógica original de buscar o crear
         $sesion = Sesion::firstOrCreate(
-            ['Tipo' => $request->tipo, 'Id_Referencia' => $request->id_referencia],
-            ['Fecha' => now()]
+            [
+                'Tipo'          => $request->tipo,
+                'Id_Referencia' => $request->id_referencia,
+                'Fecha'         => $request->fecha
+            ]
         );
 
         $presentes = DB::table('PaseLista as a')
@@ -52,80 +59,124 @@ class PaseListaController extends Controller
             ->get();
 
         $evento = Evento::find($request->id_referencia);
+
         return view('cpanel.PaseLista.escanear', compact('sesion', 'evento', 'presentes'));
     }
 
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_sesion = $request->input('id_sesion');
+            $id_referencia = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_sesion || !$qr_data) return response()->json(['success' => false, 'message' => "Datos incompletos"]);
+            if (!$id_referencia || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Faltan datos"]);
+            }
 
-            $raw = strtoupper(preg_replace('/[0-9.,-]/', ' ', preg_replace('/\([^)]+\)/', '', str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data))));
-            $palabrasLimpias = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && $p !== 'HERM');
+            // BUSCAMOS LA SESION EXISTENTE POR ID (Para no duplicar)
+            $sesion = \App\Models\Sesion::find($id_referencia);
 
-            $candidatos = DB::table('Ejidatario as e')
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
+            }
+
+            $raw = strtoupper($qr_data);
+            $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'];
+            $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'];
+            $raw = str_replace($buscar, $reemplazar, $raw);
+            $raw = preg_replace('/\([^)]+\)/', '', $raw);
+            $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
+
+            $palabras = explode(' ', $raw);
+            $palabrasLimpias = array_filter($palabras, function($p) {
+                $p = trim($p);
+                return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
+            });
+
+            if (empty($palabrasLimpias)) {
+                return response()->json(['success' => false, 'message' => "QR no reconocible"]);
+            }
+
+            $cadenaQR = implode(' ', $palabrasLimpias);
+            $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
+
+            $candidatos = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
-                    DB::raw("REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S') as nombre_normalizado"))
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado"))
                 ->get();
 
-            $mejorMatch = null; $distanciaMinima = 999;
-            foreach ($candidatos as $c) {
-                $distancia = levenshtein(implode(' ', $palabrasLimpias), $c->nombre_normalizado);
-                if ($distancia < $distanciaMinima) { $distanciaMinima = $distancia; $mejorMatch = $c; }
+            $mejorMatch = null;
+            $distanciaMinima = 999;
+
+            foreach ($candidatos as $candidato) {
+                $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
+                if ($distancia < $distanciaMinima) {
+                    $distanciaMinima = $distancia;
+                    $mejorMatch = $candidato;
+                }
             }
 
-            if (!$mejorMatch || $distanciaMinima > 12) return response()->json(['success' => false, 'message' => "No encontrado"]);
+            if (!$mejorMatch || $distanciaMinima > 12) {
+                return response()->json(['success' => false, 'message' => "Usuario no encontrado"]);
+            }
 
-            // Registro seguro: Verifica existencia antes de insertar para evitar duplicados
-            $existe = DB::table('PaseLista')->where('Id_Sesion', (int)$id_sesion)->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)->exists();
-
-            if (!$existe) {
-                DB::table('PaseLista')->insert([
-                    'Id_Sesion' => (int)$id_sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+            // REGISTRO SEGURO (Evita SQLSTATE 23000)
+            \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
+                [
+                    'Id_Sesion' => $sesion->Id_Sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
+                ],
+                [
                     'Asistencia' => 1,
-                    'Fecha' => now()
-                ]);
-            }
+                    'Fecha' => now(),
+                    'Id_Actividad' => ($sesion->Tipo === 'Actividad') ? $sesion->Id_Referencia : null
+                ]
+            );
 
             return response()->json([
-                'success'  => true,
-                'num_ejid' => $mejorMatch->Num_Ejidatario,
-                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
+                'success' => true,
+                'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
+                'nombre' => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
 
     public function destroy($id)
     {
-        DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
-        Sesion::destroy($id);
-        return redirect()->back()->with('success', 'Eliminado correctamente.');
+        try {
+            DB::beginTransaction();
+            DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
+            Sesion::destroy($id);
+            DB::commit();
+            return redirect()->back()->with('success', 'Sesión y asistencias eliminadas.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Error al eliminar la sesión.');
+        }
     }
 
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
-        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
-
         $asistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->whereIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
+            ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
+            ->where('p.Id_Sesion', $id)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
 
+        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
         $noAsistieron = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
 
-        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron'));
+        $total = Ejidatario::count();
+        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
         return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
     }
 
