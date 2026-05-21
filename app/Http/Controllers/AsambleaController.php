@@ -11,7 +11,6 @@ class AsambleaController extends Controller
     {
         $anoActual = now()->year;
 
-        // 1. Obtenemos los eventos de asamblea
         $eventosAsambleas = DB::table('Evento as e')
             ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
             ->where('c.Clave_Categoria', 'LIKE', 'asamblea%')
@@ -19,7 +18,6 @@ class AsambleaController extends Controller
             ->select('e.*')
             ->get();
 
-        // 2. Obtenemos las sesiones
         $sesionesAsambleas = DB::table('Sesion')
             ->whereIn('Id_Referencia', $eventosAsambleas->pluck('Id_Evento'))
             ->where('Tipo', 'Evento')
@@ -28,7 +26,6 @@ class AsambleaController extends Controller
 
         $idsSesiones = $sesionesAsambleas->pluck('Id_Sesion')->toArray();
 
-        // 3. CONSULTA UNIFICADA (Igual que en EjidatariosController)
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->select(
@@ -40,17 +37,32 @@ class AsambleaController extends Controller
 
         // Buscador
         if ($request->filled('query')) {
+
             $search = trim($request->get('query'));
+
             $query->where(function($q) use ($search) {
+
                 $q->where('u.Nombres', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
-                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%");
+                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%")
+                    ->orWhere(
+                        DB::raw("
+                    CONCAT(
+                        u.Nombres,
+                        ' ',
+                        u.Apellido_Paterno,
+                        ' ',
+                        u.Apellido_Materno
+                    )
+                "),
+                        'LIKE',
+                        "%{$search}%"
+                    );
             });
         }
 
         $ejidatarios = $query->paginate(15);
 
-        // 4. Mapeo de asistencias
         foreach ($ejidatarios as $ejidatario) {
             $asistenciasEnSesion = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
