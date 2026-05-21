@@ -55,12 +55,12 @@ class PaseListaController extends Controller
                 'u.Nombres',
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
-                'a.Fecha'
+                'a.Fecha as FechaAsistencia'
             )
             ->orderBy('a.Fecha', 'desc')
             ->get()
             ->map(function ($p) {
-                $p->Hora = \Carbon\Carbon::parse($p->Fecha)->format('H:i:s');
+                $p->Hora = \Carbon\Carbon::parse($p->FechaAsistencia)->format('H:i:s');
                 return $p;
             });
 
@@ -109,16 +109,17 @@ class PaseListaController extends Controller
             if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            DB::table('PaseLista')->updateOrInsert(
-                [
-                    'Id_Sesion' => (int)$sesion->Id_Sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
-                ],
-                [
-                    'Asistencia' => 1,
-                    'Fecha' => DB::raw('NOW()')
-                ]
-            );
+            DB::table('PaseLista')
+                ->where('Id_Sesion', (int)$sesion->Id_Sesion)
+                ->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)
+                ->delete();
+
+            DB::table('PaseLista')->insert([
+                'Id_Sesion'     => (int)$sesion->Id_Sesion,
+                'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+                'Asistencia'    => 1,
+                'Fecha'         => now()->format('Y-m-d H:i:s')
+            ]);
 
             return response()->json([
                 'success'  => true,
