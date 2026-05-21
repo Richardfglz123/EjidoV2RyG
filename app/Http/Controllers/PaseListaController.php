@@ -55,7 +55,7 @@ class PaseListaController extends Controller
                 'u.Nombres',
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
-                'a.Fecha' // Traemos el campo original
+                'a.Fecha'
             )
             ->orderBy('a.Fecha', 'desc')
             ->get()

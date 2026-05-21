@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PaseLista extends Model
 {
     protected $table = 'PaseLista';
-    protected $primaryKey = 'Id_PaseL'; // Corregido según tu DESCRIBE
+    protected $primaryKey = 'Id_PaseL';
     public $timestamps = false;
 
     protected $fillable = [
