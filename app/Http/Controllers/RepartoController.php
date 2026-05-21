@@ -38,7 +38,7 @@ class RepartoController extends Controller
             'responsable' => 'required',
         ]);
 
-        $utilidad = Utilidad::where('Id_Utility', $id)->orWhere('Id_Utilidad', $id)->firstOrFail();
+        $utilidad = Utilidad::where('Id_Utilidad', $id)->orWhere('Id_Utilidad', $id)->firstOrFail();
 
         $utilidad->Monto = $request->monto;
         $utilidad->Año = $request->anio;
