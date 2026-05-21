@@ -457,4 +457,121 @@ class Reparto2Controller extends Controller
             ]);
         }
     }
+    public function generarTicketPDFSegundo($id)
+    {
+        $ejidatario = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->where('e.Id_Ejidatario', $id)
+            ->select(
+                'e.Id_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno'
+            )
+            ->first();
+
+        if (!$ejidatario) {
+            return abort(404);
+        }
+
+        $reparto2 = Utilidad::find($this->idUtilidadReparto2);
+
+        $montoFijoR2 = $reparto2 ? $reparto2->Monto : 0;
+
+        $anoActual = now()->year;
+
+        $precios = CatalogoMulta::where('Año', $anoActual)->get();
+
+        $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
+        $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
+
+        $sesionesAsambleasIds = $this->obtenerSesionesPorTipo('asamblea', $anoActual);
+
+        $sesionesFaenasIds = $this->obtenerSesionesPorTipo('faena', $anoActual);
+
+        $asistenciasEjidatario = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNotNull('Id_Sesion')
+            ->distinct()
+            ->pluck('Id_Sesion')
+            ->toArray();
+
+        $reprosAsambleas = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNull('Id_Sesion')
+            ->where('Id_Actividad', 1)
+            ->count();
+
+        $reprosFaenas = DB::table('PaseLista')
+            ->where('Id_Ejidatario', $id)
+            ->where('Asistencia', 1)
+            ->whereNull('Id_Sesion')
+            ->where('Id_Actividad', 2)
+            ->count();
+
+        $faltasAsambleasCount = count(
+            array_diff($sesionesAsambleasIds, $asistenciasEjidatario)
+        );
+
+        $faltasFaenasCount = count(
+            array_diff($sesionesFaenasIds, $asistenciasEjidatario)
+        );
+
+        $totalAsambleas =
+            max(0, ($faltasAsambleasCount - $reprosAsambleas))
+            * $costoAsamblea;
+
+        $totalFaenas =
+            max(0, ($faltasFaenasCount - $reprosFaenas))
+            * $costoFaena;
+
+        $totalPrestamoR1 = DB::table('Prestamo')
+            ->where('Id_Ejidatario', $id)
+            ->where('Id_Utilidad', $this->idUtilidadReparto1)
+            ->sum('Cantidad') ?? 0;
+
+        $totalAbonosR1 = DB::table('Abono')
+            ->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')
+            ->where('Prestamo.Id_Ejidatario', $id)
+            ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
+            ->sum('Abono.Monto') ?? 0;
+
+        $deudaArrastrada = max(0, $totalPrestamoR1 - $totalAbonosR1);
+
+        $idPrestamos = DB::table('Prestamo')
+            ->where('Id_Ejidatario', $id)
+            ->where('Id_Utilidad', $this->idUtilidadReparto1)
+            ->pluck('Id_Prestamo');
+
+        $historialAbonos = DB::table('Abono')
+            ->whereIn('Id_Prestamo', $idPrestamos)
+            ->orderBy('Fecha', 'asc')
+            ->get();
+
+        $totalDeducciones =
+            $totalAsambleas +
+            $totalFaenas +
+            $deudaArrastrada;
+
+        $totalAPagar =
+            $montoFijoR2 - $totalDeducciones;
+
+        return \PDF::loadView(
+            'cpanel.Repartos.ticket-general-reparto2',
+            [
+                'ejidatario'      => $ejidatario,
+                'montoFijoR2'     => $montoFijoR2,
+                'totalAsambleas'  => $totalAsambleas,
+                'totalFaenas'     => $totalFaenas,
+                'deudaArrastrada' => $deudaArrastrada,
+                'historialAbonos' => $historialAbonos,
+                'totalAbonosR1'   => $totalAbonosR1,
+                'totalPrestamoR1' => $totalPrestamoR1,
+                'totalDeducciones'=> $totalDeducciones,
+                'totalAPagar'     => $totalAPagar
+            ]
+        )->stream('ticket-segundo-reparto-'.$id.'.pdf');
+    }
 }
