@@ -71,18 +71,27 @@ class PaseListaController extends Controller
 
     public function marcarAsistencia(Request $request)
     {
+        // Log para depuración: Ver qué recibe exactamente el servidor
+        \Log::info('PaseLista - Datos recibidos:', $request->all());
+
         try {
             $id_recibido = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_recibido || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Faltan datos"]);
+            // 1. Validación de existencia de datos
+            if (empty($id_recibido) || empty($qr_data)) {
+                return response()->json(['success' => false, 'message' => "Datos de sesión o QR ausentes"]);
             }
 
-            $sesion = Sesion::find($id_recibido);
-            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
+            // 2. Validación de la Sesión (Forzamos a que sea un ID existente)
+            $sesion = Sesion::find((int)$id_recibido);
 
-            // LIMPIEZA MÁS SUAVE: No borres tantas cosas, solo limpia espacios extra
+            if (!$sesion) {
+                \Log::error("PaseLista - Sesión no encontrada en BD con ID: " . $id_recibido);
+                return response()->json(['success' => false, 'message' => "La sesión actual no existe en el sistema."]);
+            }
+
+            // 3. Limpieza y búsqueda de Ejidatario
             $cadenaQR = strtoupper(trim($qr_data));
 
             $mejorMatch = DB::table('Ejidatario as e')
@@ -90,26 +99,25 @@ class PaseListaController extends Controller
                 ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->get()
                 ->sortBy(function($c) use ($cadenaQR) {
-                    // Comparamos con el nombre completo
                     $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
                     return levenshtein($cadenaQR, $nombreCompleto);
                 })
                 ->first();
 
-            // Si la diferencia es mucha, rechaza
+            // Umbral de seguridad (levenshtein < 20 es una coincidencia muy buena)
             if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no coincide"]);
+                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
             }
 
-            // REGISTRO SEGURO: Usamos updateOrInsert para asegurar que el registro se cree
-            DB::table('PaseLista')->updateOrInsert(
+            // 4. Inserción o Actualización (El 'updateOrInsert' previene duplicados y asegura el registro)
+            $registrado = DB::table('PaseLista')->updateOrInsert(
                 [
-                    'Id_Sesion' => (int)$sesion->Id_Sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
+                    'Id_Sesion'     => (int)$sesion->Id_Sesion,
+                    'Id_Ejidatario' => (int)$mejorMatch->Id_Ejidatario
                 ],
                 [
                     'Asistencia' => 1,
-                    'Fecha' => now()
+                    'Fecha'      => now()->format('Y-m-d H:i:s')
                 ]
             );
 
@@ -119,7 +127,8 @@ class PaseListaController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            \Log::error("PaseLista - Error crítico: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => "Error de sistema: " . $e->getMessage()]);
         }
     }
 
