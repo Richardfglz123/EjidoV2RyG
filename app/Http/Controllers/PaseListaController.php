@@ -21,14 +21,13 @@ class PaseListaController extends Controller
 
         $totalEjidatarios = Ejidatario::count();
 
-        // Mantenemos la lógica de subconsulta para el conteo de asistencias
         $sesiones = Sesion::with(['evento.categoria'])
             ->addSelect([
                 'asistencias_count' => DB::table('PaseLista')
                     ->whereColumn('Id_Sesion', 'Sesion.Id_Sesion')
                     ->selectRaw('count(*)')
             ])
-            ->orderBy('Sesion.Fecha', 'desc')
+            ->orderBy('Fecha', 'desc')
             ->get();
 
         return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
@@ -57,7 +56,6 @@ class PaseListaController extends Controller
             ->get();
 
         $evento = Evento::find($request->id_referencia);
-
         return view('cpanel.PaseLista.escanear', compact('sesion', 'evento', 'presentes'));
     }
 
@@ -67,25 +65,23 @@ class PaseListaController extends Controller
             $id_sesion = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$qr_data) return response()->json(['success' => false, 'message' => "QR no detectado"]);
-
-            // 1. INTENTO DE BÚSQUEDA DIRECTA (Para Web)
-            $sesion = Sesion::find($id_sesion);
-
-            // 2. RECUPERACIÓN DE EMERGENCIA (Si es iPhone y falla el ID, buscamos la última sesión abierta)
-            if (!$sesion) {
-                $sesion = Sesion::orderBy('Fecha', 'desc')->first();
+            // 1. Validar que el ID llegue
+            if (!$id_sesion || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            if (!$sesion) return response()->json(['success' => false, 'message' => "No hay sesiones activas"]);
+            // 2. Buscar la sesión por el ID recibido
+            $sesion = Sesion::find($id_sesion);
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada (ID: $id_sesion)"]);
+            }
 
-            // --- Lógica de Procesamiento del QR ---
+            // 3. Lógica de limpieza QR
             $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
-            $raw = preg_replace('/\([^)]+\)/', '', $raw);
-            $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
+            $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
             $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
 
-            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR inválido"]);
+            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR ilegible"]);
 
             $cadenaQR = implode(' ', $palabras);
             $mejorMatch = DB::table('Ejidatario as e')
@@ -97,9 +93,9 @@ class PaseListaController extends Controller
                 ->first();
 
             if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
-                return response()->json(['success' => false, 'message' => "No se encontró el ejidatario"]);
+                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            // Registro asegurando no duplicados
+            // 4. Registro único: Si el registro ya existe, no hace nada, si no, lo inserta.
             DB::table('PaseLista')->updateOrInsert(
                 ['Id_Sesion' => $sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
                 ['Asistencia' => 1, 'Fecha' => now()]
@@ -118,40 +114,26 @@ class PaseListaController extends Controller
 
     public function destroy($id)
     {
-        try {
-            DB::beginTransaction();
-            DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
-            Sesion::destroy($id);
-            DB::commit();
-            return redirect()->back()->with('success', 'Sesión eliminada.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Error al eliminar.');
-        }
+        DB::table('PaseLista')->where('Id_Sesion', $id)->delete();
+        Sesion::destroy($id);
+        return redirect()->back()->with('success', 'Eliminado.');
     }
 
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
-        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
-
-        $asistieron = DB::table('Ejidatario as e')
+        $asistentes = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->whereIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
+            ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
+            ->where('p.Id_Sesion', $id)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
 
-        $noAsistieron = DB::table('Ejidatario as e')
-            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')->get();
-
-        $total = Ejidatario::count();
-        $pdf = Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistieron', 'noAsistieron', 'total'));
-        return $pdf->stream('Reporte_Asistencia_'.$id.'.pdf');
+        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes'))->stream();
     }
 
     public function exportarExcel($id)
     {
-        return Excel::download(new AsistenciaExport($id), 'Reporte_Asistencia_'.$id.'.xlsx');
+        return Excel::download(new AsistenciaExport($id), 'Asistencia_'.$id.'.xlsx');
     }
 }
