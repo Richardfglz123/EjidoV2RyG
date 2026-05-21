@@ -123,17 +123,29 @@ class PaseListaController extends Controller
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
 
+        // 1. Obtener IDs de quienes SÍ asistieron
+        $idsAsistentes = DB::table('PaseLista')->where('Id_Sesion', $id)->pluck('Id_Ejidatario');
+
+        // 2. Lista de asistentes
         $asistentes = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
-            ->where('p.Id_Sesion', $id)
+            ->whereIn('e.Id_Ejidatario', $idsAsistentes)
             ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
             ->get();
 
-        // AGREGAMOS EL TOTAL AQUÍ
-        $total = \App\Models\Ejidatario::count();
+        // 3. Lista de quienes NO asistieron (AQUÍ ESTABA EL ERROR DEL NULL)
+        $noAsistieron = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->whereNotIn('e.Id_Ejidatario', $idsAsistentes)
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->get();
 
-        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes', 'total'))->stream();
+        // 4. Total general
+        $total = Ejidatario::count();
+
+        // Enviamos todo lo que tu vista espera
+        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes', 'noAsistieron', 'total'))
+            ->stream('Reporte_Asistencia_'.$id.'.pdf');
     }
 
     public function exportarExcel($id)
