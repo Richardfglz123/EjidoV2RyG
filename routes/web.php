@@ -337,8 +337,7 @@ Route::prefix('admon/expedientes')->group(function () {
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
     Route::get('/admon/expedientes/nuevo', [ExpedienteController::class, 'create'])->name('ejidatarios.create');
     Route::middleware(['permiso:expedientes_crear'])->group(function () {
-        Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
-        Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
+        Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('ejidatarios.create');        Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
         Route::get('/{id}/editar', [ExpedienteController::class, 'edit'])->name('expedientes.edit');
         Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
         Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');

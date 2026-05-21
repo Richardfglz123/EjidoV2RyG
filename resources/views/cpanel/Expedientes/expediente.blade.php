@@ -36,7 +36,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($data as $fila)
+                @forelse($usuarios as $fila)
                         @php
                             $nombreLimpio = strtolower(trim($fila->Nombres . ' ' . $fila->Apellido_Paterno . ' ' . $fila->Apellido_Materno));
                         @endphp
