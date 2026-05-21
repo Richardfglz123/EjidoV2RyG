@@ -38,15 +38,14 @@ class RepartoController extends Controller
 
         $utilidad = Utilidad::findOrFail($id);
 
-        // Obtenemos el nombre directamente de la sesión que ya gestionas
-        $utilidad->Id_Modificado = session('usuario.nombre_completo', 'Administrador');
-
         $utilidad->Monto = $request->monto;
-        $utilidad->Año = date('Y'); // Año actual automático
+        $utilidad->Año = date('Y');
+        $utilidad->Id_Modificado = session('usuario.nombre_completo', 'Administrador');
         $utilidad->Fecha_Modificado = now();
         $utilidad->save();
 
-        return redirect()->back()->with('success', 'Monto actualizado correctamente.');
+        // Redirigimos explícitamente a la ruta con nombre 'menu'
+        return redirect()->route('menu')->with('success', 'Monto actualizado correctamente.');
     }
 
     public function index(Request $request)
