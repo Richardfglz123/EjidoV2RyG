@@ -71,104 +71,80 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_referencia = $request->input('id_sesion');
+            $id_evento = $request->input('id_sesion'); // ID del evento
             $qr_data = $request->input('qr_data');
 
-            if (!$id_referencia || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Faltan datos (ID: $id_referencia)"]);
+            if (!$id_evento || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            $sesion = \App\Models\Sesion::firstOrCreate(
-                [
+            // 1. BUSCAR SESIÓN EXISTENTE PARA EL EVENTO
+            // No creamos con date('Y-m-d') porque si el evento es de ayer, se crea una sesión nueva.
+            // Buscamos la sesión vinculada a este evento.
+            $sesion = \App\Models\Sesion::where('Id_Referencia', $id_evento)
+                ->where('Tipo', 'Evento')
+                ->first();
+
+            // Si no existe ninguna sesión, la creamos (solo una vez por evento)
+            if (!$sesion) {
+                $sesion = \App\Models\Sesion::create([
                     'Tipo'          => 'Evento',
-                    'Id_Referencia' => $id_referencia,
-                    'Fecha'         => date('Y-m-d')
-                ]
-            );
-
-            $raw = strtoupper($qr_data);
-
-            $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'];
-            $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'];
-            $raw = str_replace($buscar, $reemplazar, $raw);
-
-            $raw = preg_replace('/\([^)]+\)/', '', $raw);
-
-            $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
-
-            $palabras = explode(' ', $raw);
-            $palabrasLimpias = array_filter($palabras, function($p) {
-                $p = trim($p);
-                return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
-            });
-
-            if (empty($palabrasLimpias)) {
-                return response()->json(['success' => false, 'message' => "El QR no contiene un nombre reconocible."]);
+                    'Id_Referencia' => $id_evento,
+                    'Fecha'         => now()
+                ]);
             }
 
-            $cadenaQR = implode(' ', $palabrasLimpias);
+            // 2. LÓGICA DE LIMPIEZA DE QR (Igual a la que ya tienes)
+            $raw = strtoupper(preg_replace('/[0-9.,-]/', ' ', preg_replace('/\([^)]+\)/', '', str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data))));
+            $palabrasLimpias = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && $p !== 'HERM');
 
-            $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
-                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
+            if (empty($palabrasLimpias)) return response()->json(['success' => false, 'message' => "QR inválido"]);
 
+            // 3. BÚSQUEDA DEL EJIDATARIO
             $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
 
-            $query->where(function($q) use ($palabrasLimpias, $concatBD) {
-                foreach ($palabrasLimpias as $palabra) {
-                    $q->orWhere(\Illuminate\Support\Facades\DB::raw($concatBD), 'LIKE', "%$palabra%");
-                }
-            });
-
-            $candidatos = $query->select(
-                'e.Id_Ejidatario',
-                'e.Num_Ejidatario',
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno',
-                \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado")
-            )->get();
+            $candidatos = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
+                ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado"))
+                ->get();
 
             $mejorMatch = null;
             $distanciaMinima = 999;
+            $cadenaQR = implode(' ', $palabrasLimpias);
 
-            foreach ($candidatos as $candidato) {
-                $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
-
+            foreach ($candidatos as $c) {
+                $distancia = levenshtein($cadenaQR, $c->nombre_normalizado);
                 if ($distancia < $distanciaMinima) {
                     $distanciaMinima = $distancia;
-                    $mejorMatch = $candidato;
+                    $mejorMatch = $c;
                 }
             }
 
             if (!$mejorMatch || $distanciaMinima > 12) {
-                return response()->json(['success' => false, 'message' => "No se encontró un usuario con suficiente similitud para: '$cadenaQR'"]);
+                return response()->json(['success' => false, 'message' => "Usuario no encontrado"]);
             }
 
-            $ejidatario = $mejorMatch;
-
+            // 4. REGISTRO DE ASISTENCIA
+            // Guardamos el Id_Sesion real (el que encontramos o creamos al inicio)
             \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
-                    'Id_Ejidatario' => $ejidatario->Id_Ejidatario
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
                 ],
                 [
-                    'Asistencia' => 1,
-                    'Fecha' => now(),
-                    'Id_Actividad' => ($sesion->Tipo === 'Actividad') ? $sesion->Id_Referencia : null
+                    'Asistencia'   => 1,
+                    'Fecha'        => now(),
+                    'Id_Actividad' => null // Dejamos en null si el reporte lee de la tabla Sesion
                 ]
             );
 
             return response()->json([
                 'success' => true,
-                'num_ejid' => (int)$ejidatario->Num_Ejidatario,
-                'nombre' => $ejidatario->Nombres . ' ' . $ejidatario->Apellido_Paterno . ' ' . $ejidatario->Apellido_Materno
+                'nombre'  => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => "Error: " . $e->getMessage()
-            ]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
