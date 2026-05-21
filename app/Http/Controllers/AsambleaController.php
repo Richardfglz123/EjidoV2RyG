@@ -9,30 +9,24 @@ class AsambleaController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Obtener eventos que NO han sido eliminados
+        $anoActual = now()->year;
+
+        // 1. Obtenemos los eventos de asamblea
         $eventosAsambleas = DB::table('Evento')
-            ->join('Sesion', 'Evento.Id_Evento', '=', 'Sesion.Id_Referencia')
-            ->where('Sesion.Tipo', 'Evento')
-            ->whereNull('Evento.Fecha_Eliminado') // Filtro aplicado aquí
-            ->select('Evento.*')
-            ->distinct()
-            ->orderBy('Evento.Fecha_Creo', 'DESC')
+            ->where('Id_Categoria_Evento', 1)
+            ->whereYear('Fecha_Creo', $anoActual)
             ->get();
 
-        $idsEventos = $eventosAsambleas->pluck('Id_Evento')->toArray();
-
-        // 2. Obtener sesiones de eventos que NO han sido eliminados
+        // 2. Obtenemos las sesiones
         $sesionesAsambleas = DB::table('Sesion')
-            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-            ->whereIn('Sesion.Id_Referencia', $idsEventos)
-            ->where('Sesion.Tipo', 'Evento')
-            ->whereNull('Evento.Fecha_Eliminado') // Filtro aplicado aquí también
-            ->select('Sesion.Id_Sesion', 'Sesion.Id_Referencia')
+            ->whereIn('Id_Referencia', $eventosAsambleas->pluck('Id_Evento'))
+            ->where('Tipo', 'Evento')
+            ->select('Id_Sesion', 'Id_Referencia')
             ->get();
 
         $idsSesiones = $sesionesAsambleas->pluck('Id_Sesion')->toArray();
 
-        // 3. Consulta de ejidatarios
+        // 3. CONSULTA UNIFICADA (Igual que en EjidatariosController)
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->select(
@@ -42,6 +36,7 @@ class AsambleaController extends Controller
                 'u.Apellido_Materno'
             );
 
+        // Buscador
         if ($request->filled('query')) {
             $search = trim($request->get('query'));
             $query->where(function($q) use ($search) {
@@ -51,24 +46,19 @@ class AsambleaController extends Controller
             });
         }
 
-        $ejidatarios = $query->orderBy('u.Apellido_Paterno')
-            ->paginate(15)
-            ->withQueryString();
+        $ejidatarios = $query->paginate(15);
 
-        // 4. Obtener asistencias filtrando solo por las sesiones válidas
-        $asistencias = DB::table('PaseLista')
-            ->where('Asistencia', 1)
-            ->whereIn('Id_Sesion', $idsSesiones)
-            ->select('Id_Ejidatario', 'Id_Sesion')
-            ->get();
-
-        // 5. Asignar asistencias a cada ejidatario
+        // 4. Mapeo de asistencias
         foreach ($ejidatarios as $ejidatario) {
-            $sesionesAsistidas = $asistencias->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
-                ->pluck('Id_Sesion');
+            $asistenciasEnSesion = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->whereIn('Id_Sesion', $idsSesiones)
+                ->pluck('Id_Sesion')
+                ->toArray();
 
             $ejidatario->asistencias_asambleas = $sesionesAsambleas
-                ->whereIn('Id_Sesion', $sesionesAsistidas)
+                ->whereIn('Id_Sesion', $asistenciasEnSesion)
                 ->pluck('Id_Referencia')
                 ->toArray();
         }
