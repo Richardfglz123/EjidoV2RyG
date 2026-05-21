@@ -119,4 +119,41 @@ class PerfilController extends Controller
             ]
         ]);
     }
+    public function updatePerfilApi(Request $request)
+    {
+        $authHeader = $request->header('Authorization');
+        if (!$authHeader) {
+            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $userId = intval(trim(str_replace('Bearer ', '', $authHeader)));
+        if ($userId <= 0) {
+            return response()->json(['ok' => false, 'error' => 'Usuario no válido'], 401);
+        }
+
+        $request->validate([
+            'nombre'   => 'required|string|max:255',
+            'Correo'   => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
+            'Telefono' => 'required|numeric',
+        ]);
+
+        $partesNombre = explode(' ', trim($request->nombre));
+        $nombres = $partesNombre[0]; // Primer palabra va a Nombres
+        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : ''; // Segunda palabra
+        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : ''; // Lo que sobre va al materno
+
+        DB::table('usuario')->where('Id_usuario', $userId)->update([
+            'Nombres'          => $nombres,
+            'Apellido_Paterno' => $paterno,
+            'Apellido_Materno' => $materno,
+            'Correo'           => $request->Correo,
+            'Telefono'         => $request->Telefono,
+            'Fecha_Modificado' => now(),
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Campos de identidad reales actualizados con éxito en el sistema.'
+        ]);
+    }
 }
