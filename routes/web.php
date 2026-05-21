@@ -320,7 +320,6 @@ Route::prefix('configuracion')->group(function () {
 
 // --- MÓDULO: EXPEDIENTES ---
 Route::prefix('admon/expedientes')->group(function () {
-
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
     Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
 
@@ -331,8 +330,19 @@ Route::prefix('admon/expedientes')->group(function () {
         Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
         Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');
     });
-
 });
+
+// RUTA PUENTE PARA ARCHIVOS (Soluciona el error 404)
+Route::get('expedientes/{slug}/{archivo}', function ($slug, $archivo) {
+    $path = "expedientes/{$slug}/{$archivo}";
+    $fullPath = storage_path('app/public/' . $path);
+
+    if (!file_exists($fullPath)) {
+        abort(404, 'Archivo no encontrado');
+    }
+
+    return response()->file($fullPath);
+})->where('archivo', '.*');
 
 // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
