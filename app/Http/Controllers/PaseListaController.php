@@ -86,21 +86,16 @@ class PaseListaController extends Controller
                 ]
             );
 
-            // 1. LIMPIEZA INTERGELENTE DEL QR
             $raw = strtoupper($qr_data);
 
-            // Reemplazos ortográficos comunes (Normalizamos S, Z, C y acentos)
             $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'];
             $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'];
             $raw = str_replace($buscar, $reemplazar, $raw);
 
-            // Eliminamos lo que esté entre paréntesis (ej: "(CALANZINGO)")
             $raw = preg_replace('/\([^)]+\)/', '', $raw);
 
-            // Quitamos números, puntos, comas, guiones
             $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
 
-            // Rompemos en palabras, quitamos "HERM" y espacios vacíos
             $palabras = explode(' ', $raw);
             $palabrasLimpias = array_filter($palabras, function($p) {
                 $p = trim($p);
@@ -111,15 +106,11 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "El QR no contiene un nombre reconocible."]);
             }
 
-            // Esta es la cadena limpia del QR que vamos a emparejar (Ej: "FELIX SUARES OSORIO")
             $cadenaQR = implode(' ', $palabrasLimpias);
 
-            // 2. BUSQUEDA DE CANDIDATOS EN LA BASE DE DATOS
-            // Traemos a todos los usuarios que compartan AL MENOS una palabra clave (para no saturar la memoria)
             $query = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario');
 
-            // Creamos la misma normalización en la BD (S, Z, C se vuelven S para evitar errores de dedo)
             $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
 
             $query->where(function($q) use ($palabrasLimpias, $concatBD) {
@@ -137,30 +128,24 @@ class PaseListaController extends Controller
                 \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado")
             )->get();
 
-            // 3. EL TRUCO MAESTRO: Encontrar el match más cercano usando la distancia de Levenshtein
             $mejorMatch = null;
-            $distanciaMinima = 999; // Buscamos la menor diferencia de letras posible
+            $distanciaMinima = 999;
 
             foreach ($candidatos as $candidato) {
-                // Calculamos cuántas letras de diferencia hay entre el QR y el nombre de la BD
                 $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
 
-                // Si es una coincidencia exacta o la más cercana encontrada hasta ahora
                 if ($distancia < $distanciaMinima) {
                     $distanciaMinima = $distancia;
                     $mejorMatch = $candidato;
                 }
             }
 
-            // Margen de tolerancia: Si el nombre difiere en demasiadas letras, asumimos que no es nadie
-            // Un valor de 12 permite pequeños errores ortográficos o segundos nombres ausentes.
             if (!$mejorMatch || $distanciaMinima > 12) {
                 return response()->json(['success' => false, 'message' => "No se encontró un usuario con suficiente similitud para: '$cadenaQR'"]);
             }
 
             $ejidatario = $mejorMatch;
 
-            // 4. REGISTRO DE ASISTENCIA
             \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
                 [
                     'Id_Sesion' => $sesion->Id_Sesion,
