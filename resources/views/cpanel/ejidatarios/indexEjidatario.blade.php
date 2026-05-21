@@ -407,25 +407,26 @@
         document.addEventListener('DOMContentLoaded', function () {
 
             const buscador = document.getElementById('buscadorEjidatarios');
+            const tabla = document.getElementById('tablaEjidatarios');
 
-            const filas = document.querySelectorAll('#tablaEjidatarios tr');
+            if (!buscador || !tabla) {
+                return;
+            }
 
-            buscador.addEventListener('keyup', function () {
+            buscador.addEventListener('input', function () {
 
-                let texto = buscador.value.toLowerCase().trim();
+                const texto = this.value.toLowerCase().trim();
+
+                const filas = tabla.querySelectorAll('tr');
 
                 filas.forEach(function (fila) {
 
-                    let contenido = fila.textContent.toLowerCase();
+                    const contenido = fila.innerText.toLowerCase();
 
                     if (contenido.includes(texto)) {
-
                         fila.style.display = '';
-
                     } else {
-
                         fila.style.display = 'none';
-
                     }
 
                 });
