@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class PerfilController extends Controller
 {
@@ -153,7 +154,7 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        // Recuperamos el ID del usuario con la estrategia blindada que usamos antes
+        // 1. Recuperamos el ID con el plan de rescate que ya nos funcionó
         $userId = null;
         if ($request->user()) {
             $userId = $request->user()->Id_usuario ?? $request->user()->id;
@@ -171,33 +172,69 @@ class PerfilController extends Controller
         }
 
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
+            return response()->json(['ok' => false, 'error' => 'No autorizado por el sistema.'], 401);
         }
 
-        // 🚀 AQUÍ ESTÁ EL TRUCO:
-        // Le decimos a la regla 'unique' que ignore el registro donde la columna 'Id_usuario' sea igual a nuestro $userId
-        $request->validate([
-            'Nombres' => 'required|string|max:255',
-            'Apellido_Paterno' => 'required|string|max:255',
-            'Apellido_Materno' => 'nullable|string|max:255',
-            'Telefono' => 'nullable|string',
-            'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario', // 👈 Excluye tu propio ID
+        // 2. Mapeo tolerante de inputs (por si Swift manda 'correo' o 'Correo', etc.)
+        $inputCorreo = $request->input('Correo') ?? $request->input('correo');
+        $inputTelefono = $request->input('Telefono') ?? $request->input('telefono');
+        $inputNombreCompleto = $request->input('nombre') ?? $request->input('Nombre');
+
+        // Forzamos al request a tener los datos unificados en las variables correctas antes de validar
+        $request->merge([
+            'Correo' => $inputCorreo,
+            'Telefono' => $inputTelefono,
+            'nombre' => $inputNombreCompleto
         ]);
 
-        // Tu lógica para actualizar los datos en la base de datos...
-        DB::table('usuario')
-            ->where('Id_usuario', $userId)
-            ->update([
-                'Nombres' => $request->Nombres,
-                'Apellido_Paterno' => $request->Apellido_Paterno,
-                'Apellido_Materno' => $request->Apellido_Materno,
-                'Telefono' => $request->Telefono,
-                'Correo' => $request->Correo,
-            ]);
+        // 3. Validamos usando la clase Rule (Mucho más estricta e infalible)
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'Telefono' => 'required',
+            'Correo' => [
+                'required',
+                'email',
+                // 🚀 ESTA SINTAXIS ES INFALIBLE:
+                // Busca en la tabla 'usuario', en la columna 'Correo', pero ignora donde 'Id_usuario' sea igual a tu $userId
+                Rule::unique('usuario', 'Correo')->ignore($userId, 'Id_usuario')
+            ],
+        ]);
+
+        // 4. Separar el nombre completo en partes para tu base de datos
+        $partesNombre = explode(' ', trim($request->nombre));
+        $nombres = $partesNombre[0];
+        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : '';
+        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '';
+
+        $datosActualizar = [
+            'Nombres' => $nombres,
+            'Apellido_Paterno' => $paterno,
+            'Apellido_Materno' => $materno,
+            'Correo' => $request->Correo,
+            'Telefono' => $request->Telefono,
+            'Fecha_Modificado' => now(),
+        ];
+
+        // Manejo de la foto si es que se envía en esta petición
+        if ($request->hasFile('foto_perfil')) {
+            $file = $request->file('foto_perfil');
+
+            $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
+            if ($userRecord && $userRecord->foto) {
+                Storage::disk('public')->delete($userRecord->foto);
+            }
+
+            $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('perfiles', $nombreArchivo, 'public');
+            $datosActualizar['foto'] = $path;
+        }
+
+        // 5. Guardar los cambios finales
+        DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Perfil actualizado correctamente.'
+            'message' => 'Campos de identidad actualizados con éxito.'
         ]);
     }
 }
