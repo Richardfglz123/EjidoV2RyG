@@ -39,11 +39,11 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
             ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
             ->exists();
 
-        $nombres = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Nombres ?? '');
-        $apeP = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Apellido_Paterno ?? '');
-        $apeM = str_ireplace(['\n', "\n", "\r", "\\N"], ' ', $ejidatario->usuario->Apellido_Materno ?? '');
-
-        $nombreCompleto = trim("$nombres $apeP $apeM");
+        $nombreCompleto = trim(
+            ($ejidatario->usuario->Nombres ?? '') . ' ' .
+            ($ejidatario->usuario->Apellido_Paterno ?? '') . ' ' .
+            ($ejidatario->usuario->Apellido_Materno ?? '')
+        );
 
         return [
             $ejidatario->Num_Ejidatario,
@@ -55,9 +55,29 @@ class AsistenciaExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function styles(Worksheet $sheet)
     {
         $sheet->mergeCells('A1:C1');
+
         return [
-            1 => ['font' => ['bold' => true, 'size' => 14], 'alignment' => ['horizontal' => 'center']],
-            2 => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'E9ECEF']]],
+            1 => [
+                'font' => [
+                    'bold' => true,
+                    'size' => 14
+                ],
+                'alignment' => [
+                    'horizontal' => 'center'
+                ]
+            ],
+
+            2 => [
+                'font' => [
+                    'bold' => true
+                ],
+                'fill' => [
+                    'fillType' => 'solid',
+                    'startColor' => [
+                        'rgb' => 'E9ECEF'
+                    ]
+                ]
+            ],
         ];
     }
 }

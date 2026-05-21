@@ -7,7 +7,6 @@
         $misPermisos = $sesionActual['permisos'] ?? [];
         $miRol = strtolower(trim($sesionActual['rol'] ?? ''));
 
-        // Lógica de Superusuario
         $esAdmin = ($miRol === 'administrador' || ($sesionActual['id_rol'] ?? null) == 2);
 
         $puedeCrear = $esAdmin || in_array('usuarios_crear', $misPermisos);
@@ -110,7 +109,6 @@
         </div>
     </div>
 
-    {{-- Script de Reportes (Sin cambios) --}}
     <script>
         const form = document.getElementById('filtrosForm');
         document.getElementById('pdfBtn').onclick = () => {
