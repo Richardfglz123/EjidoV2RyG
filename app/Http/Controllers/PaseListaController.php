@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\AsistenciaExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class PaseListaController extends Controller
 {
@@ -55,10 +56,14 @@ class PaseListaController extends Controller
                 'u.Nombres',
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
-                DB::raw("DATE_FORMAT(a.Fecha, '%H:%i:%s') as Hora") // Esto obliga a extraer la hora
+                'a.Fecha'
             )
             ->orderBy('a.Fecha', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($p) {
+                $p->Hora = \Carbon\Carbon::parse($p->Fecha)->format('H:i:s');
+                return $p;
+            });
 
         $evento = Evento::find($request->id_referencia);
 
