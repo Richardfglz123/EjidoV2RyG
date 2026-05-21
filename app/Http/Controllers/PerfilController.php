@@ -155,11 +155,24 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        // 1. Recuperar el ID del usuario de forma segura
+        // 1. DEPURACIÓN: Registro de qué está llegando al servidor
+        // Revisa storage/logs/laravel.log después de intentar guardar
+        \Log::info('Intento de update API', [
+            'headers' => $request->headers->all(),
+            'has_bearer' => $request->hasHeader('Authorization'),
+            'user_id_sanctum' => $request->user() ? $request->user()->id : 'null'
+        ]);
+
+        // 2. RECUPERACIÓN DE USUARIO (Versión Robusta)
         $userId = null;
+
+        // Intento A: Vía Sanctum estándar
         if ($request->user()) {
             $userId = $request->user()->Id_usuario ?? $request->user()->id;
-        } else {
+        }
+
+        // Intento B: Vía Token manual (Si Sanctum falla por configuración de modelo)
+        if (!$userId) {
             $headerToken = $request->bearerToken();
             if ($headerToken) {
                 $tokenActual = str_contains($headerToken, '|') ? explode('|', $headerToken)[1] : $headerToken;
@@ -172,76 +185,70 @@ class PerfilController extends Controller
             }
         }
 
+        // Si aún no tenemos ID, devolvemos el error con detalle
         if (!$userId) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado.'], 401);
+            return response()->json([
+                'ok' => false,
+                'error' => 'No autorizado: Token inválido o ausente.',
+                'debug' => 'Revisa que envíes el Header "Authorization: Bearer TU_TOKEN"'
+            ], 401);
         }
 
-        // 2. Extraer y limpiar los valores vengan como vengan (mayúsculas o minúsculas de Swift)
-        $correo = trim($request->input('Correo') ?? $request->input('correo') ?? '');
-        $telefono = trim($request->input('Telefono') ?? $request->input('telefono') ?? '');
-        $nombreCompleto = trim($request->input('nombre') ?? $request->input('Nombre') ?? '');
+        // 3. EXTRACCIÓN DE DATOS (Más segura)
+        // Usamos $request->get() para capturar datos tanto de JSON como de Form-Data
+        $correo = trim($request->get('Correo') ?? $request->get('correo') ?? '');
+        $telefono = trim($request->get('Telefono') ?? $request->get('telefono') ?? '');
+        $nombreCompleto = trim($request->get('nombre') ?? $request->get('Nombre') ?? '');
 
-        // 3. Crear un validador manual para controlar el JSON de error en las APIs móviles
-        $datosAValidar = [
+        // 4. VALIDACIÓN
+        $validator = Validator::make([
             'nombre' => $nombreCompleto,
             'Telefono' => $telefono,
             'Correo' => $correo,
-        ];
-
-        $reglas = [
+        ], [
             'nombre' => 'required|string|max:255',
-            'Telefono' => 'required',
-            'Correo' => [
-                'required',
-                'email',
-                Rule::unique('usuario', 'Correo')->ignore($userId, 'Id_usuario')
-            ],
-        ];
+            'Telefono' => 'required|numeric',
+            'Correo' => ['required', 'email', Rule::unique('usuario', 'Correo')->ignore($userId, 'Id_usuario')],
+        ]);
 
-        $validator = Validator::make($datosAValidar, $reglas);
-
-        // 4. 🚀 SI FALLA LA VALIDACIÓN: No redirigimos, devolvemos un JSON directo para que Swift no se congele
         if ($validator->fails()) {
             return response()->json([
                 'ok' => false,
-                'error' => 'Error de validación en los datos.',
-                'detalles' => $validator->errors() // 👈 Esto le dirá a Xcode exactamente qué pasó
+                'error' => 'Datos inválidos.',
+                'detalles' => $validator->errors()
             ], 422);
         }
 
-        // 5. Procesar nombres para tu BD tradicional
+        // 5. PROCESAMIENTO
         $partesNombre = explode(' ', $nombreCompleto);
-        $nombres = $partesNombre[0];
-        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : '';
-        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '';
-
         $datosActualizar = [
-            'Nombres' => $nombres,
-            'Apellido_Paterno' => $paterno,
-            'Apellido_Materno' => $materno,
+            'Nombres' => $partesNombre[0],
+            'Apellido_Paterno' => $partesNombre[1] ?? '',
+            'Apellido_Materno' => isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '',
             'Correo' => $correo,
             'Telefono' => $telefono,
             'Fecha_Modificado' => now(),
         ];
 
-        // Subida de foto opcional
+        // Subida de imagen
         if ($request->hasFile('foto_perfil')) {
             $file = $request->file('foto_perfil');
+            // Eliminar anterior
             $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
-            if ($userRecord && $userRecord->foto) {
+            if ($userRecord && !empty($userRecord->foto)) {
                 Storage::disk('public')->delete($userRecord->foto);
             }
-            $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('perfiles', $nombreArchivo, 'public');
+            $path = $file->store('perfiles', 'public');
             $datosActualizar['foto'] = $path;
         }
 
-        // 6. Guardar cambios
-        DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
+        // 6. ACTUALIZACIÓN
+        $actualizado = DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Perfil actualizado con éxito.'
+            'message' => 'Perfil actualizado correctamente.',
+            'debug_actualizado' => $actualizado // Para saber si realmente cambió algo en la BD
         ]);
     }
 }
