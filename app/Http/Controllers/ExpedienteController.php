@@ -16,26 +16,15 @@ class ExpedienteController extends Controller
         $permisos = session('usuario.permisos', []);
         $usuarioId = session('usuario.id');
 
-        // Mantenemos tu lógica original de consulta
+        // Usamos $usuarios para que la lógica interna no cambie
         if (in_array('expedientes_ver', $permisos)) {
-            $usuarios = Usuario::whereNull('fecha_eliminado')
-                ->with('documentos')
-                ->orderBy('Apellido_Paterno', 'asc')
-                ->get();
+            $usuarios = Usuario::whereNull('fecha_eliminado')->with('documentos')->orderBy('Apellido_Paterno', 'asc')->get();
         } else {
-            $usuarios = Usuario::where('Id_usuario', $usuarioId)
-                ->whereNull('fecha_eliminado')
-                ->with('documentos')
-                ->get();
+            $usuarios = Usuario::where('Id_usuario', $usuarioId)->whereNull('fecha_eliminado')->with('documentos')->get();
         }
 
-        // RENOMBRAMOS $usuarios a $data para que tu vista original funcione sin cambios
-        $data = $usuarios;
-
-        return view(
-            'cpanel.Expedientes.expediente',
-            compact('data') // Aquí está la clave, enviamos $data
-        );
+        $data = $usuarios; // Esto es lo que necesita tu vista "bonita"
+        return view('cpanel.Expedientes.expediente', compact('data'));
     }
 
     public function store(Request $request)
