@@ -15,9 +15,14 @@ class PaseListaController extends Controller
 {
     public function index()
     {
+        // 1. Recuperamos los eventos (LO QUE FALTABA)
+        $eventos = Evento::leftJoin('Categoria_Evento as c', 'Evento.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->select('Evento.*', 'c.Nombre_Categoria')
+            ->get();
+
         $totalEjidatarios = Ejidatario::count();
 
-        // Obtenemos sesiones junto con el conteo directo de la tabla PaseLista
+        // 2. Recuperamos las sesiones con el conteo preciso
         $sesiones = Sesion::with(['evento.categoria'])
             ->select('Sesion.*')
             ->addSelect([
@@ -28,7 +33,8 @@ class PaseListaController extends Controller
             ->orderBy('Fecha', 'desc')
             ->get();
 
-        return view('cpanel.PaseLista.paselista', compact('sesiones', 'totalEjidatarios'));
+        // 3. Pasamos ambas variables a la vista
+        return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
     }
 
     public function registrarAsistencia(Request $request)
