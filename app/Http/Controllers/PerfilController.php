@@ -72,10 +72,26 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // 🔑 SANCTUM MAGIA: Sacamos el usuario autenticado directamente de la petición protegida.
-        // Como en tu BD usas la tabla 'usuario' manual, obtenemos el ID que Sanctum ya validó.
-        $userId = $request->user()->Id_usuario ?? $request->user()->id;
+        // 🔑 FORMA ULTRA-SEGURA PARA MODELOS PERSONALIZADOS:
+        // Si $request->user() no tiene la propiedad, la extraemos del token autenticado por Sanctum
+        $tokenUser = $request->user();
 
+        if ($tokenUser) {
+            $userId = $tokenUser->Id_usuario ?? $tokenUser->id ?? null;
+        } else {
+            // Fallback: Intentar obtenerlo mediante el ID del token directamente
+            $userId = auth('sanctum')->id();
+        }
+
+        // Si aún así no se encuentra (por configuración del Auth provider)
+        if (!$userId) {
+            return response()->json([
+                'ok' => false,
+                'error' => "Sanctum no pudo recuperar el ID del usuario autenticado."
+            ], 401);
+        }
+
+        // Continuamos con tu consulta...
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
             ->where('u.Id_usuario', '=', $userId)
@@ -85,25 +101,36 @@ class PerfilController extends Controller
         if (!$usuario) {
             return response()->json([
                 'ok' => false,
-                'error' => "El usuario con ID $userId no existe en la BD"
+                'error' => "El usuario con ID $userId no existe en la tabla de la BD"
             ], 404);
         }
 
-        $nombreCompleto = trim($usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno);
+        // Convertimos a array para mitigar problemas de mayúsculas/minúsculas del driver de la BD
+        $uArray = (array) $usuario;
 
-        // Validamos si guardaste la ruta del archivo o la URL completa
+        $nombres = $uArray['Nombres'] ?? $uArray['nombres'] ?? '';
+        $paterno = $uArray['Apellido_Paterno'] ?? $uArray['apellido_paterno'] ?? '';
+        $materno = $uArray['Apellido_Materno'] ?? $uArray['apellido_materno'] ?? '';
+
+        $nombreCompleto = trim("$nombres $paterno $materno");
+
+        $correo = $uArray['Correo'] ?? $uArray['correo'] ?? '';
+        $telefono = $uArray['Telefono'] ?? $uArray['telefono'] ?? '';
+        $foto = $uArray['foto'] ?? $uArray['Foto'] ?? null;
+        $numEjidatario = $uArray['Num_Ejidatario'] ?? $uArray['num_ejidatario'] ?? null;
+
         $fotoUrl = null;
-        if ($usuario->foto) {
-            $fotoUrl = str_starts_with($usuario->foto, 'http') ? $usuario->foto : asset(Storage::url($usuario->foto));
+        if ($foto) {
+            $fotoUrl = str_starts_with($foto, 'http') ? $foto : asset(Storage::url($foto));
         }
 
         return response()->json([
             'ok' => true,
             'usuario' => [
                 'nombre' => $nombreCompleto ?: 'Nombre no disponible',
-                'correo' => $usuario->Correo,
-                'telefono' => (string)$usuario->Telefono,
-                'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'),
+                'correo' => $correo,
+                'telefono' => (string)$telefono,
+                'num_ejidatario' => (string)($numEjidatario ?? 'N/A'),
                 'foto_url' => $fotoUrl,
             ]
         ]);

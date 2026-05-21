@@ -26,15 +26,22 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'El usuario no existe'], 401);
         }
 
+        // Acceso directo por Face ID / Touch ID
         if ($request->login_biometrico === 'true') {
             $token = $usuario->createToken('ios-device-biometric')->plainTextToken;
-            return response()->json(['ok' => true, 'two_factor' => false, 'token' => $token]);
+            return response()->json([
+                'ok' => true,
+                'two_factor' => false,
+                'token' => $token
+            ]);
         }
 
+        // Validación de contraseña tradicional
         if (!Hash::check($request->password, $usuario->Contraseña)) {
             return response()->json(['ok' => false, 'error' => 'Credenciales incorrectas'], 401);
         }
 
+        // Generación de código 2FA de 6 dígitos
         $code = rand(100000, 999999);
 
         DB::table('password_resets')->updateOrInsert(
@@ -66,8 +73,12 @@ class ApiController extends Controller
             \Log::error("Error enviando correo: " . $e->getMessage());
         }
 
-        return response()->json(['ok' => true, 'two_factor' => true]);
+        return response()->json([
+            'ok' => true,
+            'two_factor' => true
+        ]);
     }
+
     public function verifyCode(Request $request)
     {
         $emailLimpio = strtolower(trim($request->email));
@@ -82,22 +93,21 @@ class ApiController extends Controller
             return response()->json(['ok' => false, 'error' => 'Código inválido para este correo'], 401);
         }
 
-        // 🔑 CAMBIO: Buscamos con el Modelo Eloquent para poder generar un token de Sanctum válido
         $user = Usuario::where('Correo', $emailLimpio)->first();
 
         if (!$user) {
             return response()->json(['ok' => false, 'error' => 'No existe un usuario con ese correo'], 404);
         }
 
-        // Limpiamos el código ya usado
+        // Limpieza del código utilizado
         DB::table('password_resets')->where('email', $emailLimpio)->delete();
 
-        // 🔑 MAGIA SANCTUM: Generamos un token alfanumérico encriptado real
+        // 🔑 Generación del Token real de Sanctum
         $tokenReal = $user->createToken('ios-device-2fa')->plainTextToken;
 
         return response()->json([
             'ok' => true,
-            'token' => $tokenReal,
+            'token' => (string)$tokenReal,
             'user' => [
                 'nombre' => $user->Nombres,
                 'email' => $user->Correo
