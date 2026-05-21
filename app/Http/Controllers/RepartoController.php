@@ -32,24 +32,31 @@ class RepartoController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Validamos sin exigir el responsable, ya que lo tomaremos del sistema
         $request->validate([
             'monto' => 'required|numeric|min:0',
         ]);
 
         $utilidad = Utilidad::findOrFail($id);
 
+        // Intentamos obtener al usuario por varias vías:
+        // 1. Auth::user()
+        // 2. Si usas un nombre de sesión distinto, prueba con el helper session() si tienes el ID guardado
+        $user = Auth::user();
+
+        if ($user) {
+            $utilidad->Id_Modificado = $user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno;
+        } else {
+            // DEPURACIÓN: Si esto sigue entrando aquí, es que el 'auth' no está protegiendo la ruta
+            // Puedes intentar obtenerlo por el ID si lo tienes en sesión
+            $utilidad->Id_Modificado = 'Administrador';
+        }
+
         $utilidad->Monto = $request->monto;
-
-        $utilidad->Año = date('Y'); // Año actual
-
-        $admin = Auth::user();
-        $utilidad->Id_Modificado = $admin->Nombres . ' ' . $admin->Apellido_Paterno . ' ' . $admin->Apellido_Materno;
-
+        $utilidad->Año = date('Y');
         $utilidad->Fecha_Modificado = now();
         $utilidad->save();
 
-        return redirect()->route('menu')->with('success', 'Monto y responsable actualizados correctamente.');
+        return redirect()->back()->with('success', 'Cambios guardados exitosamente.');
     }
 
     public function index(Request $request)

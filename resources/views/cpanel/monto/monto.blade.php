@@ -74,7 +74,7 @@
                         <div class="col-md-6">
                             <label class="fw-bold">Responsable del cambio</label>
                             <input type="text" class="form-control bg-light"
-                                   value="{{ Auth::check() ? Auth::user()->Nombres . ' ' . Auth::user()->Apellido_Paterno : 'Invitado' }}"
+                                   value="{{ Auth::check() ? Auth::user()->Nombres . ' ' . (Auth::user()->Apellido_Paterno ?? '') : 'Nombre del Administrador' }}"
                                    readonly>
                         </div>
 
