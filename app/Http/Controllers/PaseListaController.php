@@ -72,20 +72,15 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_recibido = $request->input('id_sesion');
-            $qr_data = $request->input('qr_data');
+            $id_sesion = $request->input('id_sesion'); // Asegúrate que el iPhone envíe este nombre
+            $qr_data   = $request->input('qr_data');
 
-            if (!$id_recibido || !$qr_data) {
+            if (!$id_sesion || !$qr_data) {
                 return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            $sesion = Sesion::find($id_recibido) ?? Sesion::where('Id_Referencia', $id_recibido)->latest('Fecha')->first();
-
-            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
-
-            // Normalización simplificada
+            // 1. Buscar Ejidatario con coincidencia mejorada
             $cadenaQR = strtoupper(trim($qr_data));
-
             $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
                 ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
@@ -96,31 +91,30 @@ class PaseListaController extends Controller
                 })
                 ->first();
 
-            // Aumentamos el umbral a 20 o cambiamos la lógica si falla
+            // Si la distancia es mayor a 20, no arriesgamos el registro
             if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no coincide (QR: $cadenaQR)"]);
+                return response()->json(['success' => false, 'message' => "Ejidatario no identificado"]);
             }
 
-            // USAR UPDATE OR INSERT (UpdateOrCreate) para evitar borrar el registro si no es necesario
+            // 2. Registrar asistencia sin borrar (usamos updateOrInsert)
             DB::table('PaseLista')->updateOrInsert(
                 [
-                    'Id_Sesion' => (int)$sesion->Id_Sesion,
+                    'Id_Sesion'     => (int)$id_sesion,
                     'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
                 ],
                 [
                     'Asistencia' => 1,
-                    'Fecha' => now()->format('Y-m-d H:i:s')
+                    'Fecha'      => now()->format('Y-m-d H:i:s')
                 ]
             );
 
             return response()->json([
                 'success'  => true,
-                'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
                 'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
