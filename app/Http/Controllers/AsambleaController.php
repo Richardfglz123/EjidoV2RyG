@@ -9,36 +9,24 @@ class AsambleaController extends Controller
 {
     public function index(Request $request)
     {
-        $anoActual = now()->year;
-
-        // 1. Obtenemos los eventos de asamblea
         $eventosAsambleas = DB::table('Evento')
             ->where('Id_Categoria_Evento', 1)
-            ->whereYear('Fecha_Creo', $anoActual)
+            ->orderBy('Fecha_Creo', 'DESC')
             ->get();
 
-        // 2. Obtenemos las sesiones
+        $idsEventos = $eventosAsambleas->pluck('Id_Evento')->toArray();
+
         $sesionesAsambleas = DB::table('Sesion')
-            ->whereIn('Id_Referencia', $eventosAsambleas->pluck('Id_Evento'))
+            ->whereIn('Id_Referencia', $idsEventos)
             ->where('Tipo', 'Evento')
-            ->select('Id_Sesion', 'Id_Referencia')
             ->get();
 
-        $idsSesiones = $sesionesAsambleas->pluck('Id_Sesion')->toArray();
-
-        // 3. CONSULTA UNIFICADA (Igual que en EjidatariosController)
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->select(
-                'e.Id_Ejidatario',
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno'
-            );
+            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno');
 
-        // Buscador
         if ($request->filled('query')) {
-            $search = trim($request->get('query'));
+            $search = $request->query('query');
             $query->where(function($q) use ($search) {
                 $q->where('u.Nombres', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
@@ -46,19 +34,18 @@ class AsambleaController extends Controller
             });
         }
 
-        $ejidatarios = $query->paginate(15);
+        $ejidatarios = $query->orderBy('u.Apellido_Paterno')->paginate(15)->withQueryString();
 
-        // 4. Mapeo de asistencias
+        $asistencias = DB::table('PaseLista')
+            ->where('Asistencia', 1)
+            ->whereIn('Id_Sesion', $sesionesAsambleas->pluck('Id_Sesion'))
+            ->get();
+
         foreach ($ejidatarios as $ejidatario) {
-            $asistenciasEnSesion = DB::table('PaseLista')
-                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
-                ->where('Asistencia', 1)
-                ->whereIn('Id_Sesion', $idsSesiones)
-                ->pluck('Id_Sesion')
-                ->toArray();
+            $idsSesionesAsistidas = $asistencias->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)->pluck('Id_Sesion');
 
             $ejidatario->asistencias_asambleas = $sesionesAsambleas
-                ->whereIn('Id_Sesion', $asistenciasEnSesion)
+                ->whereIn('Id_Sesion', $idsSesionesAsistidas)
                 ->pluck('Id_Referencia')
                 ->toArray();
         }
