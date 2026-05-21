@@ -46,12 +46,17 @@ class PaseListaController extends Controller
             'Id_Referencia' => $request->id_referencia,
             'Fecha'         => $request->fecha
         ]);
-
         $presentes = DB::table('PaseLista as a')
             ->join('Ejidatario as e', 'a.Id_Ejidatario', '=', 'e.Id_Ejidatario')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->where('a.Id_Sesion', $sesion->Id_Sesion)
-            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'a.Fecha as Hora')
+            ->select(
+                'e.Num_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno',
+                DB::raw("DATE_FORMAT(a.Fecha, '%H:%i:%s') as Hora") // Esto obliga a extraer la hora
+            )
             ->orderBy('a.Fecha', 'desc')
             ->get();
 
@@ -70,12 +75,8 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
             }
 
-            // --- LÓGICA DE DETECCIÓN INTELIGENTE ---
-            // 1. Intentamos buscar como si fuera un ID de sesión (de la tabla Sesion)
             $sesion = Sesion::find($id_recibido);
 
-            // 2. Si no lo encuentra, lo buscamos como ID de Evento (Referencia)
-            // Esto soluciona el error del iPhone automáticamente
             if (!$sesion) {
                 $sesion = Sesion::where('Id_Referencia', $id_recibido)
                     ->orderBy('Fecha', 'desc')
@@ -86,7 +87,6 @@ class PaseListaController extends Controller
                 return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
             }
 
-            // --- LÓGICA DE PROCESAMIENTO ---
             $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
             $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
             $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
@@ -105,7 +105,6 @@ class PaseListaController extends Controller
             if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            // --- REGISTRO BLINDADO ---
             DB::table('PaseLista')->updateOrInsert(
                 ['Id_Sesion' => (int)$sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
                 ['Asistencia' => 1, 'Fecha' => now()]
