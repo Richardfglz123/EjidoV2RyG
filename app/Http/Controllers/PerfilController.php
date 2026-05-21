@@ -72,27 +72,13 @@ class PerfilController extends Controller
 
     public function getPerfilApi(Request $request)
     {
-        // Obtenemos la cabecera Authorization
-        $authHeader = $request->header('Authorization');
-
-        if (!$authHeader) {
-            return response()->json(['ok' => false, 'error' => 'Cabecera Authorization ausente'], 401);
-        }
-
-        // Limpiamos la palabra 'Bearer ' y removemos cualquier espacio en blanco o salto de línea residual
-        $cleanId = trim(str_replace('Bearer ', '', $authHeader));
-
-        // Forzamos que sea un número entero para evitar que la base de datos se confunda o devuelva registros incorrectos
-        $userId = intval($cleanId);
-
-        // Si el iPhone mandó un ID vacío, nulo o que tras la conversión no es un número válido válido mayor a 0
-        if ($userId <= 0) {
-            return response()->json(['ok' => false, 'error' => 'ID de usuario no válido o no recibido'], 401);
-        }
+        // 🔑 SANCTUM MAGIA: Sacamos el usuario autenticado directamente de la petición protegida.
+        // Como en tu BD usas la tabla 'usuario' manual, obtenemos el ID que Sanctum ya validó.
+        $userId = $request->user()->Id_usuario ?? $request->user()->id;
 
         $usuario = DB::table('usuario as u')
             ->leftJoin('Ejidatario as e', 'u.Id_usuario', '=', 'e.Id_usuario')
-            ->where('u.Id_usuario', '=', $userId) // <--- FILTRO ESTRICTO SEGURO
+            ->where('u.Id_usuario', '=', $userId)
             ->select('u.*', 'e.Num_Ejidatario')
             ->first();
 
@@ -105,8 +91,11 @@ class PerfilController extends Controller
 
         $nombreCompleto = trim($usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno);
 
-        // Usamos Storage::url() que es más consistente para resolver las rutas públicas configuradas en producción
-        $fotoUrl = $usuario->foto ? asset(Storage::url($usuario->foto)) : null;
+        // Validamos si guardaste la ruta del archivo o la URL completa
+        $fotoUrl = null;
+        if ($usuario->foto) {
+            $fotoUrl = str_starts_with($usuario->foto, 'http') ? $usuario->foto : asset(Storage::url($usuario->foto));
+        }
 
         return response()->json([
             'ok' => true,
@@ -122,21 +111,14 @@ class PerfilController extends Controller
 
     public function updatePerfilApi(Request $request)
     {
-        $authHeader = $request->header('Authorization');
-        if (!$authHeader) {
-            return response()->json(['ok' => false, 'error' => 'No autorizado'], 401);
-        }
-
-        $userId = intval(trim(str_replace('Bearer ', '', $authHeader)));
-        if ($userId <= 0) {
-            return response()->json(['ok' => false, 'error' => 'Usuario no válido'], 401);
-        }
+        // 🔑 Obtenemos el ID de forma segura con Sanctum
+        $userId = $request->user()->Id_usuario ?? $request->user()->id;
 
         $request->validate([
             'nombre' => 'required|string|max:255',
             'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono' => 'required|numeric',
-            'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072', // máx 3MB
+            'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
         $partesNombre = explode(' ', trim($request->nombre));
@@ -156,12 +138,17 @@ class PerfilController extends Controller
         if ($request->hasFile('foto_perfil')) {
             $file = $request->file('foto_perfil');
 
+            // Eliminamos la foto anterior si existe para no llenar el servidor de basura
+            $userRecord = DB::table('usuario')->where('Id_usuario', $userId)->first();
+            if ($userRecord && $userRecord->foto) {
+                Storage::disk('public')->delete($userRecord->foto);
+            }
+
+            // Guardamos consistentemente en la columna 'foto' usando el disco public
             $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('perfiles', $nombreArchivo, 'public');
 
-            $file->storeAs('perfiles', $nombreArchivo, 'public');
-            $urlPublica = asset('storage/perfiles/' . $nombreArchivo);
-
-            $datosActualizar['foto_url'] = $urlPublica;
+            $datosActualizar['foto'] = $path; // ✅ Cambiado a 'foto' para que coincida con getPerfilApi
         }
 
         DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
