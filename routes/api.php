@@ -13,15 +13,16 @@ Route::get('/ping', function () {
     return response()->json(['ok' => true]);
 });
 
-//Acceso Móvil
+// Acceso Móvil (Rutas Públicas)
 Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 
-Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
-Route::post('/user-profile/update', [PerfilController::class, 'updatePerfilApi']);
-
+// 🔒 Todas las rutas de la App Móvil protegidas bajo el mismo ecosistema
 Route::middleware('auth:sanctum')->group(function () {
 
+    // Rutas de Perfil (Ahora seguras y unificadas)
+    Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
+    Route::post('/user-profile/update', [PerfilController::class, 'updatePerfilApi']);
     Route::get('/perfil/{id}', [PerfilController::class, 'show']);
 
     // Gestión de Usuarios del Sistema
@@ -41,5 +42,4 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Asistencias y Pase de Lista desde Móvil
     Route::match(['get', 'post'], '/asistencia/registrar-movil', [PaseListaController::class, 'marcarAsistencia']);
-
 });
