@@ -75,23 +75,14 @@ class PaseListaController extends Controller
             $id_recibido = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            // 1. Buscamos la sesión activa
-            // Si el iPhone envía el ID, lo usamos. Si no, buscamos la más reciente del evento.
+            if (!$id_recibido || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Faltan datos"]);
+            }
+
             $sesion = Sesion::find($id_recibido);
+            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
 
-            if (!$sesion) {
-                // Esto evita que falle si el iPhone envía un ID viejo o incorrecto
-                $sesion = Sesion::where('Id_Sesion', $id_recibido)
-                    ->orWhere('Id_Referencia', $id_recibido)
-                    ->latest('Fecha')
-                    ->first();
-            }
-
-            if (!$sesion) {
-                return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
-            }
-
-            // 2. Procesamiento de nombre (Simplificado para mayor exactitud)
+            // LIMPIEZA MÁS SUAVE: No borres tantas cosas, solo limpia espacios extra
             $cadenaQR = strtoupper(trim($qr_data));
 
             $mejorMatch = DB::table('Ejidatario as e')
@@ -99,21 +90,33 @@ class PaseListaController extends Controller
                 ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->get()
                 ->sortBy(function($c) use ($cadenaQR) {
-                    return levenshtein($cadenaQR, strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno));
+                    // Comparamos con el nombre completo
+                    $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
+                    return levenshtein($cadenaQR, $nombreCompleto);
                 })
                 ->first();
 
-            if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 15) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado en BD"]);
+            // Si la diferencia es mucha, rechaza
+            if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
+                return response()->json(['success' => false, 'message' => "Ejidatario no coincide"]);
             }
 
-            // 3. Registro seguro (Upsert)
+            // REGISTRO SEGURO: Usamos updateOrInsert para asegurar que el registro se cree
             DB::table('PaseLista')->updateOrInsert(
-                ['Id_Sesion' => $sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
-                ['Asistencia' => 1, 'Fecha' => now()]
+                [
+                    'Id_Sesion' => (int)$sesion->Id_Sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
+                ],
+                [
+                    'Asistencia' => 1,
+                    'Fecha' => now()
+                ]
             );
 
-            return response()->json(['success' => true, 'nombre' => $mejorMatch->Nombres]);
+            return response()->json([
+                'success'  => true,
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
+            ]);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
