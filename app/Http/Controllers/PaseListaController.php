@@ -70,16 +70,26 @@ class PaseListaController extends Controller
             $qr_data = $request->input('qr_data');
 
             if (!$id_referencia || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Faltan datos"]);
+                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
             }
 
-            // BUSCAMOS LA SESION EXISTENTE POR ID (Para no duplicar)
-            $sesion = \App\Models\Sesion::find($id_referencia);
+            // BUSQUEDA INTELIGENTE: Si el ID enviado falla, buscamos la sesión abierta del evento
+            // Esto es lo que permite que funcione en el iPhone aunque Safari mande cosas distintas
+            $sesion = \App\Models\Sesion::where('Id_Referencia', $id_referencia)
+                ->where('Tipo', 'Evento')
+                ->orderBy('Fecha', 'desc')
+                ->first();
 
+            // Si por alguna razón técnica no existe, la creamos para salvar la asistencia
             if (!$sesion) {
-                return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
+                $sesion = \App\Models\Sesion::create([
+                    'Tipo'          => 'Evento',
+                    'Id_Referencia' => $id_referencia,
+                    'Fecha'         => date('Y-m-d')
+                ]);
             }
 
+            // LIMPIEZA DE QR (Tu lógica original)
             $raw = strtoupper($qr_data);
             $buscar = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'];
             $reemplazar = ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'];
@@ -87,63 +97,63 @@ class PaseListaController extends Controller
             $raw = preg_replace('/\([^)]+\)/', '', $raw);
             $raw = preg_replace('/[0-9.,-]/', ' ', $raw);
 
-            $palabras = explode(' ', $raw);
-            $palabrasLimpias = array_filter($palabras, function($p) {
+            $palabras = array_filter(explode(' ', $raw), function($p) {
                 $p = trim($p);
                 return $p !== '' && $p !== 'HERM' && strlen($p) > 1;
             });
 
-            if (empty($palabrasLimpias)) {
-                return response()->json(['success' => false, 'message' => "QR no reconocible"]);
-            }
+            if (empty($palabras)) return response()->json(['success' => false, 'message' => "QR sin nombre reconocible"]);
 
-            $cadenaQR = implode(' ', $palabrasLimpias);
+            // BÚSQUEDA DE EJIDATARIO
+            $cadenaQR = implode(' ', $palabras);
             $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
 
             $candidatos = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado"))
+                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno',
+                    \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado"))
                 ->get();
 
             $mejorMatch = null;
             $distanciaMinima = 999;
 
-            foreach ($candidatos as $candidato) {
-                $distancia = levenshtein($cadenaQR, $candidato->nombre_normalizado);
+            foreach ($candidatos as $c) {
+                $distancia = levenshtein($cadenaQR, $c->nombre_normalizado);
                 if ($distancia < $distanciaMinima) {
                     $distanciaMinima = $distancia;
-                    $mejorMatch = $candidato;
+                    $mejorMatch = $c;
                 }
             }
 
             if (!$mejorMatch || $distanciaMinima > 12) {
-                return response()->json(['success' => false, 'message' => "Usuario no encontrado"]);
+                return response()->json(['success' => false, 'message' => "No se encontró coincidencia clara"]);
             }
 
-            // REGISTRO SEGURO (Evita SQLSTATE 23000)
-            \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
-                [
-                    'Id_Sesion' => $sesion->Id_Sesion,
-                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
-                ],
-                [
-                    'Asistencia' => 1,
-                    'Fecha' => now(),
-                    'Id_Actividad' => ($sesion->Tipo === 'Actividad') ? $sesion->Id_Referencia : null
-                ]
-            );
+            // REGISTRO DE ASISTENCIA (Evita el SQLSTATE 23000 verificando existencia)
+            $yaRegistrado = \Illuminate\Support\Facades\DB::table('PaseLista')
+                ->where('Id_Sesion', $sesion->Id_Sesion)
+                ->where('Id_Ejidatario', $mejorMatch->Id_Ejidatario)
+                ->exists();
+
+            if (!$yaRegistrado) {
+                \Illuminate\Support\Facades\DB::table('PaseLista')->insert([
+                    'Id_Sesion'     => $sesion->Id_Sesion,
+                    'Id_Ejidatario' => $mejorMatch->Id_Ejidatario,
+                    'Asistencia'    => 1,
+                    'Fecha'         => now()
+                ]);
+            }
 
             return response()->json([
-                'success' => true,
+                'success'  => true,
                 'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
-                'nombre' => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error interno: " . $e->getMessage()]);
         }
     }
-
     public function destroy($id)
     {
         try {
