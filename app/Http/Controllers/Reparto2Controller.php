@@ -333,26 +333,29 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-
             if (strtotime($request->fecha_nueva) < strtotime(date('Y-m-d'))) {
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Fecha inválida.'
-                ]);
+                return response()->json(['success' => false, 'message' => 'Fecha inválida.']);
             }
 
             $evento = DB::table('Evento')
                 ->where('Nombre_Evento', $request->tipo_evento)
                 ->first();
 
+            // VALIDACIÓN DE SEGURIDAD: Si no existe el evento, detenemos el proceso
+            if (!$evento) {
+                return response()->json(['success' => false, 'message' => 'Tipo de evento no encontrado.']);
+            }
+
             $categoria = DB::table('Categoria_Evento')
                 ->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)
                 ->first();
 
-            $idActividad = str_starts_with($categoria->Clave_Categoria, 'asamblea')
-                ? 1
-                : 2;
+            // VALIDACIÓN ADICIONAL
+            if (!$categoria) {
+                return response()->json(['success' => false, 'message' => 'Categoría no encontrada.']);
+            }
+
+            $idActividad = str_starts_with($categoria->Clave_Categoria, 'asamblea') ? 1 : 2;
 
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
@@ -362,12 +365,9 @@ class Reparto2Controller extends Controller
                 'Id_Actividad'  => $idActividad
             ]);
 
-            return response()->json([
-                'success' => true
-            ]);
+            return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -375,26 +375,6 @@ class Reparto2Controller extends Controller
         }
     }
 
-    public function perdonarAsamblea($id)
-    {
-        try {
-
-            $descuento = DB::table('Descuentos')
-                ->where('Id_Descuento', $id)
-                ->delete();
-
-            return response()->json([
-                'success' => true
-            ]);
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-        }
-    }
 
     public function fijarFechaLimite(Request $request)
     {

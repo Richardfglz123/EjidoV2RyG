@@ -332,7 +332,6 @@ Route::prefix('admon/expedientes')->group(function () {
     });
 });
 
-// RUTA PUENTE PARA ARCHIVOS (Soluciona el error 404)
 Route::get('expedientes/{slug}/{archivo}', function ($slug, $archivo) {
     $path = "expedientes/{$slug}/{$archivo}";
     $fullPath = storage_path('app/public/' . $path);
