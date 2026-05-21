@@ -7,9 +7,6 @@ use App\Models\Evento;
 use App\Models\Ejidatario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\AsistenciaExport;
-use Maatwebsite\Excel\Facades\Excel;
 
 class PaseListaController extends Controller
 {
@@ -38,14 +35,17 @@ class PaseListaController extends Controller
         $request->validate([
             'id_referencia' => 'required',
             'tipo'          => 'required',
-            'fecha'         => 'required|date',
         ]);
 
+        // CORRECCIÓN: Buscamos por Id_Referencia (Evento) sin importar la fecha
+        // para que siempre sea la misma sesión y el contador sume.
         $sesion = Sesion::firstOrCreate(
             [
                 'Tipo'          => $request->tipo,
-                'Id_Referencia' => $request->id_referencia,
-                'Fecha'         => $request->fecha
+                'Id_Referencia' => $request->id_referencia
+            ],
+            [
+                'Fecha'         => now()
             ]
         );
 
@@ -53,13 +53,7 @@ class PaseListaController extends Controller
             ->join('Ejidatario as e', 'a.Id_Ejidatario', '=', 'e.Id_Ejidatario')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->where('a.Id_Sesion', $sesion->Id_Sesion)
-            ->select(
-                'e.Num_Ejidatario',
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno',
-                'a.Fecha as Hora'
-            )
+            ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'a.Fecha as Hora')
             ->orderBy('a.Fecha', 'desc')
             ->get();
 
@@ -71,41 +65,24 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_evento = $request->input('id_sesion'); // ID del evento
+            $id_sesion = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_evento || !$qr_data) {
+            if (!$id_sesion || !$qr_data) {
                 return response()->json(['success' => false, 'message' => "Datos incompletos"]);
             }
 
-            // 1. BUSCAR SESIÓN EXISTENTE PARA EL EVENTO
-            // No creamos con date('Y-m-d') porque si el evento es de ayer, se crea una sesión nueva.
-            // Buscamos la sesión vinculada a este evento.
-            $sesion = \App\Models\Sesion::where('Id_Referencia', $id_evento)
-                ->where('Tipo', 'Evento')
-                ->first();
-
-            // Si no existe ninguna sesión, la creamos (solo una vez por evento)
-            if (!$sesion) {
-                $sesion = \App\Models\Sesion::create([
-                    'Tipo'          => 'Evento',
-                    'Id_Referencia' => $id_evento,
-                    'Fecha'         => now()
-                ]);
-            }
-
-            // 2. LÓGICA DE LIMPIEZA DE QR (Igual a la que ya tienes)
+            // Lógica de limpieza QR igual a la que tienes...
             $raw = strtoupper(preg_replace('/[0-9.,-]/', ' ', preg_replace('/\([^)]+\)/', '', str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data))));
             $palabrasLimpias = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && $p !== 'HERM');
 
-            if (empty($palabrasLimpias)) return response()->json(['success' => false, 'message' => "QR inválido"]);
+            if (empty($palabrasLimpias)) return response()->json(['success' => false, 'message' => "QR no legible"]);
 
-            // 3. BÚSQUEDA DEL EJIDATARIO
+            // Búsqueda del ejidatario
             $concatBD = "REPLACE(REPLACE(REPLACE(UPPER(CONCAT_WS(' ', u.Nombres, u.Apellido_Paterno, u.Apellido_Materno)), 'Z', 'S'), 'C', 'S'), 'Ç', 'S')";
-
-            $candidatos = \Illuminate\Support\Facades\DB::table('Ejidatario as e')
+            $candidatos = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', \Illuminate\Support\Facades\DB::raw("$concatBD as nombre_normalizado"))
+                ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', DB::raw("$concatBD as nombre_normalizado"))
                 ->get();
 
             $mejorMatch = null;
@@ -121,20 +98,18 @@ class PaseListaController extends Controller
             }
 
             if (!$mejorMatch || $distanciaMinima > 12) {
-                return response()->json(['success' => false, 'message' => "Usuario no encontrado"]);
+                return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
             }
 
-            // 4. REGISTRO DE ASISTENCIA
-            // Guardamos el Id_Sesion real (el que encontramos o creamos al inicio)
-            \Illuminate\Support\Facades\DB::table('PaseLista')->updateOrInsert(
+            // REGISTRO ÚNICO: Usamos el Id_Sesion exacto que viene del escáner
+            DB::table('PaseLista')->updateOrInsert(
                 [
-                    'Id_Sesion' => $sesion->Id_Sesion,
+                    'Id_Sesion'     => (int)$id_sesion,
                     'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
                 ],
                 [
-                    'Asistencia'   => 1,
-                    'Fecha'        => now(),
-                    'Id_Actividad' => null // Dejamos en null si el reporte lee de la tabla Sesion
+                    'Asistencia' => 1,
+                    'Fecha'      => now()
                 ]
             );
 
@@ -147,6 +122,7 @@ class PaseListaController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
 
     public function destroy($id)
     {
