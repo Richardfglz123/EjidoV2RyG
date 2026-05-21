@@ -9,30 +9,17 @@ use App\Http\Controllers\EventoController;
 use App\Http\Controllers\PaseListaController;
 use App\Models\Evento;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes - Sistema Ejido
-|--------------------------------------------------------------------------
-*/
-
-// ==========================================
-// 🔓 RUTAS ABIERTAS / VALIDACIÓN MANUAL
-// ==========================================
 Route::get('/ping', function () {
     return response()->json(['ok' => true]);
 });
 
-// Flujo de Acceso Móvil
+//Acceso Móvil
 Route::post('/login', [ApiController::class, 'login']);
 Route::post('/verifyCode', [ApiController::class, 'verifyCode']);
 
-// ✅ SOLUCIÓN: Sacamos la ruta del middleware para que lea el ID desde Swift sin rebotar
 Route::get('/user-profile', [PerfilController::class, 'getPerfilApi']);
+Route::post('/user-profile/update', [PerfilController::class, 'updatePerfilApi']);
 
-
-// ==========================================
-// 🔒 RUTAS PROTEGIDAS (Requieren Token de Sanctum Real)
-// ==========================================
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/perfil/{id}', [PerfilController::class, 'show']);
