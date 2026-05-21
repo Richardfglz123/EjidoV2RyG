@@ -152,25 +152,20 @@ class EjidatariosController extends Controller
             'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
         ]);
 
-        // 1. Obtener el ID del usuario correcto.
-        // Si no viene en el request, lo tomamos del registro actual del Ejidatario para no perderlo.
         $idUsuario = $request->Id_usuario ?? $request->Id_Usuario ?? DB::table('Ejidatario')->where('Id_Ejidatario', $id)->value('Id_usuario');
 
-        // 2. Forzar la consulta al usuario directamente a la base de datos para traer el nombre real y actualizado
         $user = DB::table('usuario')->where('Id_Usuario', $idUsuario)->first();
 
         if (!$user) {
             return back()->withInput()->withErrors('El usuario asociado no existe en la base de datos.');
         }
 
-        // 3. Re-generar el payload limpio con los datos frescos de la BD
         $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
         $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
-        // 4. Actualizar el registro
         DB::table('Ejidatario')->where('Id_Ejidatario', $id)->update([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
-            'qr_payload'       => $payloadQR, // <-- Aquí se guarda el código de validación corregido
+            'qr_payload'       => $payloadQR,
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
             'Num_Interior'     => $request->Num_Interior,
@@ -209,7 +204,6 @@ class EjidatariosController extends Controller
             return back()->withErrors('Ejidatario no encontrado.');
         }
 
-        // Permitir eliminar solo si no soy yo O si soy administrador
         if (!$esAdmin && $miId == $fila->Id_usuario) {
             return back()->withErrors('No puedes eliminar tu propio registro.');
         }
@@ -230,7 +224,6 @@ class EjidatariosController extends Controller
 
     public function buscarCP($cp)
     {
-        // Buscamos en la tabla de sepomex
         $resultados = DB::table('sepomex')
             ->where('codigo_postal', $cp)
             ->select('colonia', 'municipio', 'estado')
@@ -249,7 +242,7 @@ class EjidatariosController extends Controller
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
                 'e.qr_payload',
-                'es.Estatus as NombreEstatus' // Importante: darle el nombre exacto
+                'es.Estatus as NombreEstatus'
             )
             ->get();
 
