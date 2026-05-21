@@ -52,21 +52,22 @@
         </div>
 
         <div class="card-body">
-            <form class="row g-3" onsubmit="return false;">
+            <form method="GET" action="{{ route('descuentos.asambleas') }}" class="row g-3">
 
                 <div class="col-md-10">
                     <label class="form-label">Nombre o Apellido</label>
 
                     <input
                             type="text"
-                            id="busquedaEjidatario"
+                            name="query"
                             class="form-control"
                             placeholder="Buscar ejidatario..."
+                            value="{{ request('query') }}"
                     >
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-ejidal w-100">
+                    <button type="submit" class="btn btn-ejidal w-100">
                         <i class="fas fa-filter me-1"></i> Filtrar
                     </button>
                 </div>
