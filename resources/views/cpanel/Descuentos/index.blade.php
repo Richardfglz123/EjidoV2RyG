@@ -4,17 +4,12 @@
 @section('content')
 
     <style>
-        .text-header-main {
-            color: #000000 !important;
-            font-weight: normal !important;
-        }
-
+        .text-header-main { color: #000000 !important; font-weight: normal !important; }
         .pagination .page-item.active .page-link {
             background-color: #198754 !important;
             border-color: #198754 !important;
             color: #ffffff !important;
         }
-
         .pagination .page-link {
             color: #198754 !important;
         }
@@ -22,12 +17,6 @@
         .table tr, .table td {
             transition: none !important;
             transform: none !important;
-        }
-
-        .table td {
-            vertical-align: middle;
-            white-space: nowrap;
-            padding: 15px 10px !important;
         }
 
         .avatar-placeholder {
@@ -41,37 +30,13 @@
             border: 1px solid #dee2e6;
         }
 
+        /* Estilos de los Badges de Asistencia */
         .badge-asistencia {
             font-size: 0.75rem;
             padding: 0.5em 0.8em;
             border-radius: 50rem;
             text-transform: uppercase;
             font-weight: bold;
-        }
-
-        .card-ejidal {
-            border-color: #198754 !important;
-        }
-
-        .card-header-ejidal {
-            background-color: #198754 !important;
-            color: white !important;
-        }
-
-        .btn-ejidal {
-            background-color: #198754;
-            color: white;
-            border: none;
-        }
-
-        .btn-ejidal:hover {
-            background-color: #146c43;
-            color: white;
-        }
-
-        #busquedaEjidatario:focus {
-            border-color: #198754;
-            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
         }
     </style>
 
