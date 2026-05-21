@@ -74,8 +74,8 @@
                         <div class="col-md-6">
                             <label class="fw-bold">Responsable del cambio</label>
                             <input type="text" class="form-control bg-light"
-                                   value="{{ Auth::user()->Nombres }} {{ Auth::user()->Apellido_Paterno }}" readonly>
-                            <small class="text-muted">El sistema registrará su usuario automáticamente.</small>
+                                   value="{{ Auth::check() ? Auth::user()->Nombres . ' ' . Auth::user()->Apellido_Paterno : 'Invitado' }}"
+                                   readonly>
                         </div>
 
                         <div class="col-md-6">
