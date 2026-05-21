@@ -54,7 +54,7 @@ class AsistenciaExport implements
 
     public function map($ejidatario): array
     {
-        $asistio = DB::table('asistencia_sesion')
+        $asistio = DB::table('PaseLista')
             ->where('Id_Sesion', $this->id_sesion)
             ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
             ->exists();
