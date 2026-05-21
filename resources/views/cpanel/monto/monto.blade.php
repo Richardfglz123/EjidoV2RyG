@@ -56,8 +56,8 @@
 
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="fw-bold">Monto</label>
+                        <div class="col-md-12">
+                            <label class="fw-bold">Monto del Reparto: {{ $utilidadSeleccionada->Tipo_Reparto }} (Año: {{ date('Y') }})</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" name="monto" class="form-control" step="0.01"
@@ -65,32 +65,17 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="fw-bold">Año</label>
-                            <input type="number" name="anio" class="form-control"
-                                   value="{{ $utilidadSeleccionada->Año }}" required>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="fw-bold">Nombre del Reparto (BD)</label>
-                            <input type="text" name="nombre_reparto" class="form-control"
-                                   value="{{ $utilidadSeleccionada->Tipo_Reparto }}" required>
-                            <small class="text-muted">Asegúrese que coincida con el Dashboard.</small>
-                        </div>
+                        <!-- Campos ocultos para mantener la integridad del envío -->
+                        <input type="hidden" name="anio" value="{{ date('Y') }}">
+                        <input type="hidden" name="nombre_reparto" value="{{ $utilidadSeleccionada->Tipo_Reparto }}">
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="fw-bold">Responsable del cambio</label>
-                            <select name="responsable" class="form-select" required>
-                                <option value="">Seleccione un usuario...</option>
-                                @foreach($usuarios as $usuario)
-                                    @php $nom = $usuario->Nombres . ' ' . $usuario->Apellido_Paterno . ' ' . $usuario->Apellido_Materno; @endphp
-                                    <option value="{{ $nom }}" @if($utilidadSeleccionada->Id_Modificado == $nom) selected @endif>
-                                        {{ $nom }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            <input type="text" class="form-control bg-light"
+                                   value="{{ Auth::user()->Nombres }} {{ Auth::user()->Apellido_Paterno }}" readonly>
+                            <small class="text-muted">El sistema registrará su usuario automáticamente.</small>
                         </div>
 
                         <div class="col-md-6">
@@ -108,6 +93,5 @@
                     </div>
                 </div>
             </form>
-        </div>
     @endif
 @endsection

@@ -32,25 +32,24 @@ class RepartoController extends Controller
 
     public function update(Request $request, $id)
     {
+        // Validamos sin exigir el responsable, ya que lo tomaremos del sistema
         $request->validate([
             'monto' => 'required|numeric|min:0',
-            'anio' => 'required|numeric',
-            'responsable' => 'required',
         ]);
 
-        $utilidad = Utilidad::where('Id_Utilidad', $id)->orWhere('Id_Utilidad', $id)->firstOrFail();
+        $utilidad = Utilidad::findOrFail($id);
 
         $utilidad->Monto = $request->monto;
-        $utilidad->Año = $request->anio;
-        if($request->has('nombre_reparto')){
-            $utilidad->Tipo_Reparto = $request->nombre_reparto;
-        }
 
-        $utilidad->Id_Modificado = $request->responsable;
+        $utilidad->Año = date('Y'); // Año actual
+
+        $admin = Auth::user();
+        $utilidad->Id_Modificado = $admin->Nombres . ' ' . $admin->Apellido_Paterno . ' ' . $admin->Apellido_Materno;
+
         $utilidad->Fecha_Modificado = now();
         $utilidad->save();
 
-        return redirect()->route('menu')->with('success', 'Monto actualizado correctamente.');
+        return redirect()->route('menu')->with('success', 'Monto y responsable actualizados correctamente.');
     }
 
     public function index(Request $request)
