@@ -318,34 +318,22 @@ Route::prefix('configuracion')->group(function () {
 });
 
 
-Route::get('ver-expediente/{path}', function ($path) {
-    $path = urldecode($path);
-    $cleanPath = str_replace('storage/', '', $path);
-    if (!Storage::disk('public')->exists($cleanPath)) {
-        abort(404, 'Archivo no encontrado');
-    }
-    return Storage::disk('public')->response($cleanPath);
-})->where('path', '.*')->name('ver.expediente');
-
-// MÓDULO GESTIÓN DE EXPEDIENTES
+// --- MÓDULO: EXPEDIENTES ---
 Route::prefix('admon/expedientes')->group(function () {
+
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
+    Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
 
-    // Rutas con nombres que tu vista espera
-    Route::get('storage/{path}', function ($path) {
-        $path = str_replace(['..', '%20'], ['', ' '], $path); // Seguridad básica
-        $file = storage_path('app/public/' . $path);
-        if (!file_exists($file)) abort(404);
-        return response()->file($file);
-    })->where('path', '.*');
-    Route::get('/admon/expedientes/nuevo', function() {
-        return redirect()->route('expedientes.index');
-    })->name('ejidatarios.create');
-
-    Route::prefix('admon/expedientes')->group(function () {
-        Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
+    Route::middleware(['permiso:expedientes_crear'])->group(function () {
+        Route::get('/nuevo', [ExpedienteController::class, 'create'])->name('expedientes.create');
+        Route::post('/', [ExpedienteController::class, 'store'])->name('expedientes.store');
+        Route::get('/{id}/editar', [ExpedienteController::class, 'edit'])->name('expedientes.edit');
+        Route::put('/{id}', [ExpedienteController::class, 'update'])->name('expedientes.update');
+        Route::delete('/{id}', [ExpedienteController::class, 'destroy'])->name('expedientes.destroy');
     });
+
 });
+
 // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
     Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');

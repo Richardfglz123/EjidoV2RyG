@@ -8,31 +8,43 @@ use App\Models\DocumentoUsuario;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-
 class ExpedienteController extends Controller
+
 {
     public function index()
     {
-        $usuarios = Usuario::whereNull('fecha_eliminado')
-            ->with('documentos')
-            ->orderBy('Apellido_Paterno', 'asc')
-            ->get();
+        $permisos = session('usuario.permisos', []);
+        $usuarioId = session('usuario.id');
 
-        // Transformamos los documentos para que tu JS los lea fácil
-        foreach ($usuarios as $u) {
-            $u->ruta_ine = $u->documentos->where('nombre_documento', 'INE')->first()->ruta_archivo ?? '';
-            $u->ruta_curp = $u->documentos->where('nombre_documento', 'CURP')->first()->ruta_archivo ?? '';
-            $u->ruta_comp = $u->documentos->where('nombre_documento', 'DOMICILIO')->first()->ruta_archivo ?? '';
+        // Si tiene permiso puede ver todos los usuarios
+        if (in_array('expedientes_ver', $permisos)) {
+
+            $usuarios = Usuario::whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->orderBy('Apellido_Paterno', 'asc')
+                ->get();
+
+        } else {
+
+            // Si NO tiene permiso solo ve su propio expediente
+            $usuarios = Usuario::where('Id_Usuario', $usuarioId)
+                ->whereNull('fecha_eliminado')
+                ->with('documentos')
+                ->get();
         }
 
         $total_usuarios = $usuarios->count();
-        $total_con_expediente = \App\Models\DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
+        $total_con_expediente = DocumentoUsuario::distinct('Id_Usuario')->count('Id_Usuario');
 
-        return view('cpanel.Expedientes.expediente', compact('usuarios', 'total_usuarios', 'total_con_expediente'));
+        return view(
+            'cpanel.Expedientes.expediente',
+            compact('usuarios', 'total_usuarios', 'total_con_expediente')
+        );
     }
 
     public function store(Request $request)
     {
+        // Validación básica
         $request->validate([
             'id_usuario' => 'required',
             'doc_ine' => 'nullable|file|mimes:pdf|max:5000',
@@ -41,8 +53,8 @@ class ExpedienteController extends Controller
         ]);
 
         $usuario = Usuario::findOrFail($request->id_usuario);
-        $slugusuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_usuario);
-        $rutaBase = "expedientes/{$slugusuario}";
+        $slugUsuario = Str::slug($usuario->Nombres . '-' . $usuario->Apellido_Paterno . '-' . $usuario->Id_Usuario);
+        $rutaBase = "expedientes/{$slugUsuario}";
 
         $tipos = [
             'doc_ine' => 'INE',
@@ -52,20 +64,12 @@ class ExpedienteController extends Controller
 
         foreach ($tipos as $input => $nombreDoc) {
             if ($request->hasFile($input)) {
+                // Guardamos en storage/app/public/expedientes/...
                 $path = $request->file($input)->storeAs($rutaBase, $nombreDoc . '.pdf', 'public');
 
-                $idParaInsertar = $usuario->Id_Usuario ?? $usuario->Id_usuario ?? $usuario->id;
-
                 DocumentoUsuario::updateOrCreate(
-                    [
-                        'Id_Usuario'       => $idParaInsertar,
-                        'nombre_documento' => $nombreDoc
-                    ],
-                    [
-                        'ruta_archivo'     => $path,
-                        'Id_Creo'          => session('usuario.id'),
-                        'Id_Modificado'    => session('usuario.id'),
-                    ]
+                    ['Id_Usuario' => $usuario->Id_Usuario, 'nombre_documento' => $nombreDoc],
+                    ['ruta_archivo' => 'storage/' . $path]
                 );
             }
         }
@@ -75,13 +79,13 @@ class ExpedienteController extends Controller
 
     public function guardarMio(Request $request)
     {
-        $idusuario = Auth::guard('ejidatario')->id();
+        $idUsuario = Auth::guard('ejidatario')->id();
 
-        if(!$idusuario) {
+        if(!$idUsuario) {
             return redirect()->back()->with('error', 'No se pudo identificar al usuario.');
         }
 
-        $request->merge(['id_usuario' => $idusuario]);
+        $request->merge(['id_usuario' => $idUsuario]);
         return $this->store($request);
     }
 }
