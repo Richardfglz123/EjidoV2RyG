@@ -35,16 +35,16 @@ class PerfilController extends Controller
 
         $request->validate([
             // Cambiamos a 'Usuario' con mayúscula para que coincida con tu Blade
-            'Usuario'    => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
-            'Correo'     => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
-            'Telefono'   => 'required|numeric',
-            'foto'       => 'nullable|image',
+            'Usuario' => 'required|unique:usuario,usuario,' . $userId . ',Id_usuario',
+            'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
+            'Telefono' => 'required|numeric',
+            'foto' => 'nullable|image',
         ]);
 
         $data = [
-            'usuario'          => $request->Usuario, // Coincide con el input del Blade
-            'Correo'           => $request->Correo,
-            'Telefono'         => $request->Telefono,
+            'usuario' => $request->Usuario, // Coincide con el input del Blade
+            'Correo' => $request->Correo,
+            'Telefono' => $request->Telefono,
             'Fecha_Modificado' => now(),
         ];
 
@@ -111,14 +111,15 @@ class PerfilController extends Controller
         return response()->json([
             'ok' => true,
             'usuario' => [
-                'nombre'         => $nombreCompleto ?: 'Nombre no disponible',
-                'correo'         => $usuario->Correo,
-                'telefono'       => (string)$usuario->Telefono,
+                'nombre' => $nombreCompleto ?: 'Nombre no disponible',
+                'correo' => $usuario->Correo,
+                'telefono' => (string)$usuario->Telefono,
                 'num_ejidatario' => (string)($usuario->Num_Ejidatario ?? 'N/A'),
-                'foto_url'       => $fotoUrl,
+                'foto_url' => $fotoUrl,
             ]
         ]);
     }
+
     public function updatePerfilApi(Request $request)
     {
         $authHeader = $request->header('Authorization');
@@ -132,28 +133,42 @@ class PerfilController extends Controller
         }
 
         $request->validate([
-            'nombre'   => 'required|string|max:255',
-            'Correo'   => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
+            'nombre' => 'required|string|max:255',
+            'Correo' => 'required|email|unique:usuario,Correo,' . $userId . ',Id_usuario',
             'Telefono' => 'required|numeric',
+            'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072', // máx 3MB
         ]);
 
         $partesNombre = explode(' ', trim($request->nombre));
-        $nombres = $partesNombre[0]; // Primer palabra va a Nombres
-        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : ''; // Segunda palabra
-        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : ''; // Lo que sobre va al materno
+        $nombres = $partesNombre[0];
+        $paterno = isset($partesNombre[1]) ? $partesNombre[1] : '';
+        $materno = isset($partesNombre[2]) ? implode(' ', array_slice($partesNombre, 2)) : '';
 
-        DB::table('usuario')->where('Id_usuario', $userId)->update([
-            'Nombres'          => $nombres,
+        $datosActualizar = [
+            'Nombres' => $nombres,
             'Apellido_Paterno' => $paterno,
             'Apellido_Materno' => $materno,
-            'Correo'           => $request->Correo,
-            'Telefono'         => $request->Telefono,
+            'Correo' => $request->Correo,
+            'Telefono' => $request->Telefono,
             'Fecha_Modificado' => now(),
-        ]);
+        ];
+
+        if ($request->hasFile('foto_perfil')) {
+            $file = $request->file('foto_perfil');
+
+            $nombreArchivo = 'avatar_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+            $file->storeAs('perfiles', $nombreArchivo, 'public');
+            $urlPublica = asset('storage/perfiles/' . $nombreArchivo);
+
+            $datosActualizar['foto_url'] = $urlPublica;
+        }
+
+        DB::table('usuario')->where('Id_usuario', $userId)->update($datosActualizar);
 
         return response()->json([
             'ok' => true,
-            'message' => 'Campos de identidad reales actualizados con éxito en el sistema.'
+            'message' => 'Campos de identidad y foto actualizados con éxito en el sistema.'
         ]);
     }
 }
