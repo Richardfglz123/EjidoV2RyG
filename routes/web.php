@@ -338,7 +338,7 @@ Route::prefix('admon/expedientes')->group(function () {
         if (!file_exists($file)) abort(404);
         return response()->file($file);
     })->where('path', '.*');
-
+});
 // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
     Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');
