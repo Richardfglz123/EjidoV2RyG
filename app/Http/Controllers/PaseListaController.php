@@ -63,17 +63,30 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_sesion = $request->input('id_sesion');
+            $id_recibido = $request->input('id_sesion');
             $qr_data = $request->input('qr_data');
 
-            if (!$id_sesion || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
+            if (!$id_recibido || !$qr_data) {
+                return response()->json(['success' => false, 'message' => "Faltan datos de sesión o QR"]);
             }
 
-            $sesion = Sesion::find($id_sesion);
-            if (!$sesion) return response()->json(['success' => false, 'message' => "Sesión no encontrada"]);
+            // --- LÓGICA DE DETECCIÓN INTELIGENTE ---
+            // 1. Intentamos buscar como si fuera un ID de sesión (de la tabla Sesion)
+            $sesion = Sesion::find($id_recibido);
 
-            // Limpieza y búsqueda
+            // 2. Si no lo encuentra, lo buscamos como ID de Evento (Referencia)
+            // Esto soluciona el error del iPhone automáticamente
+            if (!$sesion) {
+                $sesion = Sesion::where('Id_Referencia', $id_recibido)
+                    ->orderBy('Fecha', 'desc')
+                    ->first();
+            }
+
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada en el sistema."]);
+            }
+
+            // --- LÓGICA DE PROCESAMIENTO ---
             $raw = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ', 'Z', 'S', 'C'], ['A', 'E', 'I', 'O', 'U', 'N', 'S', 'S', 'S'], $qr_data));
             $raw = preg_replace(['/\([^)]+\)/', '/[0-9.,-]/'], ['', ' '], $raw);
             $palabras = array_filter(explode(' ', $raw), fn($p) => strlen(trim($p)) > 1 && trim($p) !== 'HERM');
@@ -92,20 +105,20 @@ class PaseListaController extends Controller
             if (!$mejorMatch || levenshtein($cadenaQR, $mejorMatch->nombre_normalizado) > 12)
                 return response()->json(['success' => false, 'message' => "Ejidatario no encontrado"]);
 
-            // Registro garantizado
+            // --- REGISTRO BLINDADO ---
             DB::table('PaseLista')->updateOrInsert(
                 ['Id_Sesion' => (int)$sesion->Id_Sesion, 'Id_Ejidatario' => $mejorMatch->Id_Ejidatario],
                 ['Asistencia' => 1, 'Fecha' => now()]
             );
 
             return response()->json([
-                'success' => true,
+                'success'  => true,
                 'num_ejid' => (int)$mejorMatch->Num_Ejidatario,
-                'nombre' => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
+                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => "Error: " . $e->getMessage()]);
         }
     }
 
