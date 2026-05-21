@@ -122,6 +122,7 @@ class PaseListaController extends Controller
     public function exportarPdf($id)
     {
         $sesion = Sesion::with('evento')->findOrFail($id);
+
         $asistentes = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->join('PaseLista as p', 'e.Id_Ejidatario', '=', 'p.Id_Ejidatario')
@@ -129,7 +130,10 @@ class PaseListaController extends Controller
             ->select('e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
             ->get();
 
-        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes'))->stream();
+        // AGREGAMOS EL TOTAL AQUÍ
+        $total = \App\Models\Ejidatario::count();
+
+        return Pdf::loadView('cpanel.PaseLista.asistenciapdf', compact('sesion', 'asistentes', 'total'))->stream();
     }
 
     public function exportarExcel($id)
