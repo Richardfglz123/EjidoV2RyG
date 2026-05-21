@@ -73,8 +73,9 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="fw-bold">Responsable del cambio</label>
+                            {{-- Usamos la variable de sesión que ya tienes definida en tu middleware --}}
                             <input type="text" class="form-control bg-light"
-                                   value="{{ Auth::check() ? Auth::user()->Nombres . ' ' . (Auth::user()->Apellido_Paterno ?? '') : 'Nombre del Administrador' }}"
+                                   value="{{ session('usuario.nombre_completo', 'Administrador') }}"
                                    readonly>
                         </div>
 

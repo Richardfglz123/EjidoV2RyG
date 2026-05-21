@@ -38,25 +38,15 @@ class RepartoController extends Controller
 
         $utilidad = Utilidad::findOrFail($id);
 
-        // Intentamos obtener al usuario por varias vías:
-        // 1. Auth::user()
-        // 2. Si usas un nombre de sesión distinto, prueba con el helper session() si tienes el ID guardado
-        $user = Auth::user();
-
-        if ($user) {
-            $utilidad->Id_Modificado = $user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno;
-        } else {
-            // DEPURACIÓN: Si esto sigue entrando aquí, es que el 'auth' no está protegiendo la ruta
-            // Puedes intentar obtenerlo por el ID si lo tienes en sesión
-            $utilidad->Id_Modificado = 'Administrador';
-        }
+        // Obtenemos el nombre directamente de la sesión que ya gestionas
+        $utilidad->Id_Modificado = session('usuario.nombre_completo', 'Administrador');
 
         $utilidad->Monto = $request->monto;
-        $utilidad->Año = date('Y');
+        $utilidad->Año = date('Y'); // Año actual automático
         $utilidad->Fecha_Modificado = now();
         $utilidad->save();
 
-        return redirect()->back()->with('success', 'Cambios guardados exitosamente.');
+        return redirect()->back()->with('success', 'Monto actualizado correctamente.');
     }
 
     public function index(Request $request)
