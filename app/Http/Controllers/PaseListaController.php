@@ -15,22 +15,20 @@ class PaseListaController extends Controller
 {
     public function index()
     {
-        $eventos = Evento::leftJoin('Categoria_Evento as c', 'Evento.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
-            ->select('Evento.*', 'c.Nombre_Categoria')
-            ->get();
-
         $totalEjidatarios = Ejidatario::count();
 
+        // Obtenemos sesiones junto con el conteo directo de la tabla PaseLista
         $sesiones = Sesion::with(['evento.categoria'])
+            ->select('Sesion.*')
             ->addSelect([
-                'asistencias_count' => DB::table('PaseLista')
+                'total_asistencias' => DB::table('PaseLista')
                     ->whereColumn('Id_Sesion', 'Sesion.Id_Sesion')
                     ->selectRaw('count(*)')
             ])
             ->orderBy('Fecha', 'desc')
             ->get();
 
-        return view('cpanel.PaseLista.paselista', compact('eventos', 'sesiones', 'totalEjidatarios'));
+        return view('cpanel.PaseLista.paselista', compact('sesiones', 'totalEjidatarios'));
     }
 
     public function registrarAsistencia(Request $request)
@@ -72,18 +70,24 @@ class PaseListaController extends Controller
     public function marcarAsistencia(Request $request)
     {
         try {
-            $id_sesion = $request->input('id_sesion'); // Asegúrate que el iPhone envíe este nombre
+            $id_sesion = $request->input('id_sesion');
             $qr_data   = $request->input('qr_data');
 
             if (!$id_sesion || !$qr_data) {
-                return response()->json(['success' => false, 'message' => "Datos incompletos"]);
+                return response()->json(['success' => false, 'message' => "Datos insuficientes"]);
             }
 
-            // 1. Buscar Ejidatario con coincidencia mejorada
+            // 1. Validar que la sesión realmente exista
+            $sesion = Sesion::find($id_sesion);
+            if (!$sesion) {
+                return response()->json(['success' => false, 'message' => "Sesión no encontrada (ID: $id_sesion)"]);
+            }
+
+            // 2. Buscar al ejidatario (Coincidencia flexible)
             $cadenaQR = strtoupper(trim($qr_data));
             $mejorMatch = DB::table('Ejidatario as e')
                 ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-                ->select('e.Id_Ejidatario', 'e.Num_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+                ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
                 ->get()
                 ->sortBy(function($c) use ($cadenaQR) {
                     $nombreCompleto = strtoupper($c->Nombres . ' ' . $c->Apellido_Paterno . ' ' . $c->Apellido_Materno);
@@ -91,15 +95,14 @@ class PaseListaController extends Controller
                 })
                 ->first();
 
-            // Si la distancia es mayor a 20, no arriesgamos el registro
             if (!$mejorMatch || levenshtein($cadenaQR, strtoupper($mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno . ' ' . $mejorMatch->Apellido_Materno)) > 20) {
-                return response()->json(['success' => false, 'message' => "Ejidatario no identificado"]);
+                return response()->json(['success' => false, 'message' => "Ejidatario no coincide"]);
             }
 
-            // 2. Registrar asistencia sin borrar (usamos updateOrInsert)
+            // 3. Insertar o Actualizar usando el ID de sesión validado
             DB::table('PaseLista')->updateOrInsert(
                 [
-                    'Id_Sesion'     => (int)$id_sesion,
+                    'Id_Sesion'     => (int)$sesion->Id_Sesion,
                     'Id_Ejidatario' => $mejorMatch->Id_Ejidatario
                 ],
                 [
@@ -109,12 +112,12 @@ class PaseListaController extends Controller
             );
 
             return response()->json([
-                'success'  => true,
-                'nombre'   => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
+                'success' => true,
+                'nombre'  => $mejorMatch->Nombres . ' ' . $mejorMatch->Apellido_Paterno
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
