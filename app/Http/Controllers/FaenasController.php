@@ -4,36 +4,38 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Descuento; // Asegúrate de importar tus modelos
-use App\Models\CatalogoMulta;
-use App\Models\usuario;
 
 class FaenasController extends Controller
 {
     public function index(Request $request)
     {
+        $anoActual = now()->year;
+
+        // 1. Obtenemos eventos de Faenas (Categorías 9 y 10)
         $eventosFaenas = DB::table('Evento')
-            ->join('Sesion', 'Evento.Id_Evento', '=', 'Sesion.Id_Referencia')
-            ->where('Sesion.Tipo', 'Evento')
-            ->whereNull('Evento.Fecha_Eliminado')
-            ->select('Evento.*')
-            ->distinct()
-            ->orderBy('Evento.Fecha_Creo', 'DESC')
+            ->whereIn('Id_Categoria_Evento', [9, 10])
+            ->whereYear('Fecha_Creo', $anoActual)
+            ->whereNull('Fecha_Eliminado')
             ->get();
 
-        $idsEventos = $eventosFaenas->pluck('Id_Evento')->toArray();
-
+        // 2. Obtenemos sesiones ligadas
         $sesionesFaenas = DB::table('Sesion')
-            ->whereIn('Id_Referencia', $idsEventos)
+            ->whereIn('Id_Referencia', $eventosFaenas->pluck('Id_Evento'))
             ->where('Tipo', 'Evento')
             ->select('Id_Sesion', 'Id_Referencia')
             ->get();
 
         $idsSesiones = $sesionesFaenas->pluck('Id_Sesion')->toArray();
 
+        // 3. CONSULTA CON JOIN (Para asegurar que los nombres aparezcan)
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno');
+            ->select(
+                'e.Id_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno'
+            );
 
         if ($request->filled('query')) {
             $search = trim($request->get('query'));
@@ -44,21 +46,19 @@ class FaenasController extends Controller
             });
         }
 
-        $ejidatarios = $query->orderBy('u.Apellido_Paterno')
-            ->paginate(15)
-            ->withQueryString();
+        $ejidatarios = $query->paginate(15);
 
-        $asistencias = DB::table('PaseLista')
-            ->where('Asistencia', 1)
-            ->whereIn('Id_Sesion', $idsSesiones)
-            ->get();
-
+        // 4. Mapeo de asistencias
         foreach ($ejidatarios as $ejidatario) {
-            $sesionesAsistidas = $asistencias->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
-                ->pluck('Id_Sesion');
+            $asistenciasEnSesion = DB::table('PaseLista')
+                ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
+                ->where('Asistencia', 1)
+                ->whereIn('Id_Sesion', $idsSesiones)
+                ->pluck('Id_Sesion')
+                ->toArray();
 
             $ejidatario->asistencias_confirmadas = $sesionesFaenas
-                ->whereIn('Id_Sesion', $sesionesAsistidas)
+                ->whereIn('Id_Sesion', $asistenciasEnSesion)
                 ->pluck('Id_Referencia')
                 ->toArray();
         }
