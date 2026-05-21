@@ -550,4 +550,23 @@ class Reparto2Controller extends Controller
             ]
         )->stream('ticket-segundo-reparto-'.$id.'.pdf');
     }
+    public function revertirReprogramado($idPrestamo)
+    {
+        try {
+            $actualizado = DB::table('Prestamo')
+                ->where('Id_Prestamo', $idPrestamo)
+                ->where('Id_Utilidad', 99) // Aseguramos que solo revertimos los que están en 99
+                ->update([
+                    'Id_Utilidad' => 1 // Cambia 1 por el ID de tu utilidad actual
+                ]);
+
+            if ($actualizado) {
+                return redirect()->back()->with('success', 'Se ha devuelto el préstamo al año actual.');
+            }
+            return redirect()->back()->with('error', 'No se pudo revertir.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
 }

@@ -400,7 +400,7 @@ Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(f
         Route::get('/pdf', [Reparto2Controller::class, 'generarPDF'])->name('reparto.segundo.pdf');
         Route::post('/fijar-fecha', [Reparto2Controller::class, 'fijarFechaLimite'])->name('reparto.segundo.fijarFecha');
         Route::get('/obtener-fecha', [Reparto2Controller::class, 'obtenerFechaLimite'])->name('reparto.segundo.obtenerFecha');
-
+        Route::post('/reparto/revertir/{id}', [Reparto2Controller::class, 'revertirReprogramado'])->name('reparto.revertir');
         Route::post('/posponer/{id}', [Reparto2Controller::class, 'posponerSiguienteAnio'])->name('reparto.segundo.posponer');
         Route::get('/ticket/{id}', [Reparto2Controller::class, 'generarTicketPDFSegundo'])->name('reparto.segundo.ticket');
     });

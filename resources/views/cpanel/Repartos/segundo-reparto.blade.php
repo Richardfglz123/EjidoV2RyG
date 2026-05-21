@@ -212,6 +212,22 @@
         </div>
     </div>
 
+    <div class="card mt-4">
+        <div class="card-header bg-warning">Préstamos Reprogramados (ID 99)</div>
+        <div class="card-body">
+            <ul>
+                @foreach($reprogramados as $r)
+                    <li>{{ $r->Nombres }} - ${{ $r->Cantidad }}
+                        <form action="{{ route('reparto.revertir', $r->Id_Prestamo) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-danger">Eliminar Reprogramación</button>
+                        </form>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+
     {{-- MODAL DETALLES --}}
     <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
