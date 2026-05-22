@@ -22,6 +22,11 @@
                 overflow-y: auto;
                 display: none;
             }
+            .navbar-ejidal {
+                background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+                url('{{ asset("assets/volcan.jpeg") }}') no-repeat center center !important;
+                background-size: cover !important;
+            }
             #sidebarMenu.show {
                 display: block;
             }
@@ -42,7 +47,7 @@
 </head>
 <body>
 
-<header class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
+<header class="navbar navbar-expand-lg navbar-dark fixed-top navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
     <div class="container-fluid d-flex align-items-center justify-content-between">
 
         <div class="d-flex align-items-center gap-2">
@@ -52,7 +57,7 @@
 
             <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
                 <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-                <img src="{{ asset('assets/volcan.jpeg') }}" alt="Volcán" height="35" style="border-radius: 4px;">
+
                 <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
             </a>
         </div>
