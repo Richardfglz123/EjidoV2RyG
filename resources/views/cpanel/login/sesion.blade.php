@@ -153,7 +153,7 @@ $fondoSeleccionado = $imagenes[rand(0, 3)];
         <div class="row align-items-center">
             <div class="col-md-4 text-center text-md-start">
                 <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
-                <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+                <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal San Rafael Ixtapalucan</h6>
                 <small class="text-secondary">v1.4.1</small>
             </div>
             <div class="col-md-4 text-center my-3 my-md-0">
