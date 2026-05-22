@@ -241,30 +241,32 @@
             });
 
             function pintarInterfaz(listaPermisos) {
+                // 1. Limpiar todos los checkboxes
                 $permisos.prop('checked', false);
                 $checkTodos.prop('checked', false);
+
                 let asignados = [];
 
+                // 2. Normalizar los datos que vienen del servidor
                 if (Array.isArray(listaPermisos)) {
                     asignados = listaPermisos;
                 } else if (typeof listaPermisos === 'object' && listaPermisos !== null) {
                     asignados = Object.values(listaPermisos);
-                } else if (typeof listaPermisos === 'string') {
-                    try {
-                        asignados = JSON.parse(listaPermisos);
-                    } catch (e) {
-                        asignados = [];
-                    }
                 }
 
-                asignados = asignados.map(p => String(p).trim());
+                // 3. Limpiar los strings (quitar espacios y normalizar)
+                const asignadosNormalizados = asignados.map(p => String(p).trim());
+
+                // 4. Marcar los checkboxes basándose en los valores
                 $permisos.each(function () {
                     const valorCheck = $(this).val();
-                    if (asignados.includes(valorCheck)) {
+                    if (asignadosNormalizados.includes(valorCheck)) {
                         $(this).prop('checked', true);
                     }
                 });
-                $('.permiso-crear:checked').each(function () {
+
+                // 5. Aplicar lógica de dependencias (Si crear/eliminar está marcado, marcar ver)
+                $('.permiso-crear:checked, .permiso-eliminar:checked').each(function () {
                     $(this).closest('tr').find('.permiso-ver').prop('checked', true);
                 });
 
