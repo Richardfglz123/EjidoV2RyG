@@ -31,7 +31,7 @@
             <h1 class="h2 text-ejidal mb-0">
                 <i class="fas fa-user-shield me-2"></i> Permisos del sistema
             </h1>
-            <button type="submit" form="formPermisos" class="btn btn-ejidal px-4 shadow-sm">
+            <button type="submit" form="formPermisos" class="btn btn-ejidal px-4 shadow-sm" id="btnGuardar">
                 <i class="fas fa-save me-2"></i> Guardar Cambios
             </button>
         </div>
@@ -72,7 +72,6 @@
                 </div>
             </div>
 
-            {{-- Ttabla de permisos--}}
             <div class="card card-ejidal shadow-sm position-relative mb-4">
                 <div id="loader" class="loading-overlay">
                     <div class="spinner-border text-ejidal"></div>
@@ -163,27 +162,44 @@
             </div>
 
             <div class="form-check mt-3">
-                <input class="form-check-input" type="checkbox" name="confirmacion_global" required>
+                <input class="form-check-input" type="checkbox" name="confirmacion_global" id="confirmacionGlobal" required>
                 <label class="form-check-label fw-bold text-danger">
                     Entiendo que estos cambios afectarán a TODOS los usuarios con este rol asignado
                 </label>
             </div>
 
             <div class="d-flex justify-content-end gap-2 mb-5">
-                <button type="submit" class="btn btn-ejidal px-5 shadow-sm">
+                <button type="submit" class="btn btn-ejidal px-5 shadow-sm" id="btnSubmit">
                     <i class="fas fa-save me-2"></i> Guardar Cambios
                 </button>
             </div>
         </form>
     </div>
 
-    {{-- js --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         $(document).ready(function () {
+
+            // ID del SuperAdmin para protección
+            const SUPER_ADMIN_ID = 405;
+
+            function verificarSuperAdmin(userId) {
+                const esSuperAdmin = (parseInt(userId) === SUPER_ADMIN_ID);
+                // Bloquear/Desbloquear campos
+                $('.permiso, #selectRol, #confirmacionGlobal, #btnGuardar, #btnSubmit').prop('disabled', esSuperAdmin);
+
+                if (esSuperAdmin) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Privilegios Protegidos',
+                        text: 'El usuario Lou (405) es SuperAdministrador y no puede ser modificado.',
+                        confirmButtonColor: '#1a4d2e'
+                    });
+                }
+            }
 
             @if($errors->any())
             Swal.fire({
@@ -260,9 +276,13 @@
                 const marcados = $('.permiso:checked').length;
                 $checkTodos.prop('checked', total === marcados && total > 0);
             }
+
             $('#selectUsuario').on('change', function () {
                 const userId = $(this).val();
+
+                // Reiniciar estado de disabled si se limpia
                 if (!userId) {
+                    $('.permiso, #selectRol, #confirmacionGlobal, #btnGuardar, #btnSubmit').prop('disabled', false);
                     pintarInterfaz([]);
                     $selectRol.val("");
                     return;
@@ -277,6 +297,7 @@
                     success: function (data) {
                         $selectRol.val(data.Id_Rol);
                         pintarInterfaz(data.permisos);
+                        verificarSuperAdmin(userId); // Aplicar protección
                     },
                     error: err => console.error(err),
                     complete: () => $loader.hide()
@@ -308,7 +329,10 @@
             });
 
             $checkTodos.on('change', function () {
-                $permisos.prop('checked', $(this).is(':checked'));
+                // Solo aplicar si no está bloqueado por protección
+                if(!$('#checkTodos').is(':disabled')) {
+                    $permisos.prop('checked', $(this).is(':checked'));
+                }
             });
 
             $(document).on('change', '.permiso-crear', function () {

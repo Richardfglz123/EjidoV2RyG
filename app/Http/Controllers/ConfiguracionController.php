@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Usuario;
+use App\Models\Ejidatario;
 
 class ConfiguracionController extends Controller
 {
+    private const SUPER_ADMIN_ID = 405;
+
     public function permisos()
     {
         $roles = DB::table('Roles')->get();
@@ -65,7 +69,8 @@ class ConfiguracionController extends Controller
             $misPermisos = $sesion['permisos'] ?? [];
         }
 
-        $soySuperAdmin = ($miIdRol == 1 || $miCorreo === 'rickvevo1@gmail.com' || $miIdusuario == 405 || strtolower(trim($miRolNombre)) === 'administrador');
+        // --- PROTECCIÓN: Solo el ID 405 es SuperAdmin ---
+        $soySuperAdmin = ($miIdusuario == self::SUPER_ADMIN_ID);
 
         if (!$soySuperAdmin && !in_array('configuracion_crear', $misPermisos)) {
             abort(403, 'No tienes permisos para modificar configuraciones');
@@ -80,7 +85,11 @@ class ConfiguracionController extends Controller
 
         $targetUserId = $request->input('Id_Usuario') ?? $request->input('Id_usuario');
 
-        // Jerarquías y validación de seguridad
+        // --- SEGURIDAD: Nadie, ni siquiera otro Admin, puede tocar al 405 ---
+        if ($targetUserId == self::SUPER_ADMIN_ID) {
+            return back()->withErrors('Acceso denegado: No puedes modificar al SuperAdministrador.');
+        }
+
         $jerarquia = [
             'administrador'         => 10,
             'secretaria'            => 8,
@@ -102,6 +111,7 @@ class ConfiguracionController extends Controller
         $targetRolNormalizado = $usuarioTarget ? strtolower(trim($usuarioTarget->Tipo_Rol)) : 'sin rol';
         $nivelTarget = $jerarquia[$targetRolNormalizado] ?? 0;
 
+        // Validación de permisos según jerarquía
         if ($usuarioTarget && $usuarioTarget->Id_Rol == 1 && !$soySuperAdmin) {
             return back()->withErrors("El Administrador no puede modificarse");
         }
@@ -118,19 +128,19 @@ class ConfiguracionController extends Controller
             return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol');
         }
 
-        // --- CORRECCIÓN: Lista actualizada según los módulos de tu vista ---
         $permisosPermitidos = [
             'usuarios_ver','usuarios_crear','usuarios_eliminar',
             'ejidatarios_ver','ejidatarios_crear','ejidatarios_eliminar',
             'actividades_ver','actividades_crear','actividades_eliminar',
             'gestion_ver','gestion_crear','gestion_eliminar',
+            'asambleas_ver','asambleas_crear','asistencia_eliminar',
             'asistencia_ver','asistencia_crear','asistencia_eliminar',
-            'eventos_ver','eventos_crear','eventos_eliminar',
             'expedientes_ver','expedientes_crear',
             'parcelas_ver','parcelas_crear','parcelas_eliminar',
             'utilidades_ver','utilidades_crear','utilidades_eliminar',
             'gastos_ver','gastos_crear','gastos_eliminar',
             'inventario_ver','inventario_crear','inventario_eliminar',
+            'eventos_ver','eventos_crear','eventos_eliminar',
             'multas_ver','multas_crear','multas_eliminar',
             'apoyos_ver','apoyos_crear','apoyos_eliminar',
             'historicos_ver','historicos_crear','historicos_eliminar',
@@ -141,7 +151,7 @@ class ConfiguracionController extends Controller
         $permisosRecibidos = $request->permisos ?? [];
 
         if (array_diff($permisosRecibidos, $permisosPermitidos)) {
-            return back()->withErrors('Se detectaron permisos inválidos. Verifica los módulos seleccionados.');
+            return back()->withErrors('Se detectaron permisos inválidos');
         }
 
         DB::beginTransaction();
