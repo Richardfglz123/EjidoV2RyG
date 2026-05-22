@@ -37,11 +37,16 @@
                             <option value="">-- Seleccionar opción --</option>
                             @foreach ($descuentos as $item)
                                 @php
-                                    // Lógica para mostrar nombres limpios en el select
-                                    $nombreLimpio = $item->Tipo;
-                                    if(stripos($item->Tipo, 'asamble') !== false) $nombreLimpio = 'ASAMBLEAS';
-                                    if(stripos($item->Tipo, 'saneamient') !== false) $nombreLimpio = 'SANEAMIENTO';
-                                    if(stripos($item->Tipo, 'aprovecham') !== false) $nombreLimpio = 'APROVECHAMIENTO';
+                                    $tipo = mb_strtolower($item->Tipo);
+                                    if (str_contains($tipo, 'asamble')) {
+                                        $nombreLimpio = 'ASAMBLEAS';
+                                    } elseif (str_contains($tipo, 'saneamient')) {
+                                        $nombreLimpio = 'SANEAMIENTO';
+                                    } elseif (str_contains($tipo, 'aprovecham')) {
+                                        $nombreLimpio = 'APROVECHAMIENTO';
+                                    } else {
+                                        $nombreLimpio = $item->Tipo;
+                                    }
                                 @endphp
                                 <option value="{{ $item->Id_MultaC }}"
                                         {{ (isset($descuentoSeleccionado) && $descuentoSeleccionado->Id_MultaC == $item->Id_MultaC) ? 'selected' : '' }}>
@@ -57,10 +62,16 @@
 
     @if ($descuentoSeleccionado)
         @php
-            $tituloForm = $descuentoSeleccionado->Tipo;
-            if(stripos($tituloForm, 'asamble') !== false) $tituloForm = 'ASAMBLEAS (GENERAL)';
-            if(stripos($tituloForm, 'saneamient') !== false) $tituloForm = 'SANEAMIENTO';
-            if(stripos($tituloForm, 'aprovecham') !== false) $tituloForm = 'APROVECHAMIENTO';
+            $tipoSel = mb_strtolower($descuentoSeleccionado->Tipo);
+            if (str_contains($tipoSel, 'asamble')) {
+                $tituloForm = 'ASAMBLEAS (GENERAL)';
+            } elseif (str_contains($tipoSel, 'saneamient')) {
+                $tituloForm = 'SANEAMIENTO';
+            } elseif (str_contains($tipoSel, 'aprovecham')) {
+                $tituloForm = 'APROVECHAMIENTO';
+            } else {
+                $tituloForm = $descuentoSeleccionado->Tipo;
+            }
         @endphp
 
         <div class="card card-ejidal shadow">
