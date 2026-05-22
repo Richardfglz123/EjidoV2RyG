@@ -75,8 +75,10 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Modificado por</label>
-                            <input type="text" class="form-control bg-light" value="{{ session('usuario.nombre') ?? 'Administrador' }}" readonly>
+                            <input type="text" name="responsable" class="form-control bg-light"
+                                   value="{{ session('usuario.nombre') ?? 'Usuario Actual' }}" readonly>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Fecha de Modificación</label>
                             <input type="text" class="form-control bg-light" value="{{ date('d/m/Y') }}" readonly>
