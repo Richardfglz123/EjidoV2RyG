@@ -87,7 +87,7 @@
         .social-btn:hover { background: #f8fafc; }
     </style>
 </head>
-<body class="bg-dinamico" style="background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('{{ asset('assets/' . ['venado.jpeg', 'lago.jpeg'][rand(0, 1)]) }}');">
+<body class="bg-dinamico" style="background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('{{ asset('assets/' . ['venado.jpeg', 'lago.jpeg','luciernagas.jpeg','luciernagas2.jpeg'][rand(0, 1)]) }}');">
 
 <nav class="navbar navbar-ejidal navbar-dark">
     <div class="container-fluid">
