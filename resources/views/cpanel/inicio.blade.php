@@ -101,7 +101,7 @@
 
     <div class="hero-section">
         <div class="position-relative" style="z-index: 2;">
-            <h1 class="display-5 fw-extrabold mb-2">¡Bienvenide, {{ explode(' ', session('usuario.nombre_completo'))[0] }}!</h1>
+            <h1 class="display-5 fw-extrabold mb-2">¡Bienvenido, {{ explode(' ', session('usuario.nombre_completo'))[0] }}!</h1>
             <p class="lead opacity-75 mb-0">Gestión para la comunidad de San Rafael Ixtapalucan.</p>
         </div>
     </div>

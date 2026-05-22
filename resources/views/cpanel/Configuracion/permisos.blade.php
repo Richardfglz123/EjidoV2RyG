@@ -195,7 +195,7 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Privilegios Protegidos',
-                        text: 'El usuario Lou (405) es SuperAdministrador y no puede ser modificado.',
+                        text: 'El usuario Lou no puede ser modificado.',
                         confirmButtonColor: '#1a4d2e'
                     });
                 }
