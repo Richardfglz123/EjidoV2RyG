@@ -69,7 +69,6 @@ class ConfiguracionController extends Controller
             $misPermisos = $sesion['permisos'] ?? [];
         }
 
-        // --- PROTECCIÓN: Solo el ID 405 es SuperAdmin ---
         $soySuperAdmin = ($miIdusuario == self::SUPER_ADMIN_ID);
 
         if (!$soySuperAdmin && !in_array('configuracion_crear', $misPermisos)) {
@@ -85,7 +84,6 @@ class ConfiguracionController extends Controller
 
         $targetUserId = $request->input('Id_Usuario') ?? $request->input('Id_usuario');
 
-        // --- SEGURIDAD: Nadie, ni siquiera otro Admin, puede tocar al 405 ---
         if ($targetUserId == self::SUPER_ADMIN_ID) {
             return back()->withErrors('Acceso denegado: No puedes modificar al SuperAdministrador.');
         }
@@ -111,7 +109,6 @@ class ConfiguracionController extends Controller
         $targetRolNormalizado = $usuarioTarget ? strtolower(trim($usuarioTarget->Tipo_Rol)) : 'sin rol';
         $nivelTarget = $jerarquia[$targetRolNormalizado] ?? 0;
 
-        // Validación de permisos según jerarquía
         if ($usuarioTarget && $usuarioTarget->Id_Rol == 1 && !$soySuperAdmin) {
             return back()->withErrors("El Administrador no puede modificarse");
         }
