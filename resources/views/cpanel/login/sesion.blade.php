@@ -29,7 +29,7 @@
             min-height: 100vh;
         }
 
-        /* HEADER CON VOLCÁN */
+        /* HEADER CON IMAGN */
         .navbar-ejidal {
             background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
             url('{{ asset("assets/volcan.jpeg") }}') no-repeat center center !important;
