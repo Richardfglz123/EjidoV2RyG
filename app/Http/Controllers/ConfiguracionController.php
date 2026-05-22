@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Usuario;
-use App\Models\Ejidatario;
-
 
 class ConfiguracionController extends Controller
 {
@@ -83,6 +80,7 @@ class ConfiguracionController extends Controller
 
         $targetUserId = $request->input('Id_Usuario') ?? $request->input('Id_usuario');
 
+        // Jerarquías y validación de seguridad
         $jerarquia = [
             'administrador'         => 10,
             'secretaria'            => 8,
@@ -120,18 +118,20 @@ class ConfiguracionController extends Controller
             return back()->withErrors('Debes confirmar que entiendes que esto afecta a todos los usuarios con este rol');
         }
 
+        // --- CORRECCIÓN: Lista actualizada según los módulos de tu vista ---
         $permisosPermitidos = [
             'usuarios_ver','usuarios_crear','usuarios_eliminar',
             'ejidatarios_ver','ejidatarios_crear','ejidatarios_eliminar',
             'actividades_ver','actividades_crear','actividades_eliminar',
             'gestion_ver','gestion_crear','gestion_eliminar',
-            'asambleas_ver','asambleas_crear','asambleas_eliminar',
             'asistencia_ver','asistencia_crear','asistencia_eliminar',
+            'eventos_ver','eventos_crear','eventos_eliminar',
             'expedientes_ver','expedientes_crear',
             'parcelas_ver','parcelas_crear','parcelas_eliminar',
             'utilidades_ver','utilidades_crear','utilidades_eliminar',
             'gastos_ver','gastos_crear','gastos_eliminar',
             'inventario_ver','inventario_crear','inventario_eliminar',
+            'multas_ver','multas_crear','multas_eliminar',
             'apoyos_ver','apoyos_crear','apoyos_eliminar',
             'historicos_ver','historicos_crear','historicos_eliminar',
             'respaldo_ver','respaldo_crear',
@@ -141,7 +141,7 @@ class ConfiguracionController extends Controller
         $permisosRecibidos = $request->permisos ?? [];
 
         if (array_diff($permisosRecibidos, $permisosPermitidos)) {
-            return back()->withErrors('Se detectaron permisos inválidos');
+            return back()->withErrors('Se detectaron permisos inválidos. Verifica los módulos seleccionados.');
         }
 
         DB::beginTransaction();
