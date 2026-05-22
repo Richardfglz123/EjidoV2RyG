@@ -87,7 +87,11 @@
         .social-btn:hover { background: #f8fafc; }
     </style>
 </head>
-<body class="bg-dinamico" style="background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('{{ asset('assets/' . ['venado.jpeg', 'lago.jpeg','luciernagas.jpeg','luciernagas2.jpeg'][rand(0, 1)]) }}');">
+<?php
+$imagenes = ['venado.jpeg', 'lago.jpeg', 'luciernagas.jpeg', 'luciernagas2.jpeg'];
+$fondoSeleccionado = $imagenes[rand(0, 3)];
+?>
+<body class="bg-dinamico" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('{{ asset('assets/' . $fondoSeleccionado) }}');">
 
 <nav class="navbar navbar-ejidal navbar-dark">
     <div class="container-fluid">
@@ -147,13 +151,11 @@
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
     <div class="container">
         <div class="row align-items-center">
-
             <div class="col-md-4 text-center text-md-start">
                 <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
                 <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
                 <small class="text-secondary">v1.4.1</small>
             </div>
-
             <div class="col-md-4 text-center my-3 my-md-0">
                 <p class="mb-2 small text-secondary">Síguenos en:</p>
                 <div class="d-flex justify-content-center gap-3">
@@ -169,7 +171,6 @@
                     </a>
                 </div>
             </div>
-
             <div class="col-md-4 text-center text-md-end">
                 <div style="font-size: 0.7rem;" class="text-secondary">
                     <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
@@ -177,7 +178,6 @@
                     <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
                 </div>
             </div>
-
         </div>
     </div>
 </footer>
