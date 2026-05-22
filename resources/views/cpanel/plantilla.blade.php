@@ -52,6 +52,7 @@
 
             <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
                 <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
+                <img src="{{ asset('assets/volcan.jpeg') }}" alt="Volcán" height="35" style="border-radius: 4px;">
                 <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
             </a>
         </div>
