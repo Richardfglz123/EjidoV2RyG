@@ -95,17 +95,12 @@ $fondoSeleccionado = $imagenes[rand(0, 3)];
 
 <nav class="navbar navbar-ejidal navbar-dark">
     <div class="container-fluid">
-        @if(session()->has('usuario') || session()->has('2fa_user'))
-            <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('') }}">
-                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-                <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
-            </a>
-        @else
-            <span class="navbar-brand d-flex align-items-center gap-2 m-0 p-0">
-                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-                <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
+        <span class="navbar-brand d-flex align-items-center gap-2 m-0 p-0">
+            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
+            <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">
+                Sistema Ejidal San Rafael Ixtapalucan
             </span>
-        @endif
+        </span>
     </div>
 </nav>
 
