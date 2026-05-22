@@ -24,16 +24,14 @@
                             @php $vistos = []; @endphp
                             @foreach ($descuentos as $item)
                                 @php
-                                    // Normalizamos el texto para comparar
-                                    $tipoUpper = strtoupper($item->Tipo);
-
-                                    if(strpos($tipoUpper, 'ASAMBLE') !== false) $tipoLimpio = 'ASAMBLEAS';
-                                    elseif(strpos($tipoUpper, 'SANEAMIENT') !== false) $tipoLimpio = 'SANEAMIENTO';
-                                    elseif(strpos($tipoUpper, 'APROVECHAM') !== false) $tipoLimpio = 'APROVECHAMIENTO';
-                                    elseif(strpos($tipoUpper, 'FAENA') !== false) $tipoLimpio = 'FAENA';
-                                    else $tipoLimpio = $item->Tipo;
+                                    $tipoLimpio = 'OTRO';
+                                    if(stripos($item->Tipo, 'asamble') !== false) $tipoLimpio = 'ASAMBLEAS';
+                                    elseif(stripos($item->Tipo, 'saneamient') !== false) $tipoLimpio = 'SANEAMIENTO';
+                                    elseif(stripos($item->Tipo, 'aprovecham') !== false) $tipoLimpio = 'APROVECHAMIENTO';
+                                    elseif(stripos($item->Tipo, 'faena') !== false) $tipoLimpio = 'FAENA';
                                 @endphp
 
+                                {{-- Solo mostrar si no hemos mostrado este tipo antes --}}
                                 @if(!in_array($tipoLimpio, $vistos))
                                     <option value="{{ $item->Id_MultaC }}" {{ (isset($descuentoSeleccionado) && $descuentoSeleccionado->Id_MultaC == $item->Id_MultaC) ? 'selected' : '' }}>
                                         {{ $tipoLimpio }}

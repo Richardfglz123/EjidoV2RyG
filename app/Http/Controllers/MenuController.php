@@ -45,25 +45,22 @@ class MenuController extends Controller
         return view('cpanel.monto.menu', $data);
     }
 
-    public function update(Request $request, $id)
+    public function updateDescuento(Request $request)
     {
         $request->validate([
-            'monto'          => 'required|numeric',
-            'anio'           => 'required|integer',
-            'fecha_registro' => 'nullable|date',
-            'responsable'    => 'nullable|string'
+            'tipo' => 'required|string',
+            'costo' => 'required|numeric'
         ]);
 
-        $utilidad = Utilidad::findOrFail($id);
-        $utilidad->Monto          = $request->monto;
-        $utilidad->Año            = $request->anio;
-        $utilidad->Fecha_Registro = $request->fecha_registro;
-        $utilidad->Id_Modificado  = $request->responsable;
-        $utilidad->Fecha_Modificado = Carbon::now();
+        // Busca el registro en CatalogoMulta
+        $multa = CatalogoMulta::where('Tipo', 'LIKE', '%' . $request->tipo . '%')->first();
 
-        $utilidad->save();
+        if ($multa) {
+            $multa->Costo = $request->costo;
+            $multa->save();
+            return back()->with('success', 'Descuento de ' . $request->tipo . ' actualizado.');
+        }
 
-        return redirect()->route('monto.index', ['id_utilidad' => $id])
-            ->with('success', 'Reparto actualizado correctamente');
+        return back()->with('error', 'No se encontró el concepto para actualizar.');
     }
 }

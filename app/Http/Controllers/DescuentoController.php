@@ -80,8 +80,8 @@ class DescuentoController extends Controller
                 'Id_MultaC'     => $request->id_multa_c
             ],
             [
-                'tipo'          => $tipoFaena->Tipo, // Nombre de la faena (columna)
-                'Descuento'     => $precioAAplicar,   // El precio que "jaló" de configuración
+                'tipo'          => $tipoFaena->Tipo,
+                'Descuento'     => $precioAAplicar,
                 'Id_Creo'       => session('usuario.nombre') ?? 'Admin',
                 'Fecha_Creo'    => now()
             ]
