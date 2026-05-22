@@ -50,12 +50,8 @@ class DescuentoController extends Controller
 
     public function descuento(Request $request)
     {
-        // Traemos todos los que contengan estas palabras clave en una sola consulta
-        $descuentos = CatalogoMulta::where(function($q) {
-            $q->where('Tipo', 'LIKE', '%asamble%')
-                ->orWhere('Tipo', 'LIKE', '%saneamient%')
-                ->orWhere('Tipo', 'LIKE', '%aprovecham%');
-        })->get();
+        // Traemos TODOS los registros para ver qué es lo que realmente tenemos
+        $descuentos = CatalogoMulta::orderBy('Tipo', 'ASC')->get();
 
         $descuentoSeleccionado = null;
         if ($request->filled('id_multa_c')) {
