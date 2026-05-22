@@ -10,6 +10,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
+        /* Estilo aplicado globalmente para que se vea siempre */
+        .navbar-ejidal {
+            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+            url('{{ asset("assets/volcan.jpeg") }}') no-repeat center center !important;
+            background-size: cover !important;
+        }
+
         @media (max-width: 991.98px) {
             #sidebarMenu {
                 position: fixed;
@@ -21,11 +28,6 @@
                 background-color: #212529 !important;
                 overflow-y: auto;
                 display: none;
-            }
-            .navbar-ejidal {
-                background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
-                url('{{ asset("assets/volcan.jpeg") }}') no-repeat center center !important;
-                background-size: cover !important;
             }
             #sidebarMenu.show {
                 display: block;
@@ -57,7 +59,6 @@
 
             <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
                 <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-
                 <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
             </a>
         </div>
