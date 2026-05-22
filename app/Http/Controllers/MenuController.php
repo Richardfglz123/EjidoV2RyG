@@ -32,9 +32,17 @@ class MenuController extends Controller
             'finiquito_utilidades'      => Utilidad::where('Tipo_Reparto', 'finiquito_utilidades')->first(),
             'reparto_finiquito_nuevo'   => Utilidad::where('Tipo_Reparto', 'reparto_finiquito_nuevo')->first(),
 
-            'descuento_saneamiento'     => CatalogoMulta::where('Tipo', 'LIKE', '%Saneamient%')->first(),
-            'descuento_aprovechamiento' => CatalogoMulta::where('Tipo', 'LIKE', '%Aprovecham%')->first(),
-            'descuento_asambleas'       => CatalogoMulta::where('Tipo', 'LIKE', '%Asamble%')->first(),
+            'descuento_saneamiento'     => CatalogoMulta::where('Tipo', 'LIKE', '%Saneamient%')
+                ->orderBy('Id_MultaC', 'DESC')
+                ->first(),
+
+            'descuento_aprovechamiento' => CatalogoMulta::where('Tipo', 'LIKE', '%Aprovecham%')
+                ->orderBy('Id_MultaC', 'DESC')
+                ->first(),
+
+            'descuento_asambleas'       => CatalogoMulta::where('Tipo', 'LIKE', '%Asamble%')
+                ->orderBy('Id_MultaC', 'DESC')
+                ->first(),
         ];
 
         return view('cpanel.monto.menu', $data);
