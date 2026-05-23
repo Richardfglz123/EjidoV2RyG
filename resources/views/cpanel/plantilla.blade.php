@@ -257,8 +257,23 @@
                         </li>
                     @endif
 
+                    {{-- MULTAS --}}
+                    @if(session('usuario.rol') === 'administrador' || in_array('multas_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
+                                <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="multasMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
+
                     {{-- EVENTOS --}}
-                    @if(in_array('eventos_ver', session('usuario.permisos', [])))
+                    @if(session('usuario.rol') === 'administrador' || in_array('eventos_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#eventosMenu">
                                 <i class="fas fa-calendar-day me-2"></i> Eventos <i class="fas fa-angle-down float-end mt-1"></i>
@@ -287,20 +302,6 @@
                         </li>
                     @endif
 
-                    {{-- MULTAS --}}
-                    @if(in_array('multas_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
-                                <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="multasMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
 
                     {{-- RESPALDO --}}
                     @if(in_array('respaldo_ver', session('usuario.permisos', [])))

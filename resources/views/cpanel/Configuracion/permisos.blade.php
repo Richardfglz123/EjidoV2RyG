@@ -183,12 +183,10 @@
     <script>
         $(document).ready(function () {
 
-            // ID del SuperAdmin para protección
             const SUPER_ADMIN_ID = 405;
 
             function verificarSuperAdmin(userId) {
                 const esSuperAdmin = (parseInt(userId) === SUPER_ADMIN_ID);
-                // Bloquear/Desbloquear campos
                 $('.permiso, #selectRol, #confirmacionGlobal, #btnGuardar, #btnSubmit').prop('disabled', esSuperAdmin);
 
                 if (esSuperAdmin) {
@@ -241,15 +239,11 @@
             });
 
             function pintarInterfaz(listaPermisos) {
+                // 1. Limpiar todo primero
                 $permisos.prop('checked', false);
                 $checkTodos.prop('checked', false);
 
                 let asignados = Array.isArray(listaPermisos) ? listaPermisos : (typeof listaPermisos === 'object' ? Object.values(listaPermisos) : []);
-
-                asignados = asignados.map(p => {
-                    let val = String(p).trim();
-                    return val.replace('evento_', 'eventos_').replace('multa_', 'multas_');
-                });
 
                 $permisos.each(function () {
                     if (asignados.includes($(this).val())) {
