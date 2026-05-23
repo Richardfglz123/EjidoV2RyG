@@ -244,55 +244,63 @@
                     @endif
 
                     {{-- PASE DE LISTA --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#paseListaMenu">
-                            <i class="fas fa-list-check me-2"></i> Pase de lista <i class="fas fa-angle-down float-end mt-1"></i>
-                        </a>
-                        <div class="collapse" id="paseListaMenu">
-                            <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}"><i class="fas fa-check-double me-2"></i> Registrar Asistencia</a></li>
-                            </ul>
-                        </div>
-                    </li>
+                    @if(in_array('asistencia_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#paseListaMenu">
+                                <i class="fas fa-list-check me-2"></i> Pase de lista <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="paseListaMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}"><i class="fas fa-check-double me-2"></i> Registrar Asistencia</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
 
                     {{-- EVENTOS --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#eventosMenu">
-                            <i class="fas fa-calendar-day me-2"></i> Eventos <i class="fas fa-angle-down float-end mt-1"></i>
-                        </a>
-                        <div class="collapse" id="eventosMenu">
-                            <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}"><i class="fas fa-calendar-plus me-2"></i> Nuevo Evento</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}"><i class="fas fa-eye me-2"></i> Ver todos</a></li>
-                            </ul>
-                        </div>
-                    </li>
+                    @if(in_array('eventos_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#eventosMenu">
+                                <i class="fas fa-calendar-day me-2"></i> Eventos <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="eventosMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}"><i class="fas fa-calendar-plus me-2"></i> Nuevo Evento</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}"><i class="fas fa-eye me-2"></i> Ver todos</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
 
-                    {{-- Datos historicos --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#historicosMenu">
-                            <i class="fas fa-scroll"></i> Datos Históricos <i class="fas fa-angle-down float-end mt-1"></i>
-                        </a>
-                        <div class="collapse" id="historicosMenu">
-                            <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.create') }}"><i class="fas fa-plus-circle"></i> Nuevo registro</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.index') }}"><i class="fas fa-list"></i> Listado</a></li>
-                            </ul>
-                        </div>
-                    </li>
+                    {{-- DATOS HISTÓRICOS --}}
+                    @if(in_array('historicos_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#historicosMenu">
+                                <i class="fas fa-scroll"></i> Datos Históricos <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="historicosMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.create') }}"><i class="fas fa-plus-circle"></i> Nuevo registro</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.index') }}"><i class="fas fa-list"></i> Listado</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
 
                     {{-- MULTAS --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
-                            <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
-                        </a>
-                        <div class="collapse" id="multasMenu">
-                            <ul class="nav flex-column submenu">
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
-                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
-                            </ul>
-                        </div>
-                    </li>
+                    @if(in_array('multas_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
+                                <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="multasMenu">
+                                <ul class="nav flex-column submenu">
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
 
                     {{-- RESPALDO --}}
                     @if(in_array('respaldo_ver', session('usuario.permisos', [])))
