@@ -229,7 +229,7 @@ class UsuariosController extends Controller
         if (!$user || !Hash::check($request->password, $user->Contraseña)) {
             return back()
                 ->withInput($request->only('username'))
-                ->withErrors(['login' => 'Las credenciales introducidas no coinciden con nuestros registros.']);
+                ->withErrors(['login' => 'Usuario o contraseña incorrectos']);
         }
 
         $userId = $user->Id_Usuario;

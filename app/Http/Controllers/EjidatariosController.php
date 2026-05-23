@@ -91,7 +91,6 @@ class EjidatariosController extends Controller
         $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
         $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
 
-        // 3. Preparar QR
         $user = DB::table('usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
 
         if (!$user) {

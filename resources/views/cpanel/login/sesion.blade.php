@@ -112,6 +112,12 @@ $fondoSeleccionado = $imagenes[rand(0, 3)];
             </div>
         @endif
 
+        @if ($errors->any())
+            <div class="alert alert-danger border-0 shadow-sm text-center mb-3 py-2" style="border-radius: 10px; font-size: 0.85rem;">
+                <i class="fas fa-exclamation-triangle me-1"></i> {{ $errors->first() }}
+            </div>
+        @endif
+
         @if (session('error'))
             <div class="alert alert-danger border-0 shadow-sm text-center mb-3 py-2" style="border-radius: 10px; font-size: 0.85rem;">
                 <i class="fas fa-exclamation-triangle me-1"></i> {{ session('error') }}
