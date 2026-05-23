@@ -10,24 +10,18 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
-        /* Estilo aplicado globalmente para que se vea siempre */
-        .navbar-ejidal {
-            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
-            url('{{ asset("assets/volcan.jpeg") }}') no-repeat center center !important;
-            background-size: cover !important;
-        }
-
+        /* Ajustes para que el menú funcione en móvil */
         @media (max-width: 991.98px) {
             #sidebarMenu {
                 position: fixed;
-                top: 65px;
+                top: 65px; /* Altura del header */
                 left: 0;
                 width: 100%;
                 height: calc(100vh - 65px);
                 z-index: 1000;
                 background-color: #212529 !important;
                 overflow-y: auto;
-                display: none;
+                display: none; /* Se controla con la clase .show de Bootstrap */
             }
             #sidebarMenu.show {
                 display: block;
@@ -37,6 +31,7 @@
             }
         }
 
+        /* Asegurar que el botón hamburguesa sea visible */
         .navbar-toggler {
             border: 1px solid rgba(255,255,255,0.2) !important;
         }
@@ -49,7 +44,7 @@
 </head>
 <body>
 
-<header class="navbar navbar-expand-lg navbar-dark fixed-top navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
+<header class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark navbar-ejidal" style="border-bottom: 4px solid #198754 !important; height: 65px;">
     <div class="container-fluid d-flex align-items-center justify-content-between">
 
         <div class="d-flex align-items-center gap-2">
@@ -58,7 +53,7 @@
             </button>
 
             <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
-                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
+                <img src="/snRafael.png" alt="Logo" height="35">
                 <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
             </a>
         </div>
@@ -140,26 +135,24 @@
                             <div class="collapse" id="ejidatariosMenu">
                                 <ul class="nav flex-column submenu">
                                     @if(in_array('ejidatarios_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Ejidatarios.create') }}"><i class="far fa-address-card me-2"></i> Nuevo</a></li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white-50" href="{{ route('Ejidatarios.create') }}">
+                                                <i class="far fa-address-card me-2"></i> Nuevo
+                                            </a>
+                                        </li>
                                     @endif
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('Ejidatarios.index') }}"><i class="fas fa-list me-2"></i> Listado</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
 
-                    {{-- ACTIVIDADES --}}
-                    @if(in_array('actividades_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#actividadesMenu">
-                                <i class="fas fa-clipboard-check me-2"></i> Actividades <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="actividadesMenu">
-                                <ul class="nav flex-column submenu">
-                                    @if(in_array('actividades_crear', session('usuario.permisos', [])))
-                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.create') }}"><i class="fas fa-plus-circle me-2"></i> Nueva</a></li>
-                                    @endif
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.index') }}"><i class="fas fa-calendar-alt me-2"></i> Faenas</a></li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white-50" href="{{ route('Ejidatarios.index') }}">
+                                            <i class="fas fa-list me-2"></i> Listado
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{{ route('ia.analisis') }}">
+                                            <i class="fas fa-brain me-2"></i> Análisis IA (Clusters)
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         </li>
@@ -179,7 +172,51 @@
                         </li>
                     @endif
 
-                    {{-- PARCELAS --}}
+                    {{-- ACTIVIDADES --}}
+                    @if(in_array('actividades_ver', session('usuario.permisos', [])))
+                        <li class="nav-item">
+                            <li class="nav-item mt-3 border-top border-secondary pt-2">
+                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#actividadesMenu">
+                                <i class="fas fa-clipboard-check me-2"></i> Actividades <i class="fas fa-angle-down float-end mt-1"></i>
+                            </a>
+                            <div class="collapse" id="actividadesMenu">
+                                <ul class="nav flex-column submenu">
+                                    @if(in_array('actividades_crear', session('usuario.permisos', [])))
+                                        <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.create') }}"><i class="fas fa-plus-circle me-2"></i> Nueva</a></li>
+                                    @endif
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('actividades.index') }}"><i class="fas fa-calendar-alt me-2"></i> Faenas</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    @endif
+
+                    {{-- EVENTOS --}}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#eventosMenu">
+                            <i class="fas fa-calendar-day me-2"></i> Eventos <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse" id="eventosMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}">Nuevo Evento</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}">Ver todos</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    {{-- PASE DE LISTA --}}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#paseListaMenu">
+                            <i class="fas fa-list-check me-2"></i> Pase de lista <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse" id="paseListaMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}">Registrar Asistencia</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    {{--
+                     PARCELAS 
                     @if(in_array('parcelas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#parcelasMenu">
@@ -193,6 +230,21 @@
                             </div>
                         </li>
                     @endif
+                    --}}
+
+                    {{-- MULTAS --}}
+                    <li class="nav-item">
+                        <li class="nav-item mt-3 border-top border-secondary pt-2">
+                        <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
+                            <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
+                        </a>
+                        <div class="collapse" id="multasMenu">
+                            <ul class="nav flex-column submenu">
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}">Nueva Multa</a></li>
+                                <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}">Listado</a></li>
+                            </ul>
+                        </div>
+                    </li>
 
                     {{-- FINANZAS --}}
                     @if(in_array('utilidades_ver', session('usuario.permisos', [])))
@@ -202,17 +254,18 @@
                             </a>
                             <div class="collapse" id="utilidadesMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('menu') }}"><i class="fas fa-cash-register me-2"></i> Registro Repartos</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.primer') }}"><i class="fas fa-coins me-2"></i> Primer Reparto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.segundo') }}"><i class="fas fa-coins me-2"></i> Segundo Reparto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}"><i class="fas fa-gavel me-2"></i> Descuentos Asambleas</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}"><i class="fas fa-tools me-2"></i> Descuentos Faenas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('menu') }}">Registro Repartos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.primer') }}">Primer Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('reparto.segundo') }}">Segundo Reparto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.asambleas') }}">Descuentos Asambleas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('descuentos.faenas') }}">Descuentos Faenas</a></li>
                                 </ul>
                             </div>
                         </li>
                     @endif
 
-                    {{-- GASTOS --}}
+                    {{-- 
+                    GASTOS 
                     @if(in_array('gastos_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#gastosMenu">
@@ -220,14 +273,16 @@
                             </a>
                             <div class="collapse" id="gastosMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.create') }}"><i class="fas fa-plus-circle me-2"></i> Nuevo Gasto</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.index') }}"><i class="fas fa-eye me-2"></i> Ver Gastos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.create') }}">Nuevo Gasto</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('gastos.index') }}">Ver Gastos</a></li>
                                 </ul>
                             </div>
                         </li>
                     @endif
+                    --}}
 
-                    {{-- INVENTARIO --}}
+                    {{-- 
+                    INVENTARIO 
                     @if(in_array('inventario_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#inventarioMenu">
@@ -235,73 +290,14 @@
                             </a>
                             <div class="collapse" id="inventarioMenu">
                                 <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('articulos.index') }}"><i class="fas fa-boxes me-2"></i> Artículos</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('entradas.create') }}"><i class="fas fa-sign-in-alt me-2"></i> Entradas</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('salidas.create') }}"><i class="fas fa-sign-out-alt me-2"></i> Salidas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('articulos.index') }}">Artículos</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('entradas.create') }}">Entradas</a></li>
+                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('salidas.create') }}">Salidas</a></li>
                                 </ul>
                             </div>
                         </li>
                     @endif
-
-                    {{-- PASE DE LISTA --}}
-                    @if(in_array('asistencia_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#paseListaMenu">
-                                <i class="fas fa-list-check me-2"></i> Pase de lista <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="paseListaMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('asistencia.index') }}"><i class="fas fa-check-double me-2"></i> Registrar Asistencia</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
-
-                    {{-- MULTAS --}}
-                    @if(session('usuario.rol') === 'administrador' || in_array('multas_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
-                                <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="multasMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.create') }}"><i class="fas fa-file-signature me-2"></i> Nueva Multa</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('multas.index') }}"><i class="fas fa-table me-2"></i> Listado</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
-
-                    {{-- EVENTOS --}}
-                    @if(session('usuario.rol') === 'administrador' || in_array('eventos_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#eventosMenu">
-                                <i class="fas fa-calendar-day me-2"></i> Eventos <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="eventosMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.create') }}"><i class="fas fa-calendar-plus me-2"></i> Nuevo Evento</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('eventos.index') }}"><i class="fas fa-eye me-2"></i> Ver todos</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
-
-                    {{-- DATOS HISTÓRICOS --}}
-                    @if(in_array('historicos_ver', session('usuario.permisos', [])))
-                        <li class="nav-item">
-                            <a class="nav-link text-white" data-bs-toggle="collapse" href="#historicosMenu">
-                                <i class="fas fa-scroll"></i> Datos Históricos <i class="fas fa-angle-down float-end mt-1"></i>
-                            </a>
-                            <div class="collapse" id="historicosMenu">
-                                <ul class="nav flex-column submenu">
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.create') }}"><i class="fas fa-plus-circle"></i> Nuevo registro</a></li>
-                                    <li class="nav-item"><a class="nav-link text-white-50" href="{{ route('datos_historicos.index') }}"><i class="fas fa-list"></i> Listado</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    @endif
-
+                    --}}
 
                     {{-- RESPALDO --}}
                     @if(in_array('respaldo_ver', session('usuario.permisos', [])))
@@ -335,39 +331,11 @@
 </div>
 
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
-    <div class="container">
-        <div class="row align-items-center">
-
-            <div class="col-md-4 text-center text-md-start">
-                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
-                <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal San Rafael Ixtapalucan</h6>
-                <small class="text-secondary">v1.2.1</small>
-            </div>
-
-            <div class="col-md-4 text-center my-3 my-md-0">
-                <p class="mb-2 small text-secondary">Síguenos en:</p>
-                <div class="d-flex justify-content-center gap-3">
-                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
-                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
-                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
-                        <i class="fab fa-facebook-f"></i>
-                    </a>
-                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
-                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
-                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
-                        <i class="fab fa-instagram"></i>
-                    </a>
-                </div>
-            </div>
-
-            <div class="col-md-4 text-center text-md-end">
-                <div style="font-size: 0.7rem;" class="text-secondary">
-                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
-                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
-                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
-                </div>
-            </div>
-
+    <div class="container text-center">
+        <img src="/snRafael.png" alt="Logo" height="50" class="mb-2">
+        <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+        <div style="font-size: 0.7rem;" class="text-secondary mt-3">
+            <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
         </div>
     </div>
 </footer>

@@ -73,8 +73,18 @@
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Número de Ejidatario</label>
-                        <input type="text" name="Num_Ejidatario" class="form-control"
-                               value="{{ old('Num_Ejidatario', $fila->Num_Ejidatario ?? '') }}" required>
+
+                        <input type="text"
+                            name="Num_Ejidatario"
+                            class="form-control @error('Num_Ejidatario') is-invalid @enderror"
+                            value="{{ old('Num_Ejidatario', $fila->Num_Ejidatario ?? '') }}"
+                            required>
+
+                        @error('Num_Ejidatario')
+                            <div class="invalid-feedback">
+                                {{ $message }}
+                            </div>
+                        @enderror
                     </div>
                     <div class="col-md-4">
                         <label>Fecha de Ingreso</label>

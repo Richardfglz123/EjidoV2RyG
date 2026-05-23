@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 
 class EjidatariosController extends Controller
 {
@@ -22,10 +23,11 @@ class EjidatariosController extends Controller
         }
     }
 
-    public function index(Request $request)
+    public function index()
     {
-        $query = DB::table('Ejidatario as e')
-            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+        // Usamos paginate(10) para que Laravel gestione el límite de 10 por vista
+        $ejidatarios = DB::table('Ejidatario as e')
+            ->join('Usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
             ->select(
                 'e.*',
@@ -33,22 +35,9 @@ class EjidatariosController extends Controller
                 'u.Apellido_Paterno',
                 'u.Apellido_Materno',
                 'es.Estatus as NombreEstatus'
-            );
-
-        if ($request->has('buscar') && !empty($request->buscar)) {
-            $buscar = $request->buscar;
-            $query->where(function($q) use ($buscar) {
-                $q->where('u.Nombres', 'LIKE', "%{$buscar}%")
-                    ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$buscar}%")
-                    ->orWhere('u.Apellido_Materno', 'LIKE', "%{$buscar}%")
-                    ->orWhere('e.CURP', 'LIKE', "%{$buscar}%")
-                    ->orWhere('e.RFC', 'LIKE', "%{$buscar}%");
-            });
-        }
-
-        $ejidatarios = $query->orderByRaw('e.Num_Ejidatario + 0 ASC')
-            ->paginate(10)
-            ->withQueryString();
+            )
+            ->orderByRaw('e.Num_Ejidatario + 0 ASC')
+            ->paginate(10); // <--- Cambiado a 10 registros por página
 
         return view('cpanel/ejidatarios/indexEjidatario', [
             'data' => $ejidatarios
@@ -59,7 +48,7 @@ class EjidatariosController extends Controller
     {
         $this->checkPermission('usuarios_crear');
 
-        $usuarios = DB::table('usuario')->get();
+        $usuarios = DB::table('Usuario')->get();
         $estatus  = DB::table('Estatus')->get();
 
         return view('cpanel.ejidatarios.CrearEjidatario', [
@@ -73,6 +62,7 @@ class EjidatariosController extends Controller
         $this->checkPermission('usuarios_crear');
 
         $request->validate([
+            'Num_Ejidatario'     => 'required|integer|unique:Ejidatario,Num_Ejidatario',
             'Calle'              => 'required|string|max:100',
             'Num_Exterior'       => 'required|string|max:10',
             'Colonia'            => 'required|string|max:100',
@@ -85,48 +75,33 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario',
+            'Id_Usuario'         => 'required|exists:Usuario,Id_Usuario',
+        ], [
+            'Num_Ejidatario.unique' => 'Ese número de ejidatario ya está registrado.',
+            'CURP.unique' => 'La CURP ya se encuentra registrada.',
         ]);
 
-        $ultimoNum = DB::table('Ejidatario')->max('Num_Ejidatario');
-        $nuevoNum = $ultimoNum ? ($ultimoNum + 1) : 1;
+        DB::table('Ejidatario')->insert([
+            'Num_Ejidatario'   => $request->Num_Ejidatario,
+            'Calle'            => $request->Calle,
+            'Num_Exterior'     => $request->Num_Exterior,
+            'Num_Interior'     => $request->Num_Interior,
+            'Colonia'          => $request->Colonia,
+            'Municipio'        => $request->Municipio,
+            'Estado'           => $request->Estado,
+            'Codigo_Postal'    => $request->Codigo_Postal,
+            'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
+            'CURP'             => $request->CURP,
+            'RFC'              => $request->RFC,
+            'Clave_Elector'    => $request->Clave_Elector,
+            'Fecha_Ingreso'    => $request->Fecha_Ingreso,
+            'Id_Estatus'       => $request->Id_Estatus,
+            'Id_Usuario'       => $request->Id_Usuario,
+            'Fecha_Creo'       => now(),
+            'Id_Creo'          => session('usuario.username', 'admin')
+        ]);
 
-        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
-
-        if (!$user) {
-            return back()->withInput()->withErrors('El usuario seleccionado no existe.');
-        }
-
-        $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
-        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
-
-        try {
-            DB::table('Ejidatario')->insert([
-                'Num_Ejidatario'   => $nuevoNum,
-                'Id_Usuario'       => $request->Id_Usuario,
-                'qr_payload'       => $payloadQR,
-                'Calle'            => $request->Calle,
-                'Num_Exterior'     => $request->Num_Exterior,
-                'Num_Interior'     => $request->Num_Interior,
-                'Colonia'          => $request->Colonia,
-                'Municipio'        => $request->Municipio,
-                'Estado'           => $request->Estado,
-                'Codigo_Postal'    => $request->Codigo_Postal,
-                'Fecha_Nacimiento' => $request->Fecha_Nacimiento,
-                'CURP'             => $request->CURP,
-                'RFC'              => $request->RFC,
-                'Clave_Elector'    => $request->Clave_Elector,
-                'Fecha_Ingreso'    => $request->Fecha_Ingreso,
-                'Id_Estatus'       => $request->Id_Estatus,
-                'Fecha_Creo'       => now()->format('Y-m-d'),
-                'Id_Creo'          => session('usuario.id', '1')
-            ]);
-
-            return redirect()->route('Ejidatarios.index')->with('success', "Ejidatario #{$nuevoNum} registrado.");
-
-        } catch (\Exception $e) {
-            return back()->withInput()->withErrors('Error en base de datos: ' . $e->getMessage());
-        }
+        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario registrado');
     }
 
     public function edit($id)
@@ -136,7 +111,7 @@ class EjidatariosController extends Controller
         $fila = DB::table('Ejidatario')->where('Id_Ejidatario', $id)->first();
         abort_if(!$fila, 404);
 
-        $usuarios = DB::table('usuario')->get();
+        $usuarios = DB::table('Usuario')->get();
         $estatus  = DB::table('Estatus')->get();
 
         return view('cpanel/ejidatarios/editEjidatarios', compact('fila', 'usuarios', 'estatus'));
@@ -151,20 +126,8 @@ class EjidatariosController extends Controller
             'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
         ]);
 
-        $idUsuario = $request->Id_usuario ?? $request->Id_Usuario ?? DB::table('Ejidatario')->where('Id_Ejidatario', $id)->value('Id_usuario');
-
-        $user = DB::table('usuario')->where('Id_Usuario', $idUsuario)->first();
-
-        if (!$user) {
-            return back()->withInput()->withErrors('El usuario asociado no existe en la base de datos.');
-        }
-
-        $payloadQR = strtoupper(trim($user->Nombres . ' ' . $user->Apellido_Paterno . ' ' . $user->Apellido_Materno));
-        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
-
         DB::table('Ejidatario')->where('Id_Ejidatario', $id)->update([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
-            'qr_payload'       => $payloadQR,
             'Calle'            => $request->Calle,
             'Num_Exterior'     => $request->Num_Exterior,
             'Num_Interior'     => $request->Num_Interior,
@@ -178,12 +141,12 @@ class EjidatariosController extends Controller
             'Clave_Elector'    => $request->Clave_Elector,
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
-            'Id_usuario'       => $idUsuario,
+            'Id_Usuario'       => $request->Id_Usuario,
             'Fecha_Modificado' => now(),
             'Id_Modificado'    => session('usuario.username', 'admin')
         ]);
 
-        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado y código QR sincronizado.');
+        return redirect()->route('Ejidatarios.index')->with('success', 'Ejidatario actualizado');
     }
 
     public function destroy($id)
@@ -203,7 +166,8 @@ class EjidatariosController extends Controller
             return back()->withErrors('Ejidatario no encontrado.');
         }
 
-        if (!$esAdmin && $miId == $fila->Id_usuario) {
+        // Permitir eliminar solo si no soy yo O si soy administrador
+        if (!$esAdmin && $miId == $fila->Id_Usuario) {
             return back()->withErrors('No puedes eliminar tu propio registro.');
         }
 
@@ -223,6 +187,7 @@ class EjidatariosController extends Controller
 
     public function buscarCP($cp)
     {
+        // Buscamos en la tabla de sepomex
         $resultados = DB::table('sepomex')
             ->where('codigo_postal', $cp)
             ->select('colonia', 'municipio', 'estado')
@@ -230,21 +195,33 @@ class EjidatariosController extends Controller
 
         return response()->json($resultados);
     }
-    public function getEjidatariosApi() {
-        $ejidatarios = DB::table('Ejidatario as e')
-            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
-            ->select(
-                'e.Id_Ejidatario',
-                'e.Num_Ejidatario',
-                'u.Nombres',
-                'u.Apellido_Paterno',
-                'u.Apellido_Materno',
-                'e.qr_payload',
-                'es.Estatus as NombreEstatus'
-            )
-            ->get();
 
-        return response()->json($ejidatarios);
+    public function analizarGrupos() {
+    //Obtenemos los datos con el nombre de columna correcto
+    $ejidatarios = DB::table('Ejidatario as e')
+        ->join('Estatus as s', 'e.Id_Estatus', '=', 's.Id_Estatus')
+        ->select('e.Id_Ejidatario as id', 'e.CURP', 's.Estatus as estatus') // <-- Aseguramos que se llame 'estatus'
+        ->get();
+
+    //Definimos pesos
+    $mapeo = [
+        'Activo' => 1, 'En servicio' => 1, 'Pertenece al ejido' => 1,
+        'Difunto' => 0, 'Baja' => 0, 'Proceso de sucesión' => 0,
+        'Enfermo' => 2, 'Suspendido' => 2, 'Suspensión' => 2
+    ];
+
+    //Procesamos para que la vista reciba lo que espera
+    $resultados = $ejidatarios->map(function($item) use ($mapeo) {
+        $valorIA = $mapeo[$item->estatus] ?? 0;
+        
+        return [
+            'id'      => $item->id,
+            'CURP'    => $item->CURP,
+            'estatus' => $item->estatus, //Esto llenará "Estatus Original"
+            'cluster' => $valorIA        //Esto activará los @if de la columna "Prioridad"
+        ];
+    });
+
+    return view('cpanel.ejidatarios.analisisAlgoritmo', ['datos' => $resultados]);
     }
 }
