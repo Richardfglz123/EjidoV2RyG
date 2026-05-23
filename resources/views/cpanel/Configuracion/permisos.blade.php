@@ -104,7 +104,6 @@
                                 ['key'=>'usuarios','label'=>'Usuarios','icon'=>'fas fa-users'],
                                 ['key'=>'ejidatarios','label'=>'Ejidatarios','icon'=>'fas fa-person-digging'],
                                 ['key'=>'actividades','label'=>'Actividades','icon'=>'fas fa-clipboard-check'],
-                                ['key'=>'gestion','label'=>'Gestión','icon'=>'fas fa-tasks'],
                                 ['key'=>'asistencia','label'=>'Pase de Lista','icon'=>'fas fa-list-check'],
                                 ['key'=>'eventos','label'=>'Eventos','icon'=>'fas fa-calendar-day'],
                                 ['key'=>'expedientes','label'=>'Expedientes','icon'=>'fas fa-folder-open'],
