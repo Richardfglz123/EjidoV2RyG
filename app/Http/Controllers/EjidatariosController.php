@@ -25,7 +25,6 @@ class EjidatariosController extends Controller
 
     public function index()
     {
-        // Usamos paginate(10) para que Laravel gestione el límite de 10 por vista
         $ejidatarios = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
             ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
@@ -37,7 +36,7 @@ class EjidatariosController extends Controller
                 'es.Estatus as NombreEstatus'
             )
             ->orderByRaw('e.Num_Ejidatario + 0 ASC')
-            ->paginate(10); // <--- Cambiado a 10 registros por página
+            ->paginate(10);
 
         return view('cpanel/ejidatarios/indexEjidatario', [
             'data' => $ejidatarios
@@ -62,24 +61,35 @@ class EjidatariosController extends Controller
         $this->checkPermission('usuarios_crear');
 
         $request->validate([
-            'Num_Ejidatario'     => 'required|integer|unique:Ejidatario,Num_Ejidatario',
-            'Calle'              => 'required|string|max:100',
-            'Num_Exterior'       => 'required|string|max:10',
-            'Colonia'            => 'required|string|max:100',
-            'Municipio'          => 'required|string|max:100',
-            'Estado'             => 'required|string|max:100',
-            'Codigo_Postal'      => 'required|string|max:10',
-            'Fecha_Nacimiento'   => 'required|date',
-            'CURP'               => 'required|string|max:20|unique:Ejidatario,CURP',
-            'RFC'                => 'required|string|max:15',
-            'Clave_Elector'      => 'required|string|max:20',
-            'Fecha_Ingreso'      => 'required|date',
-            'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario',
-        ], [
-            'Num_Ejidatario.unique' => 'Ese número de ejidatario ya está registrado.',
-            'CURP.unique' => 'La CURP ya se encuentra registrada.',
+            'Num_Ejidatario'   => 'required|integer|unique:Ejidatario,Num_Ejidatario',
+            'Calle'            => 'required|string|max:100',
+            'Num_Exterior'     => 'required|string|max:10',
+            'Colonia'          => 'required|string|max:100',
+            'Municipio'        => 'required|string|max:100',
+            'Estado'           => 'required|string|max:100',
+            'Codigo_Postal'    => 'required|string|max:10',
+            'Fecha_Nacimiento' => 'required|date',
+            'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP',
+            'RFC'              => 'required|string|max:15',
+            'Clave_Elector'    => 'required|string|max:20',
+            'Fecha_Ingreso'    => 'required|date',
+            'Id_Estatus'       => 'required|exists:Estatus,Id_Estatus',
+            'Id_Usuario'       => 'required|exists:usuario,Id_Usuario',
         ]);
+
+
+        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
+
+        if (!$user) {
+            return back()->withInput()->withErrors('El usuario seleccionado no existe.');
+        }
+
+        $payloadQR = strtoupper(trim(
+            $user->Nombres . ' ' .
+            $user->Apellido_Paterno . ' ' .
+            $user->Apellido_Materno
+        ));
+        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
         DB::table('Ejidatario')->insert([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
@@ -97,6 +107,7 @@ class EjidatariosController extends Controller
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
             'Id_Usuario'       => $request->Id_Usuario,
+            'qr_payload'       => $payloadQR,
             'Fecha_Creo'       => now(),
             'Id_Creo'          => session('usuario.username', 'admin')
         ]);
@@ -122,9 +133,19 @@ class EjidatariosController extends Controller
         $this->checkPermission('usuarios_editar');
 
         $request->validate([
-            'Num_Ejidatario'   => 'required|integer|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
-            'CURP'             => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
+            'Num_Ejidatario' => 'required|integer|unique:Ejidatario,Num_Ejidatario,' . $id . ',Id_Ejidatario',
+            'CURP'           => 'required|string|max:20|unique:Ejidatario,CURP,' . $id . ',Id_Ejidatario',
         ]);
+
+
+        $user = DB::table('usuario')->where('Id_Usuario', $request->Id_Usuario)->first();
+
+        $payloadQR = strtoupper(trim(
+            $user->Nombres . ' ' .
+            $user->Apellido_Paterno . ' ' .
+            $user->Apellido_Materno
+        ));
+        $payloadQR = preg_replace('/\s+/', ' ', $payloadQR);
 
         DB::table('Ejidatario')->where('Id_Ejidatario', $id)->update([
             'Num_Ejidatario'   => $request->Num_Ejidatario,
@@ -142,6 +163,7 @@ class EjidatariosController extends Controller
             'Fecha_Ingreso'    => $request->Fecha_Ingreso,
             'Id_Estatus'       => $request->Id_Estatus,
             'Id_Usuario'       => $request->Id_Usuario,
+            'qr_payload'       => $payloadQR,
             'Fecha_Modificado' => now(),
             'Id_Modificado'    => session('usuario.username', 'admin')
         ]);
@@ -166,17 +188,12 @@ class EjidatariosController extends Controller
             return back()->withErrors('Ejidatario no encontrado.');
         }
 
-        // Permitir eliminar solo si no soy yo O si soy administrador
         if (!$esAdmin && $miId == $fila->Id_Usuario) {
             return back()->withErrors('No puedes eliminar tu propio registro.');
         }
 
-        try {
-            DB::table('Ejidatario')->where('Id_Ejidatario', $id)->delete();
-            return back()->with('success', 'Registro eliminado correctamente.');
-        } catch (\Exception $e) {
-            return back()->withErrors('Error al eliminar: ' . $e->getMessage());
-        }
+        DB::table('Ejidatario')->where('Id_Ejidatario', $id)->delete();
+        return back()->with('success', 'Registro eliminado correctamente.');
     }
 
     public function show($id)
@@ -187,12 +204,29 @@ class EjidatariosController extends Controller
 
     public function buscarCP($cp)
     {
-        // Buscamos en la tabla de sepomex
         $resultados = DB::table('sepomex')
             ->where('codigo_postal', $cp)
             ->select('colonia', 'municipio', 'estado')
             ->get();
 
         return response()->json($resultados);
+    }
+
+    public function getEjidatariosApi() {
+        $ejidatarios = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
+            ->join('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
+            ->select(
+                'e.Id_Ejidatario',
+                'e.Num_Ejidatario',
+                'u.Nombres',
+                'u.Apellido_Paterno',
+                'u.Apellido_Materno',
+                'e.qr_payload',
+                'es.Estatus as NombreEstatus'
+            )
+            ->get();
+
+        return response()->json($ejidatarios);
     }
 }

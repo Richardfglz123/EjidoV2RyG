@@ -172,6 +172,10 @@ class UsuariosController extends Controller
             'Fecha_Modificado' => now()
         ];
 
+        if ($request->filled('Contraseña')) {
+            $data['Contraseña'] = bcrypt($request->Contraseña);
+        }
+
         if ($esAdmin && $request->filled('Correo')) {
             $data['Correo'] = $request->Correo;
         }
