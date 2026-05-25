@@ -322,7 +322,6 @@ class Reparto2Controller extends Controller
         try {
             $nombre = str_starts_with(strtolower($request->tipo_evento), 'asamblea') ? 'Asamblea' : 'Faena';
 
-            // Obtenemos un ID válido de la tabla
             $actividad = DB::table('Actividad')->where('Tipo', $nombre)->first();
 
             if (!$actividad) {
@@ -334,7 +333,7 @@ class Reparto2Controller extends Controller
                 'Fecha'         => $request->fecha_nueva ?? now(),
                 'Id_Ejidatario' => $request->id_ejidatario,
                 'Id_Sesion'     => null,
-                'Id_Actividad'  => $actividad->Id_Actividad // Usa el ID real encontrado
+                'Id_Actividad'  => $actividad->Id_Actividad
             ]);
 
             return response()->json(['success' => true]);
