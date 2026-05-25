@@ -32,7 +32,7 @@
             <div class="col-md-3">
                 <label>Fecha de Inicio</label>
 
-                <input type="date">
+                <input type="date"
                        name="FechaInicio"
                        class="form-control @error('FechaInicio') is-invalid @enderror"
                        value="{{ old('FechaInicio', $fila->FechaInicio ?? '') }}"
@@ -42,19 +42,8 @@
                 <div class="invalid-feedback">
                     {{ $message }}
                 </div>
-
-                    name="FechaInicio"
-                    class="form-control @error('FechaInicio') is-invalid @enderror"
-                    value="{{ old('FechaInicio', $fila->FechaInicio ?? '') }}"
-                    required>
-
-                @error('FechaInicio')
-                    <div class="invalid-feedback">
-                        {{ $message }}
-                    </div>
                 @enderror
             </div>
-
             <div class="col-md-3">
                 <label for="FechaFin" class="form-label">Fecha de Fin</label>
                 <input type="date"
