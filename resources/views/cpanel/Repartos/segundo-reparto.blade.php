@@ -240,16 +240,27 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let timer;
-        document.getElementById('inputBuscadorGlobal').addEventListener('input', function() {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                if(this.value.length >= 3 || this.value.length == 0) {
-                    document.getElementById('formBuscador').submit();
-                }
-            }, 800);
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
         });
 
+        // --- BUSCADOR ---
+        let timer;
+        const inputBuscador = document.getElementById('inputBuscadorGlobal');
+        if (inputBuscador) {
+            inputBuscador.addEventListener('input', function() {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    if(this.value.length >= 3 || this.value.length == 0) {
+                        document.getElementById('formBuscador').submit();
+                    }
+                }, 800);
+            });
+        }
+
+        // --- MODAL ABONO ---
         function abrirModalAbono(id, nombreCompleto, deudaMaxima) {
             let urlAction = "{{ route('prestamo2.abonar', ':id') }}".replace(':id', id);
             $('#formAbonoDinamico').attr('action', urlAction);
@@ -260,18 +271,7 @@
             $('#modalAbonarDeuda').modal('show');
         }
 
-        $('#formAbonoDinamico').on('submit', function(e) {
-            const abono = parseFloat($('#monto_abono_input').val());
-            const maximoString = $('#labelDeudaMax').text().replace('$', '').replace(/,/g, '');
-            const deudaMaxima = parseFloat(maximoString);
-
-            if (abono <= 0) {
-                e.preventDefault();
-                alert('El monto del abono debe ser mayor a 0.');
-                return false;
-            }
-        });
-
+        // --- GESTIÓN DE DETALLES Y REPROGRAMACIÓN ---
         function verDetalle(id, tipo) {
             const baseUrl = tipo === 'asambleas' ? "{{ url('admon/finanzas/segundo-reparto/detalle-asambleas') }}" : "{{ url('admon/finanzas/segundo-reparto/detalle-faenas') }}";
             const url = `${baseUrl}/${id}`;
@@ -285,36 +285,34 @@
                 if (Array.isArray(data) && data.length > 0) {
                     data.forEach((d, index) => {
                         html += `
-                        <tr class="align-middle">
-                            <td class="ps-3 small text-uppercase fw-normal">${d.tipo}</td>
-                            <td class="text-danger fw-normal">$${parseFloat(d.Descuento).toFixed(2)}</td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-success fw-normal px-3" style="border: 1px solid #1b4b36 !important;" onclick="mostrarRepro(${index})">
-                                    <i class="fas fa-calendar-alt"></i> Reprogramar
+                    <tr class="align-middle">
+                        <td class="ps-3 small text-uppercase fw-normal">${d.tipo}</td>
+                        <td class="text-danger fw-normal">$${parseFloat(d.Descuento).toFixed(2)}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-success fw-normal px-3" style="border: 1px solid #1b4b36 !important;" onclick="mostrarRepro(${index})">
+                                <i class="fas fa-calendar-alt"></i> Reprogramar
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="repro_form_${index}" style="display:none;" class="repro-input-row">
+                        <td colspan="3" class="p-3 border-bottom">
+                            <div class="d-flex align-items-center justify-content-center gap-3">
+                                <label class="small fw-normal mb-0 text-ejidal">NUEVA FECHA:</label>
+                                <input type="date" id="date_${index}" class="form-control form-control-sm w-auto shadow-sm">
+                                <button class="btn btn-sm btn-ejidal px-3 shadow-sm fw-normal" onclick="confirmarReprogramacion(${id}, '${d.tipo}', ${index})">
+                                    Confirmar
                                 </button>
-                            </td>
-                        </tr>
-                        <tr id="repro_form_${index}" style="display:none;" class="repro-input-row">
-                            <td colspan="3" class="p-3 border-bottom">
-                                <div class="d-flex align-items-center justify-content-center gap-3">
-                                    <label class="small fw-normal mb-0 text-ejidal">NUEVA FECHA:</label>
-                                    <input type="date" id="date_${index}" class="form-control form-control-sm w-auto shadow-sm">
-                                    <button class="btn btn-sm btn-ejidal px-3 shadow-sm fw-normal" onclick="confirmarReprogramacion(${id}, '${d.tipo}', ${index})">
-                                        Confirmar
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="mostrarRepro(${index})">
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>`;
+                                <button class="btn btn-sm btn-secondary" onclick="mostrarRepro(${index})">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="3" class="text-center py-4 text-muted small">Sin faltas pendientes en este ciclo.</td></tr>';
+                    html = '<tr><td colspan="3" class="text-center py-4 text-muted small">Sin faltas pendientes.</td></tr>';
                 }
                 $('#cuerpoDetalle').html(html);
-            }).fail(function() {
-                $('#cuerpoDetalle').html('<tr><td colspan="3" class="text-center py-3 text-danger">Error de comunicación.</td></tr>');
             });
         }
 
@@ -327,28 +325,41 @@
             const fecha = inputFecha.val();
             const hoy = new Date().toISOString().split('T')[0];
 
-            if(!fecha) { alert("Por favor seleccione una fecha."); return; }
-            if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
+            if(!fecha) { alert("Seleccione una fecha."); return; }
+            if(fecha < hoy) { alert("No se puede programar en el pasado."); return; }
 
             $.ajax({
-                url: "{{ url('admon/finanzas/segundo-reparto/reprogramar-falta') }}",
+                url: "{{ route('reprogramar.falta') }}",
                 type: 'POST',
                 data: {
-                    _token: '{{ csrf_token() }}',
                     id_ejidatario: idEjidatario,
                     tipo_evento: tipoEvento,
                     fecha_nueva: fecha
                 },
                 success: function(res) {
                     if(res.success) {
-                        alert("¡Reprogramación exitosa!");
-                        location.reload();
+                        // Eliminamos visualmente la fila del modal
+                        $(`#repro_form_${index}`).closest('tr').prev().fadeOut(300, function(){ $(this).remove(); });
+                        $(`#repro_form_${index}`).fadeOut(300, function(){ $(this).remove(); });
+
+                        // Indicamos que necesitamos recargar la tabla principal al cerrar el modal
+                        window.debeRecargar = true;
+                        alert("¡Reprogramación exitosa!");
                     } else {
-                        alert("Atención: " + res.message);
+                        alert("Atención: " + res.message);
                     }
                 },
-                error: function() { alert("Error crítico al procesar."); }
+                error: function(xhr) {
+                    alert("Error: " + (xhr.responseJSON?.message || "Error del servidor"));
+                }
             });
         }
+
+        // --- RECARGA AUTOMÁTICA AL CERRAR MODAL ---
+        $('#modalDetalle').on('hidden.bs.modal', function () {
+            if (window.debeRecargar) {
+                location.reload();
+            }
+        });
     </script>
 @endsection
