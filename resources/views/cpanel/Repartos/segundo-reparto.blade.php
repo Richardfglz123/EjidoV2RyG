@@ -345,17 +345,28 @@
                 },
                 success: function(res) {
                     if(res.success) {
-                        alert("¡Reprogramación exitosa!");
-                        location.reload();
+                        // 1. Ocultar la fila del modal
+                        // Buscamos la fila que contiene el botón de reprogramar
+                        $(`#repro_form_${index}`).closest('tr').prev().fadeOut(300, function() {
+                            $(this).remove(); // Elimina la fila de datos
+                        });
+                        $(`#repro_form_${index}`).fadeOut(300, function() {
+                            $(this).remove(); // Elimina la fila del formulario
+                        });
+
+                        // 2. Opcional: Avisar discretamente
+                        console.log("Reprogramación exitosa");
+
+                        // 3. Si quieres que se refresque la tabla principal (fondo) también:
+                        // No uses location.reload() si quieres evitar parpadeos.
+                        // Puedes simplemente actualizar el contador si lo necesitas o dejarlo así.
                     } else {
                         alert("Atención: " + res.message);
                     }
                 },
                 error: function(xhr) {
-                    // Esto mostrará el error exacto que envía Laravel
-                    let errorMsg = xhr.responseJSON ? xhr.responseJSON.message : "Error desconocido al procesar la petición.";
-                    console.error(xhr.responseText);
-                    alert("Error del servidor: " + errorMsg);
+                    let errorMsg = xhr.responseJSON ? xhr.responseJSON.message : "Error desconocido.";
+                    alert("Error: " + errorMsg);
                 }
             });
         }
