@@ -102,14 +102,14 @@ class Reparto2Controller extends Controller
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNull('Id_Sesion')
-                ->where('Id_Actividad', 1)
+                ->where('Id_Actividad', 1) // ID de Asamblea
                 ->count();
 
             $reprosFaenas = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNull('Id_Sesion')
-                ->where('Id_Actividad', 2)
+                ->where('Id_Actividad', 2) // ID de Faena
                 ->count();
 
             $faltasAsambleasCount = count(
