@@ -351,7 +351,12 @@
                         alert("Atención: " + res.message);
                     }
                 },
-                error: function() { alert("Error crítico al procesar."); }
+                error: function(xhr) {
+                    // Esto mostrará el error exacto que envía Laravel
+                    let errorMsg = xhr.responseJSON ? xhr.responseJSON.message : "Error desconocido al procesar la petición.";
+                    console.error(xhr.responseText);
+                    alert("Error del servidor: " + errorMsg);
+                }
             });
         }
     </script>

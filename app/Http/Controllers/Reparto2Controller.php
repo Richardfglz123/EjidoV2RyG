@@ -332,35 +332,40 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            // Validar que los datos lleguen correctamente
-            if (empty($request->tipo_evento) || empty($request->id_ejidatario)) {
-                return response()->json(['success' => false, 'message' => 'Datos incompletos.'], 400);
+            if (!$request->tipo_evento || !$request->id_ejidatario) {
+                return response()->json(['success' => false, 'message' => 'Faltan datos.'], 400);
             }
 
             $evento = DB::table('Evento')->where('Nombre_Evento', trim($request->tipo_evento))->first();
-
             if (!$evento) {
                 return response()->json(['success' => false, 'message' => 'No se encontró el evento.'], 404);
             }
 
-            // Aseguramos que la fecha sea válida
-            $fecha = !empty($request->fecha_nueva) ? $request->fecha_nueva : now()->format('Y-m-d');
+            $categoria = DB::table('Categoria_Evento')->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)->first();
+            $idActividad = ($categoria && str_starts_with($categoria->Clave_Categoria, 'asamblea')) ? 1 : 2;
 
+            // Intentamos insertar
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
-                'Fecha'         => $fecha,
+                'Fecha'         => $request->fecha_nueva ?? now(),
                 'Id_Ejidatario' => $request->id_ejidatario,
-                'Id_Sesion'     => null, // Verifica si esto es permitido en tu BD
-                'Id_Actividad'  => ($evento->Id_Categoria_Evento == 1) ? 1 : 2 // Simplificación lógica
+                'Id_Sesion'     => null,
+                'Id_Actividad'  => $idActividad
             ]);
 
             return response()->json(['success' => true]);
 
         } catch (\Illuminate\Database\QueryException $e) {
-            // Esto captura específicamente errores de base de datos
-            return response()->json(['success' => false, 'message' => 'Error de BD: ' . $e->getMessage()], 500);
+            // Esto te dirá exactamente si el error es por una columna NOT NULL o una llave foránea
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de BD: ' . $e->getMessage()
+            ], 500);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error general: ' . $e->getMessage()
+            ], 500);
         }
     }
 
