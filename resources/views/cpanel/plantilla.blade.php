@@ -325,22 +325,35 @@
 </div>
 
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
-    <div class="container text-center">
-        <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
-        <h6 class="text-uppercase fw-bold mb-2">
-            Sistema de Gestión Ejidal
-        </h6>
-        <!-- ICONOS REDES -->
-        <div class="mb-2">
-            <a href="https://www.facebook.com/share/1JCd6gqLfZ/" target="_blank" class="text-light mx-2">
-                <i class="fab fa-facebook fa-lg"></i>
-            </a>
-            <a href="https://www.instagram.com/valle_de_luciernagas_esri?igsh=dTc5MHV1OHVzMTNx" target="_blank" class="text-light mx-2">
-                <i class="fab fa-instagram fa-lg"></i>
-            </a>
-        </div>
-        <div style="font-size: 0.7rem;" class="text-secondary mt-3">
-            <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4 text-center text-md-start">
+                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
+                <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal San Rafael Ixtapalucan</h6>
+                <small class="text-secondary">v1.2.1</small>
+            </div>
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <p class="mb-2 small text-secondary">Síguenos en:</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://www.facebook.com/vallede.luciernagas/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com/valle_de_luciernagas_esri/" target="_blank"
+                       class="btn btn-outline-light rounded-circle d-flex align-items-center justify-content-center"
+                       style="width: 45px; height: 45px; font-size: 1.2rem;" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 text-center text-md-end">
+                <div style="font-size: 0.7rem;" class="text-secondary">
+                    <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
+                    <p class="mb-0">Prohibida su reproducción total o parcial sin autorización escrita.</p>
+                    <p class="mb-0 font-italic text-lowercase">All rights reserved 2026.</p>
+                </div>
+            </div>
         </div>
     </div>
 </footer>

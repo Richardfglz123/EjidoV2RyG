@@ -42,7 +42,7 @@ class EventoController extends Controller
         try {
             $evento = Evento::create([
                 'Nombre_Evento'       => $request->Nombre_Evento,
-                'Id_Categoria_Evento' => $request->Id_Categoria_Evento, // El ID numérico (1, 2, 3...)
+                'Id_Categoria_Evento' => $request->Id_Categoria_Evento,
                 'Observaciones'       => $request->Observaciones,
                 'Id_Creo'             => auth()->check() ? auth()->user()->username : 'iPhone_App',
                 'Fecha_Creo'          => now(),

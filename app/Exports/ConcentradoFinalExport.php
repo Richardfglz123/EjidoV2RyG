@@ -42,12 +42,10 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
             ->get()
             ->map(function ($ejid) use ($sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena, $montoFijoR2) {
 
-                // Cálculo de Deuda R1
                 $totalPrestamo = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad') ?? 0;
                 $totalAbonos = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto') ?? 0;
                 $deudaR1 = max(0, $totalPrestamo - $totalAbonos);
 
-                // Cálculo de Asistencias y Faltas (Lógica unificada)
                 $asistencias = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNotNull('Id_Sesion')->pluck('Id_Sesion')->toArray();
                 $reprosAs = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 1)->count();
                 $reprosFa = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 2)->count();
@@ -58,7 +56,7 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                 return [
                     'No' => $ejid->Id_Ejidatario,
                     'Nombre' => "{$ejid->Nombres} {$ejid->Apellido_Paterno} {$ejid->Apellido_Materno}",
-                    'Situacion' => 'Activo', // Ajustar según tu lógica de Estatus
+                    'Situacion' => 'Activo',
                     'As1' => in_array($sesionesAsambleasIds[0]??0, $asistencias) ? 'Asistió' : 'Falta',
                     'As2' => in_array($sesionesAsambleasIds[1]??0, $asistencias) ? 'Asistió' : 'Falta',
                     'As3' => in_array($sesionesAsambleasIds[2]??0, $asistencias) ? 'Asistió' : 'Falta',
