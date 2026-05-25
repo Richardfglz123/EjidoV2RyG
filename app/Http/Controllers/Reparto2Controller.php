@@ -332,42 +332,35 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            if (!$request->tipo_evento || !$request->id_ejidatario) {
-                return response()->json(['success' => false, 'message' => 'Faltan datos en la petición.'], 400);
+            // Validar que los datos lleguen correctamente
+            if (empty($request->tipo_evento) || empty($request->id_ejidatario)) {
+                return response()->json(['success' => false, 'message' => 'Datos incompletos.'], 400);
             }
 
             $evento = DB::table('Evento')->where('Nombre_Evento', trim($request->tipo_evento))->first();
 
             if (!$evento) {
-                return response()->json(['success' => false, 'message' => 'No se encontró evento llamado: ' . $request->tipo_evento], 404);
+                return response()->json(['success' => false, 'message' => 'No se encontró el evento.'], 404);
             }
 
-            $categoria = DB::table('Categoria_Evento')
-                ->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)
-                ->first();
+            // Aseguramos que la fecha sea válida
+            $fecha = !empty($request->fecha_nueva) ? $request->fecha_nueva : now()->format('Y-m-d');
 
-            if (!$categoria) {
-                return response()->json(['success' => false, 'message' => 'El evento no tiene una categoría asociada.'], 404);
-            }
-
-            $idActividad = str_starts_with($categoria->Clave_Categoria, 'asamblea') ? 1 : 2;
-
-            // 4. Insertar
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
-                'Fecha'         => $request->fecha_nueva ?? now(),
+                'Fecha'         => $fecha,
                 'Id_Ejidatario' => $request->id_ejidatario,
-                'Id_Sesion'     => null,
-                'Id_Actividad'  => $idActividad
+                'Id_Sesion'     => null, // Verifica si esto es permitido en tu BD
+                'Id_Actividad'  => ($evento->Id_Categoria_Evento == 1) ? 1 : 2 // Simplificación lógica
             ]);
 
             return response()->json(['success' => true]);
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Esto captura específicamente errores de base de datos
+            return response()->json(['success' => false, 'message' => 'Error de BD: ' . $e->getMessage()], 500);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage() . ' en la línea ' . $e->getLine()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
