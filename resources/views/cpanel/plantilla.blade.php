@@ -147,12 +147,6 @@
                                             <i class="fas fa-list me-2"></i> Listado
                                         </a>
                                     </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('ia.analisis') }}">
-                                            <i class="fas fa-brain me-2"></i> Análisis IA (Clusters)
-                                        </a>
-                                    </li>
                                 </ul>
                             </div>
                         </li>
