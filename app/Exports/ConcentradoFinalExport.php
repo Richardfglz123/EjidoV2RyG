@@ -31,7 +31,6 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
             ->get()
             ->map(function ($ejid) use ($sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena, $montoFijoR2) {
 
-                // Cálculos de Deuda
                 $deudaR1 = $this->calcularDeudaR1($ejid->Id_Ejidatario);
 
                 $asistencias = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNotNull('Id_Sesion')->pluck('Id_Sesion')->toArray();
@@ -41,8 +40,8 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
                 $totalDescJuntas = max(0, count(array_diff($sesionesAsambleasIds, $asistencias)) - $reprosAs) * $costoAsamblea;
                 $totalDescFaenas = max(0, count(array_diff($sesionesFaenasIds, $asistencias)) - $reprosFa) * $costoFaena;
 
-                // Cálculo de Total a Pagar asegurando no negativo
-                $totalPagar = max(0, $montoFijoR2 - ($totalDescJuntas + $totalDescFaenas + $deudaR1));
+                $sumaDeducciones = $totalDescJuntas + $totalDescFaenas + $deudaR1;
+                $totalPagar = max(0, $montoFijoR2 - $sumaDeducciones);
 
                 return [
                     'No' => $ejid->Id_Ejidatario,
@@ -80,11 +79,25 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     }
 
     public function headings(): array {
-        return [['Sistema Ejidal San Rafael Ixtapalucan'], ['No.', 'NOMBRE', 'SITUACION', '1ra Asamblea', 'Asamblea extraordinaria', 'Diciembre', 'Enero', 'Marzo', 'Junio', 'REP. SANEAMIENTO', '1ER REPARTO', '2DO REPARTO', 'FINIQUITO', 'FAENA SAN.', 'FAENA APR.', 'TOTAL DESC. JUNTAS', 'TOTAL DESC. FAENAS', 'TOTAL A PAGAR']];
+        return [
+            ['Sistema Ejidal San Rafael Ixtapalucan'],
+            ['No.', 'NOMBRE', 'SITUACION', '1ra Asamblea', 'Asamblea extraordinaria', 'Diciembre', 'Enero', 'Marzo', 'Junio', 'REP. SANEAMIENTO', '1ER REPARTO', '2DO REPARTO', 'FINIQUITO', 'FAENA SAN.', 'FAENA APR.', 'TOTAL DESC. JUNTAS', 'TOTAL DESC. FAENAS', 'TOTAL A PAGAR']
+        ];
     }
 
     public function columnFormats(): array {
-        return ['K' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE, 'L' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE, 'P' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE, 'Q' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE, 'R' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE];
+        return [
+            'I' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'J' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'K' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'L' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'M' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'N' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'O' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'P' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'Q' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+            'R' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
+        ];
     }
 
     public function styles(Worksheet $sheet) {
