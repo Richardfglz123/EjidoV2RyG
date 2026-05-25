@@ -326,7 +326,7 @@
 
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
     <div class="container text-center">
-        <img src="/snRafael.png" alt="Logo" height="50" class="mb-2">
+        <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
         <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
         <div style="font-size: 0.7rem;" class="text-secondary mt-3">
             <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
