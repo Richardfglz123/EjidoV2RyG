@@ -32,7 +32,7 @@
             <div class="col-md-3">
                 <label>Fecha de Inicio</label>
 
-                <input type="date"
+                <input type="date">
 <<<<<<< HEAD
                        name="FechaInicio"
                        class="form-control @error('FechaInicio') is-invalid @enderror"
