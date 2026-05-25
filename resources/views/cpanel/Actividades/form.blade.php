@@ -33,7 +33,6 @@
                 <label>Fecha de Inicio</label>
 
                 <input type="date">
-<<<<<<< HEAD
                        name="FechaInicio"
                        class="form-control @error('FechaInicio') is-invalid @enderror"
                        value="{{ old('FechaInicio', $fila->FechaInicio ?? '') }}"
@@ -43,7 +42,7 @@
                 <div class="invalid-feedback">
                     {{ $message }}
                 </div>
-=======
+
                     name="FechaInicio"
                     class="form-control @error('FechaInicio') is-invalid @enderror"
                     value="{{ old('FechaInicio', $fila->FechaInicio ?? '') }}"
@@ -53,7 +52,6 @@
                     <div class="invalid-feedback">
                         {{ $message }}
                     </div>
->>>>>>> a613e621 (Version nueva, ejidatarios y menu)
                 @enderror
             </div>
 

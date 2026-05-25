@@ -151,7 +151,7 @@ class EjidatariosController extends Controller
 
     public function destroy($id)
     {
-        $sesion = session('Usuario', session('2fa_user', []));
+        $sesion = session('usuario', session('2fa_user', []));
         $miId = $sesion['id'] ?? null;
         $miRol = strtolower(trim($sesion['rol'] ?? ''));
         $esAdmin = ($miRol === 'administrador' || ($sesion['id_rol'] ?? null) == 2);
