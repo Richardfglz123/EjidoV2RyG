@@ -555,9 +555,9 @@ class Reparto2Controller extends Controller
         try {
             $actualizado = DB::table('Prestamo')
                 ->where('Id_Prestamo', $idPrestamo)
-                ->where('Id_Utilidad', 99) // Aseguramos que solo revertimos los que están en 99
+                ->where('Id_Utilidad', 99)
                 ->update([
-                    'Id_Utilidad' => 1 // Cambia 1 por el ID de tu utilidad actual
+                    'Id_Utilidad' => 1
                 ]);
 
             if ($actualizado) {

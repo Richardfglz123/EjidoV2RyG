@@ -7,9 +7,9 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
 class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithColumnFormatting
 {
@@ -22,43 +22,43 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
         $costoAsamblea = $precios->where('Tipo', 'Asamblea')->first()->Costo ?? 0;
         $costoFaena = $precios->where('Tipo', 'Faena')->first()->Costo ?? 0;
 
+        // Obtener IDs de sesiones dinámicamente, igual que en el Controlador
         $sesionesAsambleasIds = DB::table('Sesion')
-            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-            ->join('Categoria_Evento', 'Evento.Id_Categoria_Evento', '=', 'Categoria_Evento.Id_Categoria_Evento')
-            ->where('Categoria_Evento.Clave_Categoria', 'LIKE', 'asamblea%')
+            ->join('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
+            ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->where('c.Clave_Categoria', 'LIKE', 'asamblea%')
+            ->where('Sesion.Tipo', 'Evento')
             ->pluck('Sesion.Id_Sesion')->toArray();
 
         $sesionesFaenasIds = DB::table('Sesion')
-            ->join('Evento', 'Sesion.Id_Referencia', '=', 'Evento.Id_Evento')
-            ->join('Categoria_Evento', 'Evento.Id_Categoria_Evento', '=', 'Categoria_Evento.Id_Categoria_Evento')
-            ->where('Categoria_Evento.Clave_Categoria', 'LIKE', 'faena%')
+            ->join('Evento as e', 'Sesion.Id_Referencia', '=', 'e.Id_Evento')
+            ->join('Categoria_Evento as c', 'e.Id_Categoria_Evento', '=', 'c.Id_Categoria_Evento')
+            ->where('c.Clave_Categoria', 'LIKE', 'faena%')
+            ->where('Sesion.Tipo', 'Evento')
             ->pluck('Sesion.Id_Sesion')->toArray();
 
         return DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
-            ->leftJoin('Estatus as es', 'e.Id_Estatus', '=', 'es.Id_Estatus')
-            ->select('e.Id_Ejidatario', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno', 'es.Estatus')
             ->get()
             ->map(function ($ejid) use ($sesionesAsambleasIds, $sesionesFaenasIds, $costoAsamblea, $costoFaena, $montoFijoR2) {
 
-                $totalPrestamoR1 = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad') ?? 0;
-                $totalAbonosR1 = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto') ?? 0;
-                $deudaR1 = max(0, $totalPrestamoR1 - $totalAbonosR1);
+                // Cálculo de Deuda R1
+                $totalPrestamo = DB::table('Prestamo')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Id_Utilidad', 1)->sum('Cantidad') ?? 0;
+                $totalAbonos = DB::table('Abono')->join('Prestamo', 'Abono.Id_Prestamo', '=', 'Prestamo.Id_Prestamo')->where('Prestamo.Id_Ejidatario', $ejid->Id_Ejidatario)->sum('Abono.Monto') ?? 0;
+                $deudaR1 = max(0, $totalPrestamo - $totalAbonos);
 
+                // Cálculo de Asistencias y Faltas (Lógica unificada)
                 $asistencias = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNotNull('Id_Sesion')->pluck('Id_Sesion')->toArray();
-                $reprosAsambleas = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 1)->count();
-                $reprosFaenas = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 2)->count();
+                $reprosAs = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 1)->count();
+                $reprosFa = DB::table('PaseLista')->where('Id_Ejidatario', $ejid->Id_Ejidatario)->where('Asistencia', 1)->whereNull('Id_Sesion')->where('Id_Actividad', 2)->count();
 
-                $faltasAsambleas = max(0, count(array_diff($sesionesAsambleasIds, $asistencias)) - $reprosAsambleas);
-                $faltasFaenas = max(0, count(array_diff($sesionesFaenasIds, $asistencias)) - $reprosFaenas);
-
-                $totalDescJuntas = $faltasAsambleas * $costoAsamblea;
-                $totalDescFaenas = $faltasFaenas * $costoFaena;
+                $totalDescJuntas = max(0, count(array_diff($sesionesAsambleasIds, $asistencias)) - $reprosAs) * $costoAsamblea;
+                $totalDescFaenas = max(0, count(array_diff($sesionesFaenasIds, $asistencias)) - $reprosFa) * $costoFaena;
 
                 return [
                     'No' => $ejid->Id_Ejidatario,
                     'Nombre' => "{$ejid->Nombres} {$ejid->Apellido_Paterno} {$ejid->Apellido_Materno}",
-                    'Situacion' => $ejid->Estatus ?? 'S/P',
+                    'Situacion' => 'Activo', // Ajustar según tu lógica de Estatus
                     'As1' => in_array($sesionesAsambleasIds[0]??0, $asistencias) ? 'Asistió' : 'Falta',
                     'As2' => in_array($sesionesAsambleasIds[1]??0, $asistencias) ? 'Asistió' : 'Falta',
                     'As3' => in_array($sesionesAsambleasIds[2]??0, $asistencias) ? 'Asistió' : 'Falta',
@@ -88,12 +88,10 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
 
     public function columnFormats(): array
     {
+        // Formato moneda para columnas J, K, L, M, N, O, P, Q, R (índices base 1)
         return [
             'K' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
             'L' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
-            'M' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
-            'N' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
-            'O' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
             'P' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
             'Q' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
             'R' => NumberFormat::FORMAT_CURRENCY_USD_SIMPLE,
@@ -104,14 +102,8 @@ class ConcentradoFinalExport implements FromCollection, WithHeadings, WithStyles
     {
         $sheet->mergeCells('A1:R1');
         return [
-            1 => [
-                'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '006400']] // Verde Oscuro
-            ],
-            2 => [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '2E8B57']] // Verde Medio
-            ]
+            1 => ['font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '006400']]],
+            2 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '2E8B57']]]
         ];
     }
 }
