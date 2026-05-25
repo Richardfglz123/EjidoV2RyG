@@ -332,40 +332,32 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            if (!$request->tipo_evento || !$request->id_ejidatario) {
-                return response()->json(['success' => false, 'message' => 'Faltan datos.'], 400);
+            // 1. Identificamos el nombre que buscamos en la tabla 'Actividad'
+            // Ajusta estos nombres si en tu tabla 'Tipo' se guardan diferente
+            $nombreActividad = str_starts_with(strtolower($request->tipo_evento), 'asamblea') ? 'Asamblea' : 'Faena';
+
+            // 2. Buscamos el registro real en la tabla Actividad
+            $actividad = DB::table('Actividad')->where('Tipo', $nombreActividad)->first();
+
+            if (!$actividad) {
+                return response()->json(['success' => false, 'message' => 'No se encontró la actividad: ' . $nombreActividad], 404);
             }
 
-            $evento = DB::table('Evento')->where('Nombre_Evento', trim($request->tipo_evento))->first();
-            if (!$evento) {
-                return response()->json(['success' => false, 'message' => 'No se encontró el evento.'], 404);
-            }
-
-            $categoria = DB::table('Categoria_Evento')->where('Id_Categoria_Evento', $evento->Id_Categoria_Evento)->first();
-            $idActividad = ($categoria && str_starts_with($categoria->Clave_Categoria, 'asamblea')) ? 1 : 2;
-
-            // Intentamos insertar
+            // 3. Insertamos usando el ID real que encontramos
+            // NOTA: Revisa cómo se llama tu columna de ID en la tabla Actividad.
+            // Si no se llama 'Id_Actividad', cámbialo por el nombre correcto (ej. 'id')
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
                 'Fecha'         => $request->fecha_nueva ?? now(),
                 'Id_Ejidatario' => $request->id_ejidatario,
                 'Id_Sesion'     => null,
-                'Id_Actividad'  => $idActividad
+                'Id_Actividad'  => $actividad->Id_Actividad // <--- Asegúrate que este nombre de columna sea el correcto
             ]);
 
             return response()->json(['success' => true]);
 
-        } catch (\Illuminate\Database\QueryException $e) {
-            // Esto te dirá exactamente si el error es por una columna NOT NULL o una llave foránea
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de BD: ' . $e->getMessage()
-            ], 500);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error general: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
