@@ -39,6 +39,10 @@ class Reparto2Controller extends Controller
         $sesionesAsambleasIds = $this->obtenerSesionesPorTipo('asamblea', $anoActual);
         $sesionesFaenasIds = $this->obtenerSesionesPorTipo('faena', $anoActual);
 
+        // Obtenemos todos los IDs válidos para Asamblea y Faena dinámicamente
+        $idsAsambleas = DB::table('Actividad')->where('Tipo', 'Asamblea')->pluck('Id_Actividad')->toArray();
+        $idsFaenas = DB::table('Actividad')->where('Tipo', 'Faena')->pluck('Id_Actividad')->toArray();
+
         $query = DB::table('Ejidatario as e')
             ->join('usuario as u', 'e.Id_usuario', '=', 'u.Id_usuario')
             ->select(
@@ -49,11 +53,8 @@ class Reparto2Controller extends Controller
             );
 
         if ($request->filled('query')) {
-
             $search = trim($request->get('query'));
-
             $query->where(function ($q) use ($search) {
-
                 $q->where('u.Nombres', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Paterno', 'LIKE', "%{$search}%")
                     ->orWhere('u.Apellido_Materno', 'LIKE', "%{$search}%")
@@ -72,9 +73,10 @@ class Reparto2Controller extends Controller
             $sesionesAsambleasIds,
             $sesionesFaenasIds,
             $costoAsamblea,
-            $costoFaena
+            $costoFaena,
+            $idsAsambleas,
+            $idsFaenas
         ) {
-
             $totalPrestamoR1 = DB::table('Prestamo')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Id_Utilidad', $this->idUtilidadReparto1)
@@ -86,9 +88,7 @@ class Reparto2Controller extends Controller
                 ->where('Prestamo.Id_Utilidad', $this->idUtilidadReparto1)
                 ->sum('Abono.Monto') ?? 0;
 
-            $deudaRealRestante = max(0, $totalPrestamoR1 - $totalAbonosR1);
-
-            $ejidatario->deuda_arrastrada_r1 = $deudaRealRestante;
+            $ejidatario->deuda_arrastrada_r1 = max(0, $totalPrestamoR1 - $totalAbonosR1);
 
             $asistenciasEjidatario = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
@@ -98,37 +98,28 @@ class Reparto2Controller extends Controller
                 ->pluck('Id_Sesion')
                 ->toArray();
 
+            // Contamos reprogramaciones usando los arreglos dinámicos de IDs
             $reprosAsambleas = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNull('Id_Sesion')
-                ->where('Id_Actividad', 1) // ID de Asamblea
+                ->whereIn('Id_Actividad', $idsAsambleas)
                 ->count();
 
             $reprosFaenas = DB::table('PaseLista')
                 ->where('Id_Ejidatario', $ejidatario->Id_Ejidatario)
                 ->where('Asistencia', 1)
                 ->whereNull('Id_Sesion')
-                ->where('Id_Actividad', 2) // ID de Faena
+                ->whereIn('Id_Actividad', $idsFaenas)
                 ->count();
 
-            $faltasAsambleasCount = count(
-                array_diff($sesionesAsambleasIds, $asistenciasEjidatario)
-            );
+            $faltasAsambleasCount = count(array_diff($sesionesAsambleasIds, $asistenciasEjidatario));
+            $faltasFaenasCount = count(array_diff($sesionesFaenasIds, $asistenciasEjidatario));
 
-            $faltasFaenasCount = count(
-                array_diff($sesionesFaenasIds, $asistenciasEjidatario)
-            );
+            $ejidatario->total_asambleas = max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
+            $ejidatario->total_faenas = max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
 
-            $ejidatario->total_asambleas =
-                max(0, ($faltasAsambleasCount - $reprosAsambleas)) * $costoAsamblea;
-
-            $ejidatario->total_faenas =
-                max(0, ($faltasFaenasCount - $reprosFaenas)) * $costoFaena;
-
-            $ejidatario->total_a_pagar =
-                $montoFijoR2 -
-                (
+            $ejidatario->total_a_pagar = $montoFijoR2 - (
                     $ejidatario->deuda_arrastrada_r1 +
                     $ejidatario->total_asambleas +
                     $ejidatario->total_faenas
@@ -137,10 +128,7 @@ class Reparto2Controller extends Controller
             return $ejidatario;
         });
 
-        return view(
-            'cpanel.Repartos.segundo-reparto',
-            compact('ejidatarios', 'montoFijoR2')
-        );
+        return view('cpanel.Repartos.segundo-reparto', compact('ejidatarios', 'montoFijoR2'));
     }
 
     public function posponerSiguienteAnio($id)
@@ -332,30 +320,24 @@ class Reparto2Controller extends Controller
     public function reprogramarFalta(Request $request)
     {
         try {
-            // 1. Identificamos el nombre que buscamos en la tabla 'Actividad'
-            // Ajusta estos nombres si en tu tabla 'Tipo' se guardan diferente
-            $nombreActividad = str_starts_with(strtolower($request->tipo_evento), 'asamblea') ? 'Asamblea' : 'Faena';
+            $nombre = str_starts_with(strtolower($request->tipo_evento), 'asamblea') ? 'Asamblea' : 'Faena';
 
-            // 2. Buscamos el registro real en la tabla Actividad
-            $actividad = DB::table('Actividad')->where('Tipo', $nombreActividad)->first();
+            // Obtenemos un ID válido de la tabla
+            $actividad = DB::table('Actividad')->where('Tipo', $nombre)->first();
 
             if (!$actividad) {
-                return response()->json(['success' => false, 'message' => 'No se encontró la actividad: ' . $nombreActividad], 404);
+                return response()->json(['success' => false, 'message' => 'No hay actividades de tipo ' . $nombre], 404);
             }
 
-            // 3. Insertamos usando el ID real que encontramos
-            // NOTA: Revisa cómo se llama tu columna de ID en la tabla Actividad.
-            // Si no se llama 'Id_Actividad', cámbialo por el nombre correcto (ej. 'id')
             DB::table('PaseLista')->insert([
                 'Asistencia'    => 1,
                 'Fecha'         => $request->fecha_nueva ?? now(),
                 'Id_Ejidatario' => $request->id_ejidatario,
                 'Id_Sesion'     => null,
-                'Id_Actividad'  => $actividad->Id_Actividad // <--- Asegúrate que este nombre de columna sea el correcto
+                'Id_Actividad'  => $actividad->Id_Actividad // Usa el ID real encontrado
             ]);
 
             return response()->json(['success' => true]);
-
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
