@@ -169,7 +169,7 @@
                     {{-- ACTIVIDADES --}}
                     @if(in_array('actividades_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
-                            <li class="nav-item mt-3 border-top border-secondary pt-2">
+                        <li class="nav-item mt-3 border-top border-secondary pt-2">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#actividadesMenu">
                                 <i class="fas fa-clipboard-check me-2"></i> Actividades <i class="fas fa-angle-down float-end mt-1"></i>
                             </a>
@@ -210,7 +210,7 @@
                     </li>
 
                     {{--
-                     PARCELAS 
+                     PARCELAS
                     @if(in_array('parcelas_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#parcelasMenu">
@@ -228,7 +228,7 @@
 
                     {{-- MULTAS --}}
                     <li class="nav-item">
-                        <li class="nav-item mt-3 border-top border-secondary pt-2">
+                    <li class="nav-item mt-3 border-top border-secondary pt-2">
                         <a class="nav-link text-white" data-bs-toggle="collapse" href="#multasMenu">
                             <i class="fas fa-file-invoice-dollar me-2"></i> Multas <i class="fas fa-angle-down float-end mt-1"></i>
                         </a>
@@ -258,8 +258,8 @@
                         </li>
                     @endif
 
-                    {{-- 
-                    GASTOS 
+                    {{--
+                    GASTOS
                     @if(in_array('gastos_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#gastosMenu">
@@ -275,8 +275,8 @@
                     @endif
                     --}}
 
-                    {{-- 
-                    INVENTARIO 
+                    {{--
+                    INVENTARIO
                     @if(in_array('inventario_ver', session('usuario.permisos', [])))
                         <li class="nav-item">
                             <a class="nav-link text-white" data-bs-toggle="collapse" href="#inventarioMenu">
@@ -327,7 +327,18 @@
 <footer class="footer bg-dark text-light py-4 border-top border-primary">
     <div class="container text-center">
         <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="50" class="mb-2">
-        <h6 class="text-uppercase fw-bold mb-0">Sistema de Gestión Ejidal</h6>
+        <h6 class="text-uppercase fw-bold mb-2">
+            Sistema de Gestión Ejidal
+        </h6>
+        <!-- ICONOS REDES -->
+        <div class="mb-2">
+            <a href="https://www.facebook.com/share/1JCd6gqLfZ/" target="_blank" class="text-light mx-2">
+                <i class="fab fa-facebook fa-lg"></i>
+            </a>
+            <a href="https://www.instagram.com/valle_de_luciernagas_esri?igsh=dTc5MHV1OHVzMTNx" target="_blank" class="text-light mx-2">
+                <i class="fab fa-instagram fa-lg"></i>
+            </a>
+        </div>
         <div style="font-size: 0.7rem;" class="text-secondary mt-3">
             <p class="mb-1">&copy; 2026 Todos los Derechos Reservados D.R.A.</p>
         </div>
