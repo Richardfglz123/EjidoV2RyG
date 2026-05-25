@@ -75,7 +75,7 @@ class EjidatariosController extends Controller
             'Clave_Elector'      => 'required|string|max:20',
             'Fecha_Ingreso'      => 'required|date',
             'Id_Estatus'         => 'required|exists:Estatus,Id_Estatus',
-            'Id_Usuario'         => 'required|exists:Usuario,Id_Usuario',
+            'Id_Usuario'         => 'required|exists:usuario,Id_Usuario',
         ], [
             'Num_Ejidatario.unique' => 'Ese número de ejidatario ya está registrado.',
             'CURP.unique' => 'La CURP ya se encuentra registrada.',
