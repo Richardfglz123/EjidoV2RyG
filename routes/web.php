@@ -76,8 +76,6 @@ Route::get('/limpiar', function () {
 });
 
 
-// GRUPO PROTEGIDO (AUTH Y 2FA)
-
 // Dashboard e Inicio
 Route::get('/admon', [InicioController::class, 'index'])->name('inicio');
 
@@ -86,7 +84,7 @@ Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil.index');
 Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
 
-// --- MÓDULO: USUARIOS
+    // --- MÓDULO: USUARIOS
 Route::prefix('admon/usuarios')->group(function () {
 
     // PERMISO: VER
@@ -119,7 +117,7 @@ Route::prefix('admon/usuarios')->group(function () {
     });
 });
 
-// Modulo Ejidatarios
+    // Modulo Ejidatarios
 Route::prefix('admon/Ejidatarios')->group(function () {
     Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
     Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
@@ -140,7 +138,7 @@ Route::prefix('admon/Ejidatarios')->group(function () {
 });
 
 
-// --- MÓDULO: DESCUENTOS Y AJAX (CORREGIDO PARA REPARTO 2) ---
+    // --- MÓDULO: DESCUENTOS Y AJAX (CORREGIDO PARA REPARTO 2) ---
 Route::get('admon/finanzas/segundo-reparto/detalle-asambleas/{id}', [Reparto2Controller::class, 'obtenerDetalleAsambleas']);
 Route::get('admon/finanzas/segundo-reparto/detalle-faenas/{id}', [Reparto2Controller::class, 'obtenerDetalleFaenas']);
 Route::post('admon/finanzas/segundo-reparto/reprogramar-falta', [Reparto2Controller::class, 'reprogramarFalta'])->name('reprogramar.falta');
@@ -150,16 +148,16 @@ Route::post('/descuento/guardar', [DescuentoController::class, 'store'])->name('
 Route::get('/descuento-configuracion', [DescuentoController::class, 'descuento'])->name('descuento.descuento');
 Route::patch('/descuento-update/{id}', [DescuentoController::class, 'update'])->name('descuento.update');
 
-// Ruta para el boton de "Abonar/Pagar" en el Segundo Reparto
+    // Ruta para el boton de "Abonar/Pagar" en el Segundo Reparto
 Route::post('/prestamo/abonar-r2/{id}', [Reparto2Controller::class, 'abonarPrestamo'])->name('prestamo.abonar.r2');
 
 Route::get('/descuentos/asambleas', [AsambleaController::class, 'index'])->name('descuentos.asambleas');
 Route::get('/descuentos-faenas', [FaenasController::class, 'index'])->name('descuentos.faenas');
 Route::post('/faenas/aplicar', [FaenasController::class, 'aplicarDescuento'])->name('faenas.aplicar');
-//EXPOR FINAL
+    //EXPOR FINAL
 Route::get('/concentrado/excel', [ConcentradoController::class, 'exportarExcel'])->name('concentrado.excel');
 
-// MÓDULO: ACTIVIDADES
+    // MÓDULO: ACTIVIDADES
 Route::prefix('admon/actividades')->group(function () {
     Route::middleware(['permiso:actividades_ver'])->group(function () {
         Route::get('/', [ActividadesController::class, 'index'])->name('actividades.index');
@@ -187,7 +185,7 @@ Route::prefix('admon/actividades')->group(function () {
 });
 
 
-// REPORTES
+    // REPORTES
 Route::middleware(['permiso:usuarios_ver'])->prefix('admon/reportes/usuarios')->group(function () {
     Route::get('/pdf', [ReportesUController::class, 'GenerarPDF'])->name('reportes.usuarios.pdf');
     Route::get('/excel', [ReportesUController::class, 'GenerarExcel'])->name('reportes.usuarios.excel');
@@ -199,7 +197,7 @@ Route::middleware(['permiso:ejidatarios_ver'])->prefix('admon/reportes/ejidatari
 });
 
 
-//  RUTA GLOBAL PARA VER ARCHIVOS (Indispensable para Hostinger)
+    //  RUTA GLOBAL PARA VER ARCHIVOS (Indispensable para Hostinger)
 Route::get('ver-archivo/{path}', function ($path) {
     $path = urldecode($path);
     $cleanPath = str_replace('storage/', '', $path);
@@ -211,7 +209,7 @@ Route::get('ver-archivo/{path}', function ($path) {
     return Illuminate\Support\Facades\Storage::disk('public')->response($cleanPath);
 })->where('path', '.*')->name('ver.archivo');
 
-// MÓDULO: DATOS HISTÓRICOS
+    // MÓDULO: DATOS HISTÓRICOS
 Route::middleware(['permiso:historicos_ver'])->prefix('admon/DatosHistoricos')->group(function () {
     Route::get('/reportes/pdf', [DatosHistoricosController::class, 'reportePDF'])->name('datos_historicos.reporte.pdf');
     Route::get('/reportes/excel', [DatosHistoricosController::class, 'reporteExcel'])->name('datos_historicos.reporte.excel');
@@ -228,7 +226,7 @@ Route::middleware(['permiso:historicos_ver'])->prefix('admon/DatosHistoricos')->
 });
 
 
-// MÓDULO: PARCELAS
+    // MÓDULO: PARCELAS
 Route::middleware(['permiso:parcelas_ver'])->group(function () {
     Route::get('/parcelas', [ParcelaController::class, 'index'])->name('parcelas.index');
     Route::get('/verParcela', [ParcelaController::class, 'verParcela'])->name('parcelas.ver');
@@ -243,7 +241,7 @@ Route::middleware(['permiso:parcelas_ver'])->group(function () {
 });
 
 
-// MÓDULO: GASTOS
+    // MÓDULO: GASTOS
 Route::middleware(['permiso:gastos_ver'])->group(function () {
     Route::get('/gastos', [GastoController::class, 'index'])->name('gastos.index');
     Route::get('/gastos-pdf', [GastoController::class, 'generarPdf'])->name('gastos.pdf');
@@ -260,7 +258,7 @@ Route::middleware(['permiso:gastos_ver'])->group(function () {
 });
 
 
-// MÓDULO: INVENTARIO
+    // MÓDULO: INVENTARIO
 Route::middleware(['permiso:inventario_ver'])->group(function () {
     Route::get('/articulos', [ArticuloController::class, 'index'])->name('articulos.index');
     Route::get('/articulos/buscar', [ArticuloController::class, 'buscar'])->name('articulos.buscar');
@@ -293,7 +291,7 @@ Route::middleware(['permiso:inventario_ver'])->group(function () {
 });
 
 
-// MÓDULO: RESPALDO
+    // MÓDULO: RESPALDO
 Route::middleware(['permiso:respaldo_ver'])->prefix('admon')->group(function () {
     Route::get('/Respaldos', [RespaldoController::class, 'index'])->name('Respaldos.index');
     Route::post('/Respaldos/generar', [RespaldoController::class, 'store'])->name('Respaldos.store');
@@ -302,7 +300,7 @@ Route::middleware(['permiso:respaldo_ver'])->prefix('admon')->group(function () 
 });
 
 
-// MÓDULO: CONFIGURACIÓN Y PERMISOS
+    // MÓDULO: CONFIGURACIÓN Y PERMISOS
 Route::prefix('configuracion')->group(function () {
     Route::get('/usuarios/buscar-ajax', [ConfiguracionController::class, 'buscarUsuariosAjax'])->name('configuracion.usuarios.buscar_ajax');
 
@@ -318,7 +316,7 @@ Route::prefix('configuracion')->group(function () {
 });
 
 
-// --- MÓDULO: EXPEDIENTES ---
+    // --- MÓDULO: EXPEDIENTES ---
 Route::prefix('admon/expedientes')->group(function () {
     Route::get('/', [ExpedienteController::class, 'index'])->name('expedientes.index');
     Route::get('/{id}', [ExpedienteController::class, 'show'])->name('expedientes.show');
@@ -343,7 +341,7 @@ Route::get('expedientes/{slug}/{archivo}', function ($slug, $archivo) {
     return response()->file($fullPath);
 })->where('archivo', '.*');
 
-// MÓDULO: ADMINISTRACIÓN DE FAENAS
+    // MÓDULO: ADMINISTRACIÓN DE FAENAS
 Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(function () {
     Route::get('/', [FaenasController::class, 'index'])->name('faenas.index');
 
@@ -357,7 +355,7 @@ Route::middleware(['permiso:faenas_ver'])->prefix('admon/faenas')->group(functio
 });
 
 
-// MÓDULO: REPARTOS
+    // MÓDULO: REPARTOS
 Route::middleware(['permiso:repartos_ver'])->prefix('admon/repartos')->group(function () {
     Route::get('/', [RepartoController::class, 'mostrarPrimerReparto'])->name('repartos.index');
 
@@ -368,7 +366,7 @@ Route::middleware(['permiso:repartos_ver'])->prefix('admon/repartos')->group(fun
 });
 
 
-// MÓDULO: REPARTOS Y FINANZAS (UTILIDADES)
+    // MÓDULO: REPARTOS Y FINANZAS (UTILIDADES)
 Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(function () {
     Route::get('/menu-repartos', [RepartoController::class, 'menu'])->name('menu');
     Route::get('/registro-repartos', [RepartoController::class, 'index'])->name('monto.index');
@@ -416,13 +414,13 @@ Route::middleware(['permiso:utilidades_ver'])->prefix('admon/finanzas')->group(f
     Route::get('/ejidatarios/buscar', [Reparto2Controller::class, 'buscarEjidatarios'])->name('ejidatarios.buscar_segundo');
 });
 
-// RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
+    // RECURSOS AUTOMÁTICOS (EVENTOS, CATEGORÍAS Y MULTAS) ---
 Route::resource('eventos', EventoController::class);
 Route::resource('categorias', CategoriaEventoController::class);
 Route::resource('multas', MultaController::class);
 
 
-// MÓDULO: PASE DE LISTA Y ASISTENCIA
+    // MÓDULO: PASE DE LISTA Y ASISTENCIA
 Route::prefix('asistencia')->group(function () {
     Route::get('/', [PaseListaController::class, 'index'])->name('asistencia.index');
     Route::delete('/asistencia/{id}', [PaseListaController::class, 'destroy'])->name('asistencia.destroy');
@@ -434,12 +432,12 @@ Route::prefix('asistencia')->group(function () {
 
 Route::post('/social/unlink/{provider}', [SocialController::class, 'unlink'])->name('social.unlink');
 
-// RUTAS DE PRUEBAS
+    // RUTAS DE PRUEBAS
 Route::get('/test-qr', function () {
     $ejidatarios = \App\Models\Ejidatario::with('usuario')->get();
     return view('test_qr', compact('ejidatarios'));
 });
-// NO BORRAR (NO SE QUE HACE PERO SI SE ELIMINA TRUENA)
+    // NO BORRAR (NO SE QUE HACE PERO SI SE ELIMINA TRUENA)
 Route::get('storage/perfiles/{filename}', function ($filename) {
     $path = 'perfiles/' . $filename;
 

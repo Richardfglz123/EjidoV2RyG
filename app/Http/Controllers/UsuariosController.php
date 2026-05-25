@@ -84,7 +84,7 @@ class UsuariosController extends Controller
 
         $data = $query->paginate(10)->withQueryString();
 
-        if ($request->expectsJson() || $request->isJson()) {
+        if ($request->query('format') === 'json') {
             return response()->json($data);
         }
         return view('cpanel.usuarios.indexusuario', compact('data'));
