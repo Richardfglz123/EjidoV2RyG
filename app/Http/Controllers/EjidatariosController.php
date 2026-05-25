@@ -195,33 +195,4 @@ class EjidatariosController extends Controller
 
         return response()->json($resultados);
     }
-
-    public function analizarGrupos() {
-    //Obtenemos los datos con el nombre de columna correcto
-    $ejidatarios = DB::table('Ejidatario as e')
-        ->join('Estatus as s', 'e.Id_Estatus', '=', 's.Id_Estatus')
-        ->select('e.Id_Ejidatario as id', 'e.CURP', 's.Estatus as estatus') // <-- Aseguramos que se llame 'estatus'
-        ->get();
-
-    //Definimos pesos
-    $mapeo = [
-        'Activo' => 1, 'En servicio' => 1, 'Pertenece al ejido' => 1,
-        'Difunto' => 0, 'Baja' => 0, 'Proceso de sucesión' => 0,
-        'Enfermo' => 2, 'Suspendido' => 2, 'Suspensión' => 2
-    ];
-
-    //Procesamos para que la vista reciba lo que espera
-    $resultados = $ejidatarios->map(function($item) use ($mapeo) {
-        $valorIA = $mapeo[$item->estatus] ?? 0;
-        
-        return [
-            'id'      => $item->id,
-            'CURP'    => $item->CURP,
-            'estatus' => $item->estatus, //Esto llenará "Estatus Original"
-            'cluster' => $valorIA        //Esto activará los @if de la columna "Prioridad"
-        ];
-    });
-
-    return view('cpanel.ejidatarios.analisisAlgoritmo', ['datos' => $resultados]);
-    }
 }
