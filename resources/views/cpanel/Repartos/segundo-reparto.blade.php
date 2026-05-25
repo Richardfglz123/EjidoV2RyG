@@ -321,7 +321,6 @@
         function mostrarRepro(index) {
             $(`#repro_form_${index}`).toggle();
         }
-
         function confirmarReprogramacion(idEjidatario, tipoEvento, index) {
             const inputFecha = $(`#date_${index}`);
             const fecha = inputFecha.val();
@@ -331,7 +330,7 @@
             if(fecha < hoy) { alert("No se puede programar una fecha anterior al día de hoy."); return; }
 
             $.ajax({
-                url: "{{ url('admon/finanzas/segundo-reparto/reprográmr-falta') }}",
+                url: "{{ route('reprogramar.falta') }}",
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
