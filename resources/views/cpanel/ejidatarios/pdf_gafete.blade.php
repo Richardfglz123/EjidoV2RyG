@@ -2,61 +2,40 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gafete - {{ $fila->Num_Ejidatario }}</title>
     <style>
+        @page { size: 54mm 86mm; margin: 0; }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 5mm;
             text-align: center;
         }
-        .gafete-container {
+        .gafete {
             border: 2px solid #198754;
-            padding: 20px;
             border-radius: 10px;
-            width: 200px;
-            margin: auto;
+            padding: 10px;
+            height: 76mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
-        .header {
-            font-size: 14px;
-            font-weight: bold;
-            color: #198754;
-            margin-bottom: 10px;
-        }
-        .qr-area {
-            margin: 15px 0;
-        }
-        .nombre-ejidatario {
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 10px;
-            display: block;
-        }
-        .num-ejidatario {
-            font-size: 10px;
-            color: #666;
-            margin-top: 5px;
-        }
+        .header { font-size: 14px; font-weight: bold; color: #198754; margin-bottom: 10px; }
+        .qr-container { margin: 10px 0; }
+        .nombre { font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 10px 0; }
+        .num { font-size: 10px; color: #666; }
     </style>
 </head>
 <body>
-
-<div class="gafete-container">
+<div class="gafete">
     <div class="header">EJIDO SAN RAFAEL<br>IXTAPALUCAN</div>
 
-    <div class="qr-area">
-        {!! QrCode::size(150)->generate($fila->qr_payload) !!}
+    <div class="qr-container">
+        <img src="data:image/png;base64, {!! base64_encode(QrCode::format('png')->size(150)->generate($fila->qr_payload)) !!} ">
     </div>
 
-    <div class="nombre-ejidatario">
-        {{ $fila->Nombres }} {{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}
-    </div>
-
-    <div class="num-ejidatario">
-        # {{ $fila->Num_Ejidatario }}
-    </div>
+    <div class="nombre">{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}</div>
+    <div class="num">N. E.: {{ $fila->Num_Ejidatario }}</div>
 </div>
-
 </body>
 </html>
