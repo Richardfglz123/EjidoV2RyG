@@ -10,18 +10,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
-        /* Ajustes para que el menú funcione en móvil */
         @media (max-width: 991.98px) {
             #sidebarMenu {
                 position: fixed;
-                top: 65px; /* Altura del header */
+                top: 65px;
                 left: 0;
                 width: 100%;
                 height: calc(100vh - 65px);
                 z-index: 1000;
                 background-color: #212529 !important;
                 overflow-y: auto;
-                display: none; /* Se controla con la clase .show de Bootstrap */
+                display: none;
             }
             #sidebarMenu.show {
                 display: block;
@@ -31,7 +30,6 @@
             }
         }
 
-        /* Asegurar que el botón hamburguesa sea visible */
         .navbar-toggler {
             border: 1px solid rgba(255,255,255,0.2) !important;
         }
@@ -52,10 +50,16 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <a class="navbar-brand d-flex align-items-center gap-2 m-0 p-0" href="{{ route('inicio') }}">
-                <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
-                <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">Sistema Ejidal San Rafael Ixtapalucan</span>
-            </a>
+            <nav class="navbar navbar-ejidal navbar-dark">
+                <div class="container-fluid">
+        <span class="navbar-brand d-flex align-items-center gap-2 m-0 p-0">
+            <img src="{{ asset('SnRafael.png') }}" alt="Logo" height="35">
+            <span class="fw-bold d-none d-sm-inline" style="font-size: 1rem;">
+                Sistema Ejidal San Rafael Ixtapalucan
+            </span>
+        </span>
+                </div>
+            </nav>
         </div>
 
         <div class="dropdown">
