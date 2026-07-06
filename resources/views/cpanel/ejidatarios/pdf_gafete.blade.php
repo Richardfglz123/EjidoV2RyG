@@ -3,34 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        @page {
-            size: 54mm 86mm;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
+        @page { size: 54mm 86mm; margin: 0; }
 
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
+        body {
+            margin: 0;
+            padding: 0;
             width: 54mm;
             height: 86mm;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
 
         .gafete {
+            position: relative;
             width: 50mm;
             height: 82mm;
-            margin: 2mm auto;
+            margin: 2mm;
             border: 2px solid #198754;
             border-radius: 5px;
             text-align: center;
-            display: block;
         }
 
-        .header { font-size: 12px; font-weight: bold; color: #198754; margin-top: 5px; }
-        .qr-container { margin: 2px 0; }
-        .nombre { font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 2px 0; }
-        .num { font-size: 8px; color: #666; }
+        .header { margin-top: 5mm; font-size: 13px; font-weight: bold; color: #198754; }
+        .qr-container { margin-top: 5mm; }
+        .nombre { margin-top: 5mm; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .num { margin-top: 2mm; font-size: 9px; color: #666; }
     </style>
 </head>
 <body>

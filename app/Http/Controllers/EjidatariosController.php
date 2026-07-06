@@ -240,8 +240,14 @@ class EjidatariosController extends Controller
 
         if (!$fila) return back()->withErrors('Ejidatario no encontrado.');
 
-        $pdf = Pdf::loadView('cpanel.ejidatarios.pdf_gafete', compact('fila'));
-        $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+        // 153.07pt x 243.78pt es exactamente 54mm x 86mm
+        $pdf = Pdf::loadView('cpanel.ejidatarios.pdf_gafete', compact('fila'))
+            ->setPaper([0, 0, 153.07, 243.78], 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'dpi' => 96
+            ]);
 
         return $pdf->stream('Gafete_'.$fila->Num_Ejidatario.'.pdf');
     }

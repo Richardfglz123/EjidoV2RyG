@@ -210,7 +210,6 @@
                             <div class="qr-raw-text">{{ $fila->qr_payload }}</div>
                         </div>
 
-                        {{-- Footer corregido: botones limpios y alineados --}}
                         <div class="modal-footer border-0 justify-content-center pb-4">
                             <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
                                 <i class="fas fa-times me-1"></i> Cerrar
