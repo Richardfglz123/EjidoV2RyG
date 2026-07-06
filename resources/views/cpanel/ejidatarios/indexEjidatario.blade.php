@@ -185,6 +185,7 @@
         @if(!empty($fila->qr_payload))
             @php
                 $nombrePartes = [$fila->Nombres, $fila->Apellido_Paterno, $fila->Apellido_Materno];
+                $nombreCompletoModal = preg_replace('/\s+/', ' ', trim(str_ireplace(['\n', "\n", "\r"], ' ', implode(' ', array_filter($nombrePartes)))));
             @endphp
             <div class="modal fade" id="modalQR{{ $fila->Id_Ejidatario }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-sm p-3">
