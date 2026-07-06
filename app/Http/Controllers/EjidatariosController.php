@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EjidatariosController extends Controller
 {
@@ -228,5 +229,20 @@ class EjidatariosController extends Controller
             ->get();
 
         return response()->json($ejidatarios);
+    }
+    public function reimprimirGafete($id)
+    {
+        $fila = DB::table('Ejidatario as e')
+            ->join('usuario as u', 'e.Id_Usuario', '=', 'u.Id_Usuario')
+            ->select('e.*', 'u.Nombres', 'u.Apellido_Paterno', 'u.Apellido_Materno')
+            ->where('e.Id_Ejidatario', $id)
+            ->first();
+
+        if (!$fila) return back()->withErrors('Ejidatario no encontrado.');
+
+        $pdf = Pdf::loadView('cpanel.ejidatarios.pdf_gafete', compact('fila'))
+            ->setPaper([0, 0, 200, 300]); // Ajusta el tamaño al de un gafete
+
+        return $pdf->stream('Gafete_'.$fila->Num_Ejidatario.'.pdf');
     }
 }

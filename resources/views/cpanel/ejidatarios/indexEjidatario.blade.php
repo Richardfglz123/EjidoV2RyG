@@ -180,7 +180,6 @@
         </div>
     </div>
 
-    {{-- Modales al final para evitar saltos de scroll --}}
     @foreach($data as $fila)
         @if(!empty($fila->qr_payload))
             @php
@@ -210,6 +209,16 @@
                             <div class="qr-raw-text">{{ $fila->qr_payload }}</div>
                         </div>
                         <div class="modal-footer border-0 justify-content-center pb-4">
+                            <div class="modal-footer border-0 justify-content-center pb-4">
+                                <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cerrar</button>
+
+                                {{-- Botón de Reimprimir --}}
+                                <a href="{{ route('Ejidatarios.reimprimirGafete', $fila->Id_Ejidatario) }}"
+                                   class="btn btn-primary btn-sm px-4"
+                                   target="_blank">
+                                    <i class="fas fa-print me-1"></i> Reimprimir Gafete
+                                </a>
+                            </div>
                             <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cerrar</button>
                         </div>
                     </div>

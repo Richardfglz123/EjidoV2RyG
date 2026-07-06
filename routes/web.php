@@ -122,7 +122,8 @@ Route::prefix('admon/Ejidatarios')->group(function () {
     Route::get('/buscar-json', [RepartoController::class, 'buscarEjidatario'])->name('ejidatarios.buscar');
     Route::get('ejidatarios/{id_ejidatario}/saldo-json', [RepartoController::class, 'obtenerSaldo'])->name('ejidatarios.saldo');
     Route::get('/api/cp/{cp}', [EjidatariosController::class, 'buscarCP'])->name('api.cp');
-
+    Route::get('/ejidatarios/reimprimir-gafete/{id}', [App\Http\Controllers\EjidatariosController::class, 'reimprimirGafete'])
+        ->name('Ejidatarios.reimprimirGafete');
     Route::middleware(['permiso:ejidatarios_crear'])->group(function () {
         Route::get('/create', [EjidatariosController::class, 'create'])->name('Ejidatarios.create');
         Route::post('/', [EjidatariosController::class, 'store'])->name('Ejidatarios.store');
