@@ -180,11 +180,11 @@
         </div>
     </div>
 
+    {{-- JS--}}
     @foreach($data as $fila)
         @if(!empty($fila->qr_payload))
             @php
                 $nombrePartes = [$fila->Nombres, $fila->Apellido_Paterno, $fila->Apellido_Materno];
-                $nombreCompletoModal = preg_replace('/\s+/', ' ', trim(str_ireplace(['\n', "\n", "\r"], ' ', implode(' ', array_filter($nombrePartes)))));
             @endphp
             <div class="modal fade" id="modalQR{{ $fila->Id_Ejidatario }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-sm p-3">
@@ -208,18 +208,18 @@
                             <p class="text-muted mb-1" style="font-size: 10px; font-weight: bold;">CÓDIGO DE VALIDACIÓN:</p>
                             <div class="qr-raw-text">{{ $fila->qr_payload }}</div>
                         </div>
-                        <div class="modal-footer border-0 justify-content-center pb-4">
-                            <div class="modal-footer border-0 justify-content-center pb-4">
-                                <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cerrar</button>
 
-                                {{-- Botón de Reimprimir --}}
-                                <a href="{{ route('Ejidatarios.reimprimirGafete', $fila->Id_Ejidatario) }}"
-                                   class="btn btn-primary btn-sm px-4"
-                                   target="_blank">
-                                    <i class="fas fa-print me-1"></i> Reimprimir Gafete
-                                </a>
-                            </div>
-                            <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Cerrar</button>
+                        {{-- Footer corregido: botones limpios y alineados --}}
+                        <div class="modal-footer border-0 justify-content-center pb-4">
+                            <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cerrar
+                            </button>
+
+                            <a href="{{ route('Ejidatarios.reimprimirGafete', $fila->Id_Ejidatario) }}"
+                               class="btn btn-primary btn-sm px-3"
+                               target="_blank">
+                                <i class="fas fa-print me-1"></i> Reimprimir Gafete
+                            </a>
                         </div>
                     </div>
                 </div>
