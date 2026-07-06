@@ -32,7 +32,7 @@
         <img src="data:image/png;base64, {!! base64_encode(QrCode::format('png')->size(130)->generate($fila->qr_payload)) !!}">
     </div>
     <div class="nombre">{{ $fila->Nombres }} {{ $fila->Apellido_Paterno }} {{ $fila->Apellido_Materno }}</div>
-    <div class="num">N. E.: {{ $fila->Num_Ejidatario }}</div>
+    <div class="num">No. Eji: {{ $fila->Num_Ejidatario }}</div>
 </div>
 </body>
 </html>
